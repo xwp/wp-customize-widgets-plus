@@ -8,12 +8,21 @@ namespace CustomizeWidgetsPlus;
 class Plugin extends Plugin_Base {
 
 	/**
+	 * @var Non_Autoloaded_Widget_Options
+	 */
+	public $non_autoloaded_widget_options;
+
+	/**
 	 * @param array $config
 	 */
 	public function __construct( $config = array() ) {
 
 		$default_config = array(
-			// ...
+			'disable_widgets_init' => false,
+			'disable_widgets_factory' => false,
+			'active_modules' => array(
+				'non_autoloaded_widget_options' => true,
+			),
 		);
 
 		$this->config = array_merge( $default_config, $config );
@@ -27,6 +36,150 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme
 	 */
 	function init() {
-		$this->config = \apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
+		$this->config = apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
+
+		if ( $this->is_running_unit_tests() ) {
+			$this->disable_widgets_init();
+			$this->config['active_modules'] = array_fill_keys( array_keys( $this->config['active_modules'] ), false );
+		}
+
+		if ( $this->config['disable_widgets_init'] ) {
+			$this->disable_widgets_init();
+		}
+		if ( $this->config['disable_widgets_factory'] ) {
+			$this->disable_widgets_factory();
+		}
+
+		if ( ! empty( $this->config['active_modules']['non_autoloaded_widget_options'] ) ) {
+			$this->non_autoloaded_widget_options = new Non_Autoloaded_Widget_Options( $this );
+		}
+	}
+
+	/**
+	 * Disable default widgets from being registered.
+	 *
+	 * @see wp_widgets_init()
+	 * @see Plugin::disable_widgets_factory()
+	 */
+	function disable_widgets_init() {
+		$priority = has_action( 'init', 'wp_widgets_init' );
+		if ( false !== $priority ) {
+			remove_action( 'init', 'wp_widgets_init', $priority );
+		}
+	}
+
+	/**
+	 * Disable the widget factory from registering widgets.
+	 *
+	 * @see \WP_Widget_Factory::_register_widgets()
+	 * @see Plugin::disable_widgets_init()
+	 */
+	function disable_widgets_factory() {
+		/**
+		 * @global \WP_Widget_Factory
+		 */
+		global $wp_widget_factory;
+
+		$widgets_init_hook = 'widgets_init';
+		$callable = array( $wp_widget_factory, '_register_widgets' );
+		if ( did_action( $widgets_init_hook ) ) {
+			trigger_error( 'widgets_init has already been called', E_USER_WARNING );
+		}
+		$priority = has_action( $widgets_init_hook, $callable );
+		if ( false !== $priority ) {
+			remove_action( $widgets_init_hook, $callable, $priority );
+		}
+	}
+
+	/**
+	 * @return bool
+	 */
+	function is_running_unit_tests() {
+		return function_exists( 'tests_add_filter' );
+	}
+
+	/**
+	 * @param array $registered_widget {
+	 *     @type string $name
+	 *     @type string $id
+	 *     @type callable $callback
+	 *     @type array $params
+	 *     @type string $classname
+	 *     @type string $description
+	 * }
+	 * @return bool
+	 */
+	function is_registered_multi_widget( array $registered_widget ) {
+		$is_multi_widget = ( is_array( $registered_widget['callback'] ) && $registered_widget['callback'][0] instanceof \WP_Widget );
+		if ( ! $is_multi_widget ) {
+			return false;
+		}
+		/**
+		 * @var \WP_Widget $widget_obj
+		 */
+		$widget_obj = $registered_widget['callback'][0];
+		$parsed_widget_id = $this->parse_widget_id( $registered_widget['id'] );
+		if ( ! $parsed_widget_id || $parsed_widget_id['id_base'] !== $widget_obj->id_base ) {
+			return false;
+		}
+		if ( ! $this->is_normal_multi_widget( $widget_obj ) ) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Returns the same thing as $wp_widget_factory->widgets before widgets_init@100 happens.
+	 *
+	 * @return \WP_Widget[]
+	 */
+	function get_registered_widget_objects() {
+		global $wp_registered_widgets;
+		$widget_objs = array();
+		foreach ( $wp_registered_widgets as $registered_widget ) {
+			if ( $this->is_registered_multi_widget( $registered_widget ) ) {
+				$widget_obj = $registered_widget['callback'][0];
+				$widget_class = get_class( $widget_obj );
+				if ( ! array_key_exists( $widget_class, $widget_objs ) ) {
+					$widget_objs[ $widget_class ] = $widget_obj;
+				}
+			}
+		}
+		return $widget_objs;
+	}
+
+	/**
+	 * @param string $widget_id
+	 *
+	 * @return array|null {
+	 *     @type string $id_base
+	 *     @type int $widget_number
+	 * }
+	 */
+	function parse_widget_id( $widget_id ) {
+		if ( preg_match( '/^(?P<id_base>.+)-(?P<widget_number>\d+)$/', $widget_id, $matches ) ) {
+			$matches['widget_number'] = intval( $matches['widget_number'] );
+			// @todo assert that id_base is valid
+			return $matches;
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * @param \WP_Widget $widget_obj
+	 * @return bool
+	 */
+	function is_normal_multi_widget( $widget_obj ) {
+		if ( ! ( $widget_obj instanceof \WP_Widget ) ) {
+			return false;
+		}
+		if ( ! preg_match( '/^widget_(?P<id_base>.+)/', $widget_obj->option_name, $matches ) ) {
+			return false;
+		}
+		if ( $widget_obj->id_base !== $matches['id_base'] ) {
+			return false;
+		}
+		return true;
 	}
 }

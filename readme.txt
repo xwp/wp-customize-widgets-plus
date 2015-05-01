@@ -1,13 +1,14 @@
 === Customize Widgets Plus ===
-Contributors: xwp
-Requires at least: 4.1
-Tested up to: 4.1
+Contributors: westonruter, xwp, newscorpau
+Requires at least: 4.2
+Tested up to: trunk
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Tags: customizer, customize, widgets
 
-Template plugin for starting XWP WP plugins.
+Lab features and a testbed for improvements to Widgets and the Customizer.
 
 == Description ==
 
-Template plugin for starting XWP WP plugins.
+Lab features and a testbed for improvements to Widgets and the Customizer.

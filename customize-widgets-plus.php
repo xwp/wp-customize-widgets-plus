@@ -2,9 +2,9 @@
 /**
  * Plugin Name: Customize Widgets Plus
  * Plugin URI: https://github.com/xwp/wp-customize-widgets-plus
- * Description: ...
+ * Description: Lab features and a testbed for improvements to Widgets and the Customizer.
  * Version: 0.1
- * Author:  XWP
+ * Author:  XWP, News Corp Australia
  * Author URI: https://xwp.co/
  * License: GPLv2+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
@@ -29,10 +29,7 @@
  */
 
 if ( version_compare( phpversion(), '5.3', '>=' ) ) {
-	require_once __DIR__ . '/php/class-plugin-base.php';
-	require_once __DIR__ . '/php/class-plugin.php';
-	$class_name = '\CustomizeWidgetsPlus\Plugin';
-	$GLOBALS['customize_widgets_plus_plugin'] = new $class_name();
+	require_once __DIR__ . '/instance.php';
 } else {
 	function customize_widgets_plus_php_version_error() {
 		printf( '<div class="error"><p>%s</p></div>', esc_html__( 'Customize Widgets Plus plugin error: Your version of PHP is too old to run this plugin. You must be running PHP 5.3 or higher.', 'customize-widgets-plus' ) );
