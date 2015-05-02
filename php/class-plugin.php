@@ -116,13 +116,6 @@ class Plugin extends Plugin_Base {
 		$deps = array( 'customize-widgets', $this->script_handles['widget-number-incrementing'] );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
-
-		$slug = 'widget-number-incrementing-admin';
-		$handle = "{$this->slug}-{$slug}";
-		$src = $this->dir_url . 'js/widget-number-incrementing-customizer.js';
-		$deps = array( 'admin-widgets', $this->script_handles['widget-number-incrementing'] );
-		$wp_scripts->add( $handle, $src, $deps );
-		$this->script_handles[ $slug ] = $handle;
 	}
 
 	/**

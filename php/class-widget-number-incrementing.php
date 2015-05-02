@@ -153,6 +153,7 @@ class Widget_Number_Incrementing {
 		$exports = array(
 			'nonce' => wp_create_nonce( self::AJAX_ACTION ),
 			'action' => self::AJAX_ACTION,
+			'retryCount' => 5,
 		);
 
 		wp_scripts()->add_data(
@@ -169,7 +170,11 @@ class Widget_Number_Incrementing {
 		if ( 'widgets' !== get_current_screen()->id ) {
 			return;
 		}
-		wp_enqueue_script( $this->plugin->script_handles['widget-number-incrementing-admin'] );
+
+		$admin_widgets_script = wp_scripts()->registered['admin-widgets'];
+		$admin_widgets_script->src = $this->plugin->dir_url . 'js/admin-widgets-patched.js';
+		$admin_widgets_script->deps[] = $this->plugin->script_handles['widget-number-incrementing'];
+		$admin_widgets_script->deps[] = 'wp-util';
 		$this->export_script_data();
 	}
 

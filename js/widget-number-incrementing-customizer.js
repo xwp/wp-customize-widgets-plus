@@ -28,7 +28,7 @@ wpCustomizeWidgetsPlus.widgetNumberIncrementing.customizer = ( function( $ ) {
 	 * @returns {object|boolean}
 	 */
 	self.addWidget = function( widgetId ) {
-		var sidebarControl = this, parsedWidgetId, widget, incrWidgetNumber, retryCount = 5, remainingRetryCount, widgetAdded, deferredWidgetFormControl, originalArguments, spinner, wasSpinnerActive;
+		var sidebarControl = this, parsedWidgetId, widget, incrWidgetNumber, remainingRetryCount, widgetAdded, deferredWidgetFormControl, originalArguments, spinner, wasSpinnerActive;
 		originalArguments = arguments;
 
 		parsedWidgetId = wpCustomizeWidgetsPlus.parseWidgetId( widgetId );
@@ -50,7 +50,7 @@ wpCustomizeWidgetsPlus.widgetNumberIncrementing.customizer = ( function( $ ) {
 		}
 		widgetAdded = $.Deferred();
 
-		remainingRetryCount = retryCount;
+		remainingRetryCount = wpCustomizeWidgetsPlus.widgetNumberIncrementing.retryCount;
 		incrWidgetNumber = function() {
 			var incrWidgetNumberRequest;
 			incrWidgetNumberRequest = wp.ajax.post( wpCustomizeWidgetsPlus.widgetNumberIncrementing.action, {
@@ -81,7 +81,7 @@ wpCustomizeWidgetsPlus.widgetNumberIncrementing.customizer = ( function( $ ) {
 				}
 
 				if ( 0 >= remainingRetryCount ) {
-					errorMessage = 'Failed request count: ' + retryCount + '.';
+					errorMessage = 'Failed request count: ' + wpCustomizeWidgetsPlus.widgetNumberIncrementing.retryCount + '.';
 					errorMessage += ' Last error code: ' + errorCode;
 					widgetAdded.reject( errorMessage );
 				} else if ( 'invalid_nonce' === errorCode || 'not_logged_in' === errorCode || 'unauthorized' === errorCode ) {

@@ -3,7 +3,8 @@
 wpCustomizeWidgetsPlus.widgetNumberIncrementing = ( function( $ ) {
 	var self = {
 		nonce: '',
-		action: ''
+		action: '',
+		retryCount: 0
 	};
 	$.extend( self, _customizeWidgetsPlusWidgetNumberIncrementingExports );
 

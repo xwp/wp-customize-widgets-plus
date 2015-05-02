@@ -1,4 +1,4 @@
-/*global ajaxurl, isRtl */
+/*global ajaxurl, isRtl, wpCustomizeWidgetsPlus, console */
 var wpWidgets;
 (function($) {
 
@@ -411,67 +411,102 @@ wpWidgets = {
 	addWidget: function( chooser ) {
 		var widget, widgetId, add, n, viewportTop, viewportBottom, sidebarBounds,
 			sidebarId = chooser.find( '.widgets-chooser-selected' ).data('sidebarId'),
-			sidebar = $( '#' + sidebarId );
+			sidebar = $( '#' + sidebarId ),
+			continuation,
+			incrWidgetNumberRequest,
+			idBase;
 
 		widget = $('#available-widgets').find('.widget-in-question').clone();
 		widgetId = widget.attr('id');
+		idBase = widget.find( 'input.id_base' ).val();
 		add = widget.find( 'input.add_new' ).val();
 		n = widget.find( 'input.multi_number' ).val(); // @todo Multi number obtained here
 
 		// Remove the cloned chooser from the widget
 		widget.find('.widgets-chooser').remove();
 
-		if ( 'multi' === add ) {
-			widget.html(
-				widget.html().replace( /<[^<>]+>/g, function(m) {
-					return m.replace( /__i__|%i%/g, n );
-				})
-			);
+		continuation = function ( n ) {
+			if ( 'multi' === add ) {
+				widget.html(
+					widget.html().replace( /<[^<>]+>/g, function(m) {
+						return m.replace( /__i__|%i%/g, n );
+					})
+				);
 
-			widget.attr( 'id', widgetId.replace( '__i__', n ) );
-			n++;
-			$( '#' + widgetId ).find('input.multi_number').val(n);
-		} else if ( 'single' === add ) {
-			widget.attr( 'id', 'new-' + widgetId );
-			$( '#' + widgetId ).hide();
+				widget.attr( 'id', widgetId.replace( '__i__', n ) );
+			} else if ( 'single' === add ) {
+				widget.attr( 'id', 'new-' + widgetId );
+				$( '#' + widgetId ).hide();
+			}
+
+			// Open the widgets container
+			sidebar.closest( '.widgets-holder-wrap' ).removeClass('closed');
+
+			sidebar.append( widget );
+			sidebar.sortable('refresh');
+
+			wpWidgets.save( widget, 0, 0, 1 );
+			// No longer "new" widget
+			widget.find( 'input.add_new' ).val('');
+
+			$( document ).trigger( 'widget-added', [ widget ] );
+
+			/*
+			 * Check if any part of the sidebar is visible in the viewport. If it is, don't scroll.
+			 * Otherwise, scroll up to so the sidebar is in view.
+			 *
+			 * We do this by comparing the top and bottom, of the sidebar so see if they are within
+			 * the bounds of the viewport.
+			 */
+			viewportTop = $(window).scrollTop();
+			viewportBottom = viewportTop + $(window).height();
+			sidebarBounds = sidebar.offset();
+
+			sidebarBounds.bottom = sidebarBounds.top + sidebar.outerHeight();
+
+			if ( viewportTop > sidebarBounds.bottom || viewportBottom < sidebarBounds.top ) {
+				$( 'html, body' ).animate({
+					scrollTop: sidebarBounds.top - 130
+				}, 200 );
+			}
+
+			window.setTimeout( function() {
+				// Cannot use a callback in the animation above as it fires twice,
+				// have to queue this "by hand".
+				widget.find( '.widget-title' ).trigger('click');
+			}, 250 );
+		};
+
+		if ( 'multi' !== add ) {
+			continuation( n );
+			return;
 		}
 
-		// Open the widgets container
-		sidebar.closest( '.widgets-holder-wrap' ).removeClass('closed');
+		incrWidgetNumberRequest = wp.ajax.post( wpCustomizeWidgetsPlus.widgetNumberIncrementing.action, {
+			nonce: wpCustomizeWidgetsPlus.widgetNumberIncrementing.nonce,
+			idBase: idBase
+		} );
 
-		sidebar.append( widget );
-		sidebar.sortable('refresh');
+		incrWidgetNumberRequest.done( function( res ) {
+			continuation( res.number );
+		} );
 
-		wpWidgets.save( widget, 0, 0, 1 );
-		// No longer "new" widget
-		widget.find( 'input.add_new' ).val('');
-
-		$( document ).trigger( 'widget-added', [ widget ] );
-
-		/*
-		 * Check if any part of the sidebar is visible in the viewport. If it is, don't scroll.
-		 * Otherwise, scroll up to so the sidebar is in view.
-		 *
-		 * We do this by comparing the top and bottom, of the sidebar so see if they are within
-		 * the bounds of the viewport.
-		 */
-		viewportTop = $(window).scrollTop();
-		viewportBottom = viewportTop + $(window).height();
-		sidebarBounds = sidebar.offset();
-
-		sidebarBounds.bottom = sidebarBounds.top + sidebar.outerHeight();
-
-		if ( viewportTop > sidebarBounds.bottom || viewportBottom < sidebarBounds.top ) {
-			$( 'html, body' ).animate({
-				scrollTop: sidebarBounds.top - 130
-			}, 200 );
-		}
-
-		window.setTimeout( function() {
-			// Cannot use a callback in the animation above as it fires twice,
-			// have to queue this "by hand".
-			widget.find( '.widget-title' ).trigger('click');
-		}, 250 );
+		// When failing, try to recover if user is not logged-in or if the nonce was just stale
+		incrWidgetNumberRequest.fail( function( res ) {
+			var errorCode, errorMessage;
+			if ( '0' === res ) {
+				errorCode = 'not_logged_in';
+			} else if ( '-1' === res ) {
+				errorCode = 'invalid_nonce';
+			} else if ( res && res.message ) {
+				errorCode = res.message;
+			} else {
+				errorCode = 'unknown';
+			}
+			errorMessage = 'Failed request count: ' + wpCustomizeWidgetsPlus.widgetNumberIncrementing.retryCount + '.';
+			errorMessage += ' Last error code: ' + errorCode;
+			console.error( errorMessage );
+		} );
 	},
 
 	closeChooser: function() {

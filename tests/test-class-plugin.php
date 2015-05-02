@@ -44,7 +44,6 @@ class Test_Plugin extends Base_Test_Case {
 			'customize-widgets-plus-base',
 			'customize-widgets-plus-widget-number-incrementing',
 			'customize-widgets-plus-widget-number-incrementing-customizer',
-			'customize-widgets-plus-widget-number-incrementing-admin',
 		);
 		foreach ( $handles as $handle ) {
 			$this->assertArrayHasKey( $handle, $wp_scripts->registered );
