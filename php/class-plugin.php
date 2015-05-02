@@ -8,9 +8,33 @@ namespace CustomizeWidgetsPlus;
 class Plugin extends Plugin_Base {
 
 	/**
+	 * Mapping of short handles to fully-qualified ones.
+	 *
+	 * @var string[]
+	 */
+	public $script_handles = array();
+
+	/**
+	 * Mapping of short handles to fully-qualified ones.
+	 *
+	 * @var string[]
+	 */
+	public $style_handles = array();
+
+	/**
 	 * @var Non_Autoloaded_Widget_Options
 	 */
 	public $non_autoloaded_widget_options;
+
+	/**
+	 * @var Widget_Number_Incrementing
+	 */
+	public $widget_number_incrementing;
+
+	/**
+	 * @var \WP_Widget_Factory
+	 */
+	public $widget_factory;
 
 	/**
 	 * @param array $config
@@ -22,11 +46,13 @@ class Plugin extends Plugin_Base {
 			'disable_widgets_factory' => false,
 			'active_modules' => array(
 				'non_autoloaded_widget_options' => true,
+				'widget_number_incrementing' => true,
 			),
 		);
 
 		$this->config = array_merge( $default_config, $config );
 
+		// @todo If running unit tests, we can just skip adding this action
 		add_action( 'after_setup_theme', array( $this, 'init' ) );
 
 		parent::__construct(); // autoload classes and set $slug, $dir_path, and $dir_url vars
@@ -36,7 +62,11 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme
 	 */
 	function init() {
+		$this->widget_factory = $GLOBALS['wp_widget_factory'];
 		$this->config = apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
+
+		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
+		// @todo add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
 
 		if ( $this->is_running_unit_tests() ) {
 			$this->disable_widgets_init();
@@ -53,6 +83,46 @@ class Plugin extends Plugin_Base {
 		if ( ! empty( $this->config['active_modules']['non_autoloaded_widget_options'] ) ) {
 			$this->non_autoloaded_widget_options = new Non_Autoloaded_Widget_Options( $this );
 		}
+
+		if ( ! empty( $this->config['active_modules']['widget_number_incrementing'] ) ) {
+			$this->widget_number_incrementing = new Widget_Number_Incrementing( $this );
+		}
+	}
+
+	/**
+	 * Register scripts.
+	 *
+	 * @param \WP_Scripts $wp_scripts
+	 * @action wp_default_scripts
+	 */
+	function register_scripts( \WP_Scripts $wp_scripts ) {
+		$slug = 'base';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/base.js';
+		$deps = array();
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
+
+		$slug = 'widget-number-incrementing';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/widget-number-incrementing.js';
+		$deps = array( $this->script_handles['base'], 'wp-util' );
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
+
+		$slug = 'widget-number-incrementing-customizer';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/widget-number-incrementing-customizer.js';
+		$deps = array( 'customize-widgets', $this->script_handles['widget-number-incrementing'] );
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
+
+		$slug = 'widget-number-incrementing-admin';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/widget-number-incrementing-customizer.js';
+		$deps = array( 'admin-widgets', $this->script_handles['widget-number-incrementing'] );
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
 	}
 
 	/**
@@ -75,13 +145,8 @@ class Plugin extends Plugin_Base {
 	 * @see Plugin::disable_widgets_init()
 	 */
 	function disable_widgets_factory() {
-		/**
-		 * @global \WP_Widget_Factory
-		 */
-		global $wp_widget_factory;
-
 		$widgets_init_hook = 'widgets_init';
-		$callable = array( $wp_widget_factory, '_register_widgets' );
+		$callable = array( $this->widget_factory, '_register_widgets' );
 		if ( did_action( $widgets_init_hook ) ) {
 			trigger_error( 'widgets_init has already been called', E_USER_WARNING );
 		}
@@ -92,6 +157,8 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
+	 * Return whether unit tests are currently running.
+	 *
 	 * @return bool
 	 */
 	function is_running_unit_tests() {
@@ -99,6 +166,8 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
+	 * Determine if a given registered widget is a normal multi widget.
+	 *
 	 * @param array $registered_widget {
 	 *     @type string $name
 	 *     @type string $id
@@ -114,9 +183,7 @@ class Plugin extends Plugin_Base {
 		if ( ! $is_multi_widget ) {
 			return false;
 		}
-		/**
-		 * @var \WP_Widget $widget_obj
-		 */
+		/** @var \WP_Widget $widget_obj */
 		$widget_obj = $registered_widget['callback'][0];
 		$parsed_widget_id = $this->parse_widget_id( $registered_widget['id'] );
 		if ( ! $parsed_widget_id || $parsed_widget_id['id_base'] !== $widget_obj->id_base ) {
@@ -129,7 +196,7 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
-	 * Returns the same thing as $wp_widget_factory->widgets before widgets_init@100 happens.
+	 * Get list of registered WP_Widgets keyed by id_base.
 	 *
 	 * @return \WP_Widget[]
 	 */
@@ -141,7 +208,7 @@ class Plugin extends Plugin_Base {
 				$widget_obj = $registered_widget['callback'][0];
 				$widget_class = get_class( $widget_obj );
 				if ( ! array_key_exists( $widget_class, $widget_objs ) ) {
-					$widget_objs[ $widget_class ] = $widget_obj;
+					$widget_objs[ $widget_obj->id_base ] = $widget_obj;
 				}
 			}
 		}
@@ -149,8 +216,17 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
-	 * @param string $widget_id
+	 * @param string $id_base
+	 * @return bool
+	 */
+	function is_recognized_widget_id_base( $id_base ) {
+		return array_key_exists( $id_base, $this->get_registered_widget_objects() );
+	}
+
+	/**
+	 * Parse a widget ID into its components.
 	 *
+	 * @param string $widget_id
 	 * @return array|null {
 	 *     @type string $id_base
 	 *     @type int $widget_number
@@ -167,6 +243,8 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
+	 * Determine if an object is a WP_Widget has an id_base and option_name.
+	 *
 	 * @param \WP_Widget $widget_obj
 	 * @return bool
 	 */

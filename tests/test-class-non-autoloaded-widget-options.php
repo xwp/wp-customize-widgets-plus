@@ -2,48 +2,28 @@
 
 namespace CustomizeWidgetsPlus;
 
-class Test_Non_Autoloaded_Widget_Options extends \WP_UnitTestCase {
-
-	/**
-	 * @var Plugin
-	 */
-	public $plugin;
-
-	/**
-	 * @var \WP_Widget_Factory
-	 */
-	public $wp_widget_factory;
+class Test_Non_Autoloaded_Widget_Options extends Base_Test_Case {
 
 	/**
 	 * @var $wpdb
 	 */
 	public $wpdb;
 
-	/**
-	 * @var \WP_Widget[]
-	 */
-	public $widget_objs;
-
 	function setUp() {
-		$this->wp_widget_factory = $GLOBALS['wp_widget_factory'];
 		$this->wpdb = $GLOBALS['wpdb'];
-		$this->plugin = get_plugin_instance();
 		require_once __DIR__ . '/data/class-acme-widget.php';
 
 		parent::setUp();
-		$this->assertEmpty( $this->wp_widget_factory->widgets );
-		$this->widget_objs = array();
+		$this->assertEmpty( $this->plugin->widget_factory->widgets );
 	}
 
-	function clean_up_global_scope() {
-		global $wp_registered_sidebars, $wp_registered_widgets, $wp_registered_widget_controls, $wp_registered_widget_updates;
-		// @codingStandardsIgnoreStart
-		$wp_registered_sidebars = $wp_registered_widgets = $wp_registered_widget_controls = $wp_registered_widget_updates = array();
-		// @codingStandardsIgnoreEnd
-		$this->wp_widget_factory->widgets = array();
-		parent::clean_up_global_scope();
+	/**
+	 * @see Non_Autoloaded_Widget_Options::__construct()
+	 */
+	function test_construct() {
+		$instance = new Non_Autoloaded_Widget_Options( $this->plugin );
+		$this->assertEquals( 90, has_action( 'widgets_init', array( $instance, 'fix_widget_options' ) ) );
 	}
-
 
 	/**
 	 * @see Non_Autoloaded_Widget_Options::fix_widget_options()
