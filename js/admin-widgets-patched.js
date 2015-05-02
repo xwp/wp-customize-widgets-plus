@@ -139,9 +139,11 @@ wpWidgets = {
 			},
 
 			stop: function( event, ui ) {
-				var addNew, widgetNumber, $sidebar, $children, child, item,
+				var addNew, $sidebar, $children, child, item,
 					$widget = ui.item,
-					id = the_id;
+					id = the_id,
+					continuation,
+					incrWidgetNumberRequest;
 
 				if ( $widget.hasClass('deleting') ) {
 					wpWidgets.save( $widget, 1, 0, 1 ); // delete widget
@@ -150,55 +152,81 @@ wpWidgets = {
 				}
 
 				addNew = $widget.find('input.add_new').val();
-				widgetNumber = $widget.find('input.multi_number').val(); // @todo multi number obtained here!!
 
 				$widget.attr( 'style', '' ).removeClass('ui-draggable');
 				the_id = '';
 
-				if ( addNew ) {
-					if ( 'multi' === addNew ) {
-						$widget.html(
-							$widget.html().replace( /<[^<>]+>/g, function( tag ) {
-								return tag.replace( /__i__|%i%/g, widgetNumber );
-							})
-						);
+				continuation = function ( widgetNumber ) {
+					if ( addNew ) {
+						if ( 'multi' === addNew ) {
+							$widget.html(
+								$widget.html().replace( /<[^<>]+>/g, function ( tag ) {
+									return tag.replace( /__i__|%i%/g, widgetNumber );
+								} )
+							);
 
-						$widget.attr( 'id', id.replace( '__i__', widgetNumber ) );
-						widgetNumber++;
+							$widget.attr( 'id', id.replace( '__i__', widgetNumber ) );
+						} else if ( 'single' === addNew ) {
+							$widget.attr( 'id', 'new-' + id );
+							rem = 'div#' + id;
+						}
 
-						$( 'div#' + id ).find( 'input.multi_number' ).val( widgetNumber );
-					} else if ( 'single' === addNew ) {
-						$widget.attr( 'id', 'new-' + id );
-						rem = 'div#' + id;
+						wpWidgets.save( $widget, 0, 0, 1 );
+						$widget.find( 'input.add_new' ).val( '' );
+						$( document ).trigger( 'widget-added', [$widget] );
 					}
 
-					wpWidgets.save( $widget, 0, 0, 1 );
-					$widget.find('input.add_new').val('');
-					$( document ).trigger( 'widget-added', [ $widget ] );
-				}
+					$sidebar = $widget.parent();
 
-				$sidebar = $widget.parent();
+					if ( $sidebar.parent().hasClass( 'closed' ) ) {
+						$sidebar.parent().removeClass( 'closed' );
+						$children = $sidebar.children( '.widget' );
 
-				if ( $sidebar.parent().hasClass('closed') ) {
-					$sidebar.parent().removeClass('closed');
-					$children = $sidebar.children('.widget');
+						// Make sure the dropped widget is at the top
+						if ( $children.length > 1 ) {
+							child = $children.get( 0 );
+							item = $widget.get( 0 );
 
-					// Make sure the dropped widget is at the top
-					if ( $children.length > 1 ) {
-						child = $children.get(0);
-						item = $widget.get(0);
-
-						if ( child.id && item.id && child.id !== item.id ) {
-							$( child ).before( $widget );
+							if ( child.id && item.id && child.id !== item.id ) {
+								$( child ).before( $widget );
+							}
 						}
 					}
+
+					if ( addNew ) {
+						$widget.find( 'a.widget-action' ).trigger( 'click' );
+					} else {
+						wpWidgets.saveOrder( $sidebar.attr( 'id' ) );
+					}
+				};
+
+				if ( 'multi' !== addNew ) {
+					continuation();
+					return;
 				}
 
-				if ( addNew ) {
-					$widget.find( 'a.widget-action' ).trigger('click');
-				} else {
-					wpWidgets.saveOrder( $sidebar.attr('id') );
-				}
+				incrWidgetNumberRequest = wp.ajax.post( wpCustomizeWidgetsPlus.widgetNumberIncrementing.action, {
+					nonce: wpCustomizeWidgetsPlus.widgetNumberIncrementing.nonce,
+					idBase: $widget.find( 'input.id_base' ).val()
+				} );
+
+				incrWidgetNumberRequest.done( function( res ) {
+					continuation( res.number );
+				} );
+
+				incrWidgetNumberRequest.fail( function( res ) {
+					var errorCode;
+					if ( '0' === res ) {
+						errorCode = 'not_logged_in';
+					} else if ( '-1' === res ) {
+						errorCode = 'invalid_nonce';
+					} else if ( res && res.message ) {
+						errorCode = res.message;
+					} else {
+						errorCode = 'unknown';
+					}
+					console.error( 'Add widget failure: ' + errorCode );
+				} );
 			},
 
 			activate: function() {
@@ -491,7 +519,6 @@ wpWidgets = {
 			continuation( res.number );
 		} );
 
-		// When failing, try to recover if user is not logged-in or if the nonce was just stale
 		incrWidgetNumberRequest.fail( function( res ) {
 			var errorCode, errorMessage;
 			if ( '0' === res ) {
