@@ -56,7 +56,7 @@ class HTTPS_Resource_Proxy {
 	 */
 	static function default_config() {
 		return array(
-			'min_cache_ttl' => 10 * MINUTE_IN_SECONDS,
+			'min_cache_ttl' => 5 * MINUTE_IN_SECONDS,
 			'customize_preview_only' => true,
 			'logged_in_users_only' => true,
 			'max_content_length' => 768 * 1024, // guard against 1MB Memcached Object Cache limit, so body + serialized request metadata
@@ -199,35 +199,82 @@ class HTTPS_Resource_Proxy {
 	}
 
 	/**
-	 * @action template_redirect, 1
+	 * Interrupt WP execution and serve response if called for.
+	 *
+	 * @see HTTPS_Resource_Proxy::send_proxy_response()
+	 *
+	 * @action template_redirect
 	 */
 	function handle_proxy_request() {
 		$is_request = ( get_query_var( self::NONCE_QUERY_VAR ) && get_query_var( self::HOST_QUERY_VAR ) && get_query_var( self::PATH_QUERY_VAR ) );
 		if ( ! $is_request ) {
 			return;
 		}
-		if ( ! $this->is_proxy_enabled() ) {
-			status_header( 401 );
-			die( esc_html__( 'Current user cannot customize or the proxy is not enabled for you.', 'customize-widgets-plus' ) );
+		$params = array(
+			'nonce' => get_query_var( self::NONCE_QUERY_VAR ),
+			'host' => get_query_var( self::HOST_QUERY_VAR ),
+			'path' => get_query_var( self::PATH_QUERY_VAR ),
+			'query' => null,
+			'if_none_match' => null,
+			'if_modified_since' => null,
+		);
+		if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
+			$params['query'] = wp_unslash( $_SERVER['QUERY_STRING'] );
 		}
-		$nonce = get_query_var( self::NONCE_QUERY_VAR );
-		if ( ! wp_verify_nonce( $nonce, self::MODULE_SLUG ) ) {
-			status_header( 403 );
-			die( esc_html__( 'Bad nonce.', 'customize-widgets-plus' ) );
+		if ( isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) ) {
+			$params['if_modified_since'] = wp_unslash( $_SERVER['HTTP_IF_MODIFIED_SINCE'] );
+		}
+		if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) {
+			$params['if_none_match'] = wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] );
+		}
+
+		try {
+			$this->send_proxy_response( $params );
+			die();
+		} catch ( Exception $e ) {
+			$code = $e->getCode();
+			if ( $code < 400 || $code >= 600 ) {
+				$code = $e->getCode();
+			}
+			status_header( $code );
+			die( esc_html( $e->getMessage() ) );
+		}
+	}
+
+	/**
+	 * Sends the response based on the request $params.
+	 *
+	 * Does not die() so that it can be unit tested.
+	 *
+	 * @param array $params {
+	 *     @type string $nonce
+	 *     @type string $host
+	 *     @type string $path
+	 *     @type string $query
+	 *     @type string $if_none_match
+	 *     @type string $if_modified_since
+	 * }
+	 *
+	 * @throws Exception
+	 */
+	function send_proxy_response( $params ) {
+
+		if ( ! $this->is_proxy_enabled() ) {
+			throw new Exception( 'proxy_not_enabled', 401 );
+		}
+		if ( ! wp_verify_nonce( $params['nonce'], self::MODULE_SLUG ) ) {
+			throw new Exception( 'bad_nonce', 403 );
 		}
 
 		// Construct the proxy URL for the resource
-		$host = get_query_var( self::HOST_QUERY_VAR );
-		$path = get_query_var( self::PATH_QUERY_VAR );
-		$url = 'http://' . $host . $path;
-		if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
-			$url .= '?' . wp_unslash( $_SERVER['QUERY_STRING'] );
+		$url = 'http://' . $params['host'] . $params['path'];
+		if ( $params['query'] ) {
+			$url .= '?' . $params['query'];
 		}
 
 		$transient_key = sprintf( 'proxied_' . md5( $url ) );
 		if ( strlen( $transient_key ) > 40 ) {
-			status_header( 500 );
-			die( 'transient key too long' );
+			throw new Exception( 'transient_key_too_large', 500 );
 		}
 		$r = get_transient( $transient_key );
 		if ( empty( $r ) ) {
@@ -285,19 +332,19 @@ class HTTPS_Resource_Proxy {
 		$http_code = wp_remote_retrieve_response_code( $r );
 		if ( 200 === $http_code ) {
 			$is_etag_not_modified = (
-				isset( $_SERVER['HTTP_IF_NONE_MATCH'] )
+				! empty( $params['if_none_match'] )
 				&&
 				isset( $r['headers']['etag'] )
 				&&
-				( false !== strpos( wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ), $r['headers']['etag'] ) )
+				( false !== strpos( $params['if_none_match'], $r['headers']['etag'] ) )
 			);
 
 			$is_last_modified_not_modified = (
-				isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] )
+				! empty( $params['if_modified_since'] )
 				&&
 				isset( $r['headers']['last-modified'] )
 				&&
-				strtotime( $r['headers']['last-modified'] ) <= strtotime( $_SERVER['HTTP_IF_MODIFIED_SINCE'] )
+				strtotime( $r['headers']['last-modified'] ) <= strtotime( $params['if_modified_since'] )
 			);
 			$is_not_modified = ( $is_etag_not_modified || $is_last_modified_not_modified );
 			if ( $is_not_modified ) {
@@ -331,8 +378,10 @@ class HTTPS_Resource_Proxy {
 		}
 
 		if ( ! $is_not_modified ) {
+			// @todo Content-Encoding deflate/gzip if requested
+			header( 'Content-Length: ' . strlen( wp_remote_retrieve_body( $r ) ) );
 			echo wp_remote_retrieve_body( $r ); // xss ok (we're passing things through on purpose)
 		}
-		exit;
 	}
+
 }
