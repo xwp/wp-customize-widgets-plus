@@ -32,6 +32,11 @@ class Plugin extends Plugin_Base {
 	public $widget_number_incrementing;
 
 	/**
+	 * @var HTTPS_Resource_Proxy
+	 */
+	public $https_resource_proxy;
+
+	/**
 	 * @var \WP_Widget_Factory
 	 */
 	public $widget_factory;
@@ -41,21 +46,23 @@ class Plugin extends Plugin_Base {
 	 */
 	public function __construct( $config = array() ) {
 
+		// @todo If running unit tests, we can just skip adding this action
+		add_action( 'after_setup_theme', array( $this, 'init' ) );
+
+		parent::__construct(); // autoload classes and set $slug, $dir_path, and $dir_url vars
+
 		$default_config = array(
 			'disable_widgets_init' => false,
 			'disable_widgets_factory' => false,
 			'active_modules' => array(
 				'non_autoloaded_widget_options' => true,
 				'widget_number_incrementing' => true,
+				'https_resource_proxy' => true,
 			),
+			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 		);
 
 		$this->config = array_merge( $default_config, $config );
-
-		// @todo If running unit tests, we can just skip adding this action
-		add_action( 'after_setup_theme', array( $this, 'init' ) );
-
-		parent::__construct(); // autoload classes and set $slug, $dir_path, and $dir_url vars
 	}
 
 	/**
@@ -83,9 +90,11 @@ class Plugin extends Plugin_Base {
 		if ( ! empty( $this->config['active_modules']['non_autoloaded_widget_options'] ) ) {
 			$this->non_autoloaded_widget_options = new Non_Autoloaded_Widget_Options( $this );
 		}
-
 		if ( ! empty( $this->config['active_modules']['widget_number_incrementing'] ) ) {
 			$this->widget_number_incrementing = new Widget_Number_Incrementing( $this );
+		}
+		if ( ! empty( $this->config['active_modules']['https_resource_proxy'] ) ) {
+			$this->https_resource_proxy = new HTTPS_Resource_Proxy( $this );
 		}
 	}
 
@@ -114,6 +123,13 @@ class Plugin extends Plugin_Base {
 		$handle = "{$this->slug}-{$slug}";
 		$src = $this->dir_url . 'js/widget-number-incrementing-customizer.js';
 		$deps = array( 'customize-widgets', $this->script_handles['widget-number-incrementing'] );
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
+
+		$slug = 'https-resource-proxy';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/https-resource-proxy.js';
+		$deps = array( 'jquery' );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
 	}
