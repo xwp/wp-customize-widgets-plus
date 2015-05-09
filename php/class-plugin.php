@@ -73,7 +73,8 @@ class Plugin extends Plugin_Base {
 		$this->config = apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
 
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
-		// @todo add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
+		add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
+		add_action( 'customize_controls_enqueue_scripts', array( $this, 'customize_controls_enqueue_scripts' ) );
 
 		if ( $this->is_running_unit_tests() ) {
 			$this->disable_widgets_init();
@@ -132,6 +133,27 @@ class Plugin extends Plugin_Base {
 		$deps = array( 'jquery' );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
+	}
+
+	/**
+	 * Register styles.
+	 *
+	 * @param \WP_Styles $wp_styles
+	 * @action wp_default_styles
+	 */
+	function register_styles( \WP_Styles $wp_styles ) {
+		$slug = 'customize-widgets';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'css/customize-widgets.css';
+		$wp_styles->add( $handle, $src );
+		$this->style_handles[ $slug ] = $handle;
+	}
+
+	/**
+	 * @action customize_controls_enqueue_scripts
+	 */
+	function customize_controls_enqueue_scripts() {
+		wp_enqueue_style( $this->style_handles['customize-widgets'] );
 	}
 
 	/**

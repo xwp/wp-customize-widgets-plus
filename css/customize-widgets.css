@@ -1,0 +1,10 @@
+
+/*
+ * Add progress indicator to widget form controls while widget is being updated
+ * and the preview is being refreshed since the spinner at the bottom may be
+ * out of view.
+ */
+.customize-control-widget_form.widget-form-loading,
+.customize-control-widget_form.previewer-loading {
+	cursor: progress;
+}
