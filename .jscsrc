@@ -1,0 +1,9 @@
+{
+	"preset": "wordpress",
+	"excludeFiles": [
+		"**/vendor/**",
+		"**.min.js",
+		"**/node_modules/**",
+		"js/admin-widgets-patched.js"
+	]
+}
