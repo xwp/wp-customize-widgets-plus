@@ -1,4 +1,5 @@
 /*global ajaxurl, isRtl, wpCustomizeWidgetsPlus, console */
+
 var wpWidgets;
 (function($) {
 
