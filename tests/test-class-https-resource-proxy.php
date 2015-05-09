@@ -184,7 +184,6 @@ class Test_HTTPS_Resource_Proxy extends Base_Test_Case {
 
 		$this->assertEquals( 400, wp_remote_retrieve_response_code( $r ) );
 		$this->assertEquals( 'http_request_failed', wp_remote_retrieve_response_message( $r ) );
-		$this->assertStringStartsWith( 'Could not resolve host:', wp_remote_retrieve_body( $r ) );
 	}
 
 	function filter_pre_http_request( $r ) {
