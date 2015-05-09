@@ -59,6 +59,7 @@ class HTTPS_Resource_Proxy {
 			'min_cache_ttl' => 5 * MINUTE_IN_SECONDS,
 			'customize_preview_only' => true,
 			'logged_in_users_only' => true,
+			'request_timeout' => 3,
 			'max_content_length' => 768 * 1024, // guard against 1MB Memcached Object Cache limit, so body + serialized request metadata
 		);
 	}
@@ -218,14 +219,14 @@ class HTTPS_Resource_Proxy {
 			'if_none_match' => null,
 			'if_modified_since' => null,
 		);
-		if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
-			$params['query'] = wp_unslash( $_SERVER['QUERY_STRING'] );
+		if ( ! empty( $_SERVER['QUERY_STRING'] ) ) { // input var okay
+			$params['query'] = wp_unslash( $_SERVER['QUERY_STRING'] ); // input var okay; sanitization okay
 		}
-		if ( isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) ) {
-			$params['if_modified_since'] = wp_unslash( $_SERVER['HTTP_IF_MODIFIED_SINCE'] );
+		if ( isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) ) { // input var okay
+			$params['if_modified_since'] = wp_unslash( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ); // input var okay; sanitization okay
 		}
-		if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) {
-			$params['if_none_match'] = wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] );
+		if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) ) { // input var okay
+			$params['if_none_match'] = wp_unslash( $_SERVER['HTTP_IF_NONE_MATCH'] ); // input var okay; sanitization okay
 		}
 
 		try {
@@ -236,7 +237,7 @@ class HTTPS_Resource_Proxy {
 			if ( empty( $message ) ) {
 				$message = get_status_header_desc( $code );
 			}
-			$protocol = isset( $_SERVER['SERVER_PROTOCOL'] ) ? $_SERVER['SERVER_PROTOCOL'] : null;
+			$protocol = isset( $_SERVER['SERVER_PROTOCOL'] ) ? $_SERVER['SERVER_PROTOCOL'] : null; // input var okay; sanitization okay
 			if ( 'HTTP/1.1' !== $protocol && 'HTTP/1.0' !== $protocol ) {
 				$protocol = 'HTTP/1.0';
 			}
@@ -312,7 +313,17 @@ class HTTPS_Resource_Proxy {
 		$r = get_transient( $transient_key );
 		if ( empty( $r ) ) {
 			// @todo We eliminate transient expiration and send if-modified-since/if-none-match to server
-			$r = wp_remote_get( $url );
+			$timeout = $this->config( 'request_timeout' );
+			if ( function_exists( 'vip_safe_wp_remote_get' ) ) {
+				$fallback_value = '';
+				$threshold = 3;
+				$r = vip_safe_wp_remote_get( $url, $fallback_value, $threshold, $timeout );
+			} else {
+				$args = compact( 'timeout' );
+				// @codingStandardsIgnoreStart
+				$r = wp_remote_get( $url, $args );
+				// @codingStandardsIgnoreEnd
+			}
 
 			if ( is_wp_error( $r ) ) {
 				$r = array(

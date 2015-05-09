@@ -75,7 +75,7 @@ class Non_Autoloaded_Widget_Options {
 		if ( ! empty( $pending_unautoload_option_names ) ) {
 			$sql_in = join( ',', array_fill( 0, count( $pending_unautoload_option_names ), '%s' ) );
 			$sql = "UPDATE $wpdb->options SET autoload = 'no' WHERE option_name IN ( $sql_in )";
-			$wpdb->query( $wpdb->prepare( $sql, $pending_unautoload_option_names ) );
+			$wpdb->query( $wpdb->prepare( $sql, $pending_unautoload_option_names ) ); // db call okay; cache okay
 			wp_cache_delete( 'alloptions', 'options' );
 		}
 	}
