@@ -37,6 +37,11 @@ class Plugin extends Plugin_Base {
 	public $https_resource_proxy;
 
 	/**
+	 * @var Efficient_Multidimensional_Setting_Sanitizing
+	 */
+	public $efficient_multidimensional_setting_sanitizing;
+
+	/**
 	 * @var \WP_Widget_Factory
 	 */
 	public $widget_factory;
@@ -58,6 +63,7 @@ class Plugin extends Plugin_Base {
 				'non_autoloaded_widget_options' => true,
 				'widget_number_incrementing' => true,
 				'https_resource_proxy' => true,
+				'efficient_multidimensional_setting_sanitizing' => true,
 			),
 			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 		);
@@ -96,6 +102,9 @@ class Plugin extends Plugin_Base {
 		}
 		if ( ! empty( $this->config['active_modules']['https_resource_proxy'] ) ) {
 			$this->https_resource_proxy = new HTTPS_Resource_Proxy( $this );
+		}
+		if ( ! empty( $this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] ) ) {
+			$this->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this );
 		}
 	}
 
