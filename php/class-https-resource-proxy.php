@@ -46,7 +46,7 @@ class HTTPS_Resource_Proxy {
 
 		add_action( 'init', array( $this, 'add_rewrite_rule' ) );
 		add_filter( 'query_vars', array( $this, 'filter_query_vars' ) );
-		add_filter( 'redirect_canonical', array( $this, 'prevent_canonical_redirect_trailingslashing' ), 10 );
+		add_filter( 'redirect_canonical', array( $this, 'prevent_canonical_redirect_trailingslashing' ) );
 		add_action( 'template_redirect', array( $this, 'handle_proxy_request' ) );
 		add_action( 'init', array( $this, 'add_proxy_filtering' ) );
 	}
@@ -229,7 +229,30 @@ class HTTPS_Resource_Proxy {
 		}
 
 		try {
-			$this->send_proxy_response( $params );
+			$r = $this->send_proxy_response( $params );
+
+			$code = wp_remote_retrieve_response_code( $r );
+			$message = wp_remote_retrieve_response_message( $r );
+			if ( empty( $message ) ) {
+				$message = get_status_header_desc( $code );
+			}
+			$protocol = isset( $_SERVER['SERVER_PROTOCOL'] ) ? $_SERVER['SERVER_PROTOCOL'] : null;
+			if ( 'HTTP/1.1' !== $protocol && 'HTTP/1.0' !== $protocol ) {
+				$protocol = 'HTTP/1.0';
+			}
+			$status_header = "$protocol $code $message";
+			header( $status_header, true, $code );
+
+			// Remove headers added by nocache_headers()
+			foreach ( array_keys( wp_get_nocache_headers() ) as $name ) {
+				header_remove( $name );
+			}
+			foreach ( $r['headers'] as $name => $value ) {
+				header( "$name: $value" );
+			}
+			if ( 304 !== $code ) {
+				echo wp_remote_retrieve_body( $r ); // xss ok (we're passing things through on purpose)
+			}
 			die();
 		} catch ( Exception $e ) {
 			$code = $e->getCode();
@@ -242,9 +265,7 @@ class HTTPS_Resource_Proxy {
 	}
 
 	/**
-	 * Sends the response based on the request $params.
-	 *
-	 * Does not die() so that it can be unit tested.
+	 * Formulate the response based on the request $params.
 	 *
 	 * @param array $params {
 	 *     @type string $nonce
@@ -254,10 +275,22 @@ class HTTPS_Resource_Proxy {
 	 *     @type string $if_none_match
 	 *     @type string $if_modified_since
 	 * }
+	 * @return array $r {
+	 *     @type array $response {
+	 *         @type int $code
+	 *         @type string $message
+	 *     }
+	 *     @type array $headers
+	 *     @type string $body
+	 * }
 	 *
 	 * @throws Exception
 	 */
-	function send_proxy_response( $params ) {
+	function send_proxy_response( array $params ) {
+		$params = array_merge(
+			array_fill_keys( array( 'nonce', 'host', 'path', 'query', 'if_none_match', 'if_modified_since' ), null ),
+			$params
+		);
 
 		if ( ! $this->is_proxy_enabled() ) {
 			throw new Exception( 'proxy_not_enabled', 401 );
@@ -278,6 +311,7 @@ class HTTPS_Resource_Proxy {
 		}
 		$r = get_transient( $transient_key );
 		if ( empty( $r ) ) {
+			// @todo We eliminate transient expiration and send if-modified-since/if-none-match to server
 			$r = wp_remote_get( $url );
 
 			if ( is_wp_error( $r ) ) {
@@ -325,12 +359,14 @@ class HTTPS_Resource_Proxy {
 			$cache_ttl = max( $cache_ttl, $this->config( 'min_cache_ttl' ) );
 			$r['headers']['expires'] = str_replace( '+0000', 'GMT', gmdate( 'r', time() + $cache_ttl ) );
 
+			// @todo in addition to the checks for whether the user is logged-in and if in customizer, should we do a check to prevent too many resources from being cached?
 			set_transient( $transient_key, $r, $cache_ttl );
 		}
 
 		$is_not_modified = false;
-		$http_code = wp_remote_retrieve_response_code( $r );
-		if ( 200 === $http_code ) {
+		$response_code = wp_remote_retrieve_response_code( $r );
+		$response_message = wp_remote_retrieve_response_message( $r );
+		if ( 200 === $response_code ) {
 			$is_etag_not_modified = (
 				! empty( $params['if_none_match'] )
 				&&
@@ -348,40 +384,32 @@ class HTTPS_Resource_Proxy {
 			);
 			$is_not_modified = ( $is_etag_not_modified || $is_last_modified_not_modified );
 			if ( $is_not_modified ) {
-				$http_code = 304;
+				$response_code = 304;
+				$response_message = 'Not Modified';
 			}
 		} else {
 			unset( $r['headers']['last-modified'] );
 			unset( $r['headers']['etag'] );
 		}
 
-		// Remove headers added by nocache_headers()
-		foreach ( array_keys( wp_get_nocache_headers() ) as $name ) {
-			header_remove( $name );
-		}
-
-		// Forward headers
-		status_header( $http_code );
-		$formatted_headers = array(
-			'content-type' => 'Content-Type',
-			'last-modified' => 'Last-Modified',
-			'etag' => 'ETag',
-			'expires' => 'Expires',
-		);
+		$body = '';
 		$forwarded_response_headers = array( 'content-type', 'last-modified', 'etag', 'expires' );
 		$headers = wp_array_slice_assoc( $r['headers'], $forwarded_response_headers );
-		foreach ( $headers as $name => $value ) {
-			if ( array_key_exists( $name, $formatted_headers ) ) {
-				$name = $formatted_headers[ $name ];
-			}
-			header( "$name: $value" );
-		}
 
 		if ( ! $is_not_modified ) {
 			// @todo Content-Encoding deflate/gzip if requested
-			header( 'Content-Length: ' . strlen( wp_remote_retrieve_body( $r ) ) );
-			echo wp_remote_retrieve_body( $r ); // xss ok (we're passing things through on purpose)
+			$headers['content-length'] = strlen( wp_remote_retrieve_body( $r ) );
+			$body = wp_remote_retrieve_body( $r );
 		}
+
+		return array(
+			'response' => array(
+				'code' => $response_code,
+				'message' => $response_message,
+			),
+			'headers' => $headers,
+			'body' => $body,
+		);
 	}
 
 }
