@@ -79,9 +79,11 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 	 * Register widget settings just in time.
 	 *
 	 * This is called right before customize_widgets action, so we be first in
-	 * line to regiser the widget settings, so we can use WP_Customize_Widget_Setting()
+	 * line to register the widget settings, so we can use WP_Customize_Widget_Setting()
 	 * as opposed to the default setting. Core needs a way to filter the setting
 	 * class used when settings are created, as has been done for customize_dynamic_setting_class.
+	 *
+	 * @todo Propose that WP_Customize_Manager::add_setting( $id, $args ) allow the setting class 'WP_Customize_Setting' to be filtered.
 	 *
 	 * @action wp_loaded
 	 * @see \WP_Customize_Widgets::customize_register()
