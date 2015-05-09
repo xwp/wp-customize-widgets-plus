@@ -30,15 +30,11 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 
 	/**
 	 * @param Plugin $plugin
+	 * @param \WP_Customize_Manager $manager
 	 */
-	function __construct( Plugin $plugin ) {
-		global $wp_customize;
+	function __construct( Plugin $plugin, \WP_Customize_Manager $manager ) {
 		$this->plugin = $plugin;
-
-		if ( empty( $wp_customize ) ) {
-			return;
-		}
-		$this->manager = $wp_customize;
+		$this->manager = $manager;
 
 		add_filter( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 2 );
 

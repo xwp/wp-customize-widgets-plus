@@ -75,7 +75,8 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme
 	 */
 	function init() {
-		$this->widget_factory = $GLOBALS['wp_widget_factory'];
+		global $wp_customize, $wp_widget_factory;
+		$this->widget_factory = $wp_widget_factory;
 		$this->config = apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
 
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
@@ -103,8 +104,8 @@ class Plugin extends Plugin_Base {
 		if ( ! empty( $this->config['active_modules']['https_resource_proxy'] ) ) {
 			$this->https_resource_proxy = new HTTPS_Resource_Proxy( $this );
 		}
-		if ( ! empty( $this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] ) ) {
-			$this->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this );
+		if ( ! empty( $this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] ) && ! empty( $wp_customize ) ) {
+			$this->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this, $wp_customize );
 		}
 	}
 
