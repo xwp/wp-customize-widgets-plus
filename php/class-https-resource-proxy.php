@@ -108,7 +108,7 @@ class HTTPS_Resource_Proxy {
 		nocache_headers(); // we don't want to cache the resource URLs containing the nonces
 		add_filter( 'script_loader_src', array( $this, 'filter_script_loader_src' ) );
 		add_filter( 'style_loader_src', array( $this, 'filter_style_loader_src' ) );
-		// @todo add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 	}
 
 	/**
@@ -161,14 +161,22 @@ class HTTPS_Resource_Proxy {
 	}
 
 	/**
+	 * @return string
+	 */
+	function get_base_url() {
+		$proxied_src = trailingslashit( site_url( self::ENDPOINT ) );
+		$proxied_src .= trailingslashit( wp_create_nonce( self::MODULE_SLUG ) );
+		return $proxied_src;
+	}
+
+	/**
 	 * @param string $src
 	 * @return string
 	 */
 	function filter_loader_src( $src ) {
 		$parsed_url = parse_url( $src );
 		if ( isset( $parsed_url['scheme'] ) && 'http' === $parsed_url['scheme'] && ! preg_match( '#' . $this->rewrite_regex . '#', parse_url( $src, PHP_URL_PATH ) ) ) {
-			$proxied_src = trailingslashit( site_url( self::ENDPOINT ) );
-			$proxied_src .= trailingslashit( wp_create_nonce( self::MODULE_SLUG ) );
+			$proxied_src = $this->get_base_url();
 			$proxied_src .= $parsed_url['host'];
 			$proxied_src .= $parsed_url['path'];
 
@@ -193,6 +201,16 @@ class HTTPS_Resource_Proxy {
 	 * @action wp_enqueue_scripts
 	 */
 	function enqueue_scripts() {
+		$data = array(
+			'baseUrl' => $this->get_base_url(),
+			'trailingslashSrcs' => $this->config( 'trailingslash_srcs' ),
+		);
+
+		wp_scripts()->add_data(
+			$this->plugin->script_handles['https-resource-proxy'],
+			'data',
+			sprintf( '_httpsResourceProxyExports = %s', wp_json_encode( $data ) )
+		);
 		wp_enqueue_script( $this->plugin->script_handles['https-resource-proxy'] );
 	}
 
