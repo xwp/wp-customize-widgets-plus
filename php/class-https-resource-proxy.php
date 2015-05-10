@@ -165,7 +165,7 @@ class HTTPS_Resource_Proxy {
 	 */
 	function filter_loader_src( $src ) {
 		$parsed_url = parse_url( $src );
-		if ( isset( $parsed_url['scheme'] ) && 'http' === $parsed_url['scheme'] ) {
+		if ( isset( $parsed_url['scheme'] ) && 'http' === $parsed_url['scheme'] && ! preg_match( '#' . $this->rewrite_regex . '#', parse_url( $src, PHP_URL_PATH ) ) ) {
 			$proxied_src = trailingslashit( site_url( self::ENDPOINT ) );
 			$proxied_src .= trailingslashit( wp_create_nonce( self::MODULE_SLUG ) );
 			$proxied_src .= $parsed_url['host'];
