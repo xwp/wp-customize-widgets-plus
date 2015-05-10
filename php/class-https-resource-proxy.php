@@ -46,7 +46,7 @@ class HTTPS_Resource_Proxy {
 
 		add_action( 'init', array( $this, 'add_rewrite_rule' ) );
 		add_filter( 'query_vars', array( $this, 'filter_query_vars' ) );
-		add_filter( 'redirect_canonical', array( $this, 'prevent_canonical_redirect_trailingslashing' ) );
+		add_filter( 'redirect_canonical', array( $this, 'enforce_trailingslashing' ) );
 		add_action( 'template_redirect', array( $this, 'handle_proxy_request' ) );
 		add_action( 'init', array( $this, 'add_proxy_filtering' ) );
 	}
@@ -60,6 +60,7 @@ class HTTPS_Resource_Proxy {
 			'customize_preview_only' => true,
 			'logged_in_users_only' => true,
 			'request_timeout' => 3,
+			'trailingslash_srcs' => true, // web server configs may be configured to route apparent static file requests to 404 handler
 			'max_content_length' => 768 * 1024, // guard against 1MB Memcached Object Cache limit, so body + serialized request metadata
 		);
 	}
@@ -170,6 +171,16 @@ class HTTPS_Resource_Proxy {
 			$proxied_src .= trailingslashit( wp_create_nonce( self::MODULE_SLUG ) );
 			$proxied_src .= $parsed_url['host'];
 			$proxied_src .= $parsed_url['path'];
+
+			/*
+			 * Now we trailingslash to account for web server configs that try
+			 * to optimize requests to non-existing static assets by sending
+			 * them straight to 404 instead of sending them to the WP router.
+			 */
+			if ( $this->config( 'trailingslash_srcs' ) ) {
+				$proxied_src = trailingslashit( $proxied_src );
+			}
+
 			if ( ! empty( $parsed_url['query'] ) ) {
 				$proxied_src .= '?' . $parsed_url['query'];
 			}
@@ -186,15 +197,23 @@ class HTTPS_Resource_Proxy {
 	}
 
 	/**
-	 * Prevent trailingslashing of proxied resource URLs.
+	 * Enforce trailingslashing of proxied resource URLs.
 	 *
 	 * @filter redirect_canonical
 	 * @param string $redirect_url
 	 * @return string
 	 */
-	function prevent_canonical_redirect_trailingslashing( $redirect_url ) {
+	function enforce_trailingslashing( $redirect_url ) {
 		if ( get_query_var( self::PATH_QUERY_VAR ) ) {
-			$redirect_url = preg_replace( '#/(?=$|\?)#', '', $redirect_url );
+			if ( $this->config( 'trailingslash_srcs' ) ) {
+				if ( false === strpos( $redirect_url, '?' ) ) {
+					$redirect_url = trailingslashit( $redirect_url );
+				} else {
+					$redirect_url = preg_replace( '#(?<=[^/])(?=\?)#', '/', $redirect_url );
+				}
+			} else {
+				$redirect_url = preg_replace( '#/(?=$|\?)#', '', $redirect_url );
+			}
 		}
 		return $redirect_url;
 	}
