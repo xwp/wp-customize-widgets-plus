@@ -19,13 +19,13 @@ class HTTPS_Resource_Proxy {
 
 	const MODULE_SLUG = 'https_resource_proxy';
 
-	const ENDPOINT = 'wp-https-resource-proxy';
-
 	const NONCE_QUERY_VAR = 'https_resource_proxy_nonce';
 
 	const HOST_QUERY_VAR = 'https_resource_proxy_host';
 
 	const PATH_QUERY_VAR = 'https_resource_proxy_path';
+
+	const REGEX_DELIMITER = '#';
 
 	/**
 	 * @param Plugin $plugin
@@ -42,13 +42,14 @@ class HTTPS_Resource_Proxy {
 	 */
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
-		$this->rewrite_regex = self::ENDPOINT . '/(?P<nonce>\w+)/(?P<host>[^/]+)(?P<path>/.+)';
 
 		add_action( 'init', array( $this, 'add_rewrite_rule' ) );
 		add_filter( 'query_vars', array( $this, 'filter_query_vars' ) );
 		add_filter( 'redirect_canonical', array( $this, 'enforce_trailingslashing' ) );
 		add_action( 'template_redirect', array( $this, 'handle_proxy_request' ) );
 		add_action( 'init', array( $this, 'add_proxy_filtering' ) );
+		add_filter( 'wp_unique_post_slug_is_bad_flat_slug', array( $this, 'reserve_api_endpoint' ), 10, 2 );
+		add_filter( 'wp_unique_post_slug_is_bad_hierarchical_slug', array( $this, 'reserve_api_endpoint' ), 10, 2 );
 	}
 
 	/**
@@ -56,6 +57,7 @@ class HTTPS_Resource_Proxy {
 	 */
 	static function default_config() {
 		return array(
+			'endpoint' => 'wp-https-resource-proxy',
 			'min_cache_ttl' => 5 * MINUTE_IN_SECONDS,
 			'customize_preview_only' => true,
 			'logged_in_users_only' => true,
@@ -128,6 +130,8 @@ class HTTPS_Resource_Proxy {
 	 * @action init
 	 */
 	function add_rewrite_rule() {
+		$this->rewrite_regex = preg_quote( $this->config( 'endpoint' ), self::REGEX_DELIMITER ) . '/(?P<nonce>\w+)/(?P<host>[^/]+)(?P<path>/.+)';
+
 		$redirect_vars = array(
 			self::NONCE_QUERY_VAR => '$matches[1]',
 			self::HOST_QUERY_VAR => '$matches[2]',
@@ -140,6 +144,24 @@ class HTTPS_Resource_Proxy {
 		$redirect = 'index.php?' . join( '&', $redirect_var_pairs );
 
 		add_rewrite_rule( $this->rewrite_regex, $redirect, 'top' );
+	}
+
+	/**
+	 * Reserve the API endpoint slugs.
+	 *
+	 * @param bool $is_bad Whether a post slug is available for use or not.
+	 * @param string $slug The post's slug.
+	 *
+	 * @return bool
+	 *
+	 * @filter wp_unique_post_slug_is_bad_flat_slug
+	 * @filter wp_unique_post_slug_is_bad_hierarchical_slug
+	 */
+	public function reserve_api_endpoint( $is_bad, $slug ) {
+		if ( $this->config( 'endpoint' ) === $slug ) {
+			$is_bad = true;
+		}
+		return $is_bad;
 	}
 
 	/**
@@ -164,18 +186,32 @@ class HTTPS_Resource_Proxy {
 	 * @return string
 	 */
 	function get_base_url() {
-		$proxied_src = trailingslashit( site_url( self::ENDPOINT ) );
+		$proxied_src = trailingslashit( site_url( $this->config( 'endpoint' ) ) );
 		$proxied_src .= trailingslashit( wp_create_nonce( self::MODULE_SLUG ) );
 		return $proxied_src;
 	}
 
 	/**
+	 * Rewrite asset URLs to use the proxy when appropriate.
+	 *
 	 * @param string $src
 	 * @return string
 	 */
 	function filter_loader_src( $src ) {
+		if ( ! isset( $this->rewrite_regex ) ) {
+			$this->add_rewrite_rule();
+		}
+
 		$parsed_url = parse_url( $src );
-		if ( isset( $parsed_url['scheme'] ) && 'http' === $parsed_url['scheme'] && ! preg_match( '#' . $this->rewrite_regex . '#', parse_url( $src, PHP_URL_PATH ) ) ) {
+		$regex = self::REGEX_DELIMITER . $this->rewrite_regex . self::REGEX_DELIMITER;
+		$should_filter = (
+			isset( $parsed_url['scheme'] )
+			&&
+			'http' === $parsed_url['scheme']
+			&&
+			! preg_match( $regex, parse_url( $src, PHP_URL_PATH ) ) // prevent applying regex more than once
+		);
+		if ( $should_filter ) {
 			$proxied_src = $this->get_base_url();
 			$proxied_src .= $parsed_url['host'];
 			$proxied_src .= $parsed_url['path'];
@@ -209,7 +245,7 @@ class HTTPS_Resource_Proxy {
 		wp_scripts()->add_data(
 			$this->plugin->script_handles['https-resource-proxy'],
 			'data',
-			sprintf( '_httpsResourceProxyExports = %s', wp_json_encode( $data ) )
+			sprintf( 'var _httpsResourceProxyExports = %s', wp_json_encode( $data ) )
 		);
 		wp_enqueue_script( $this->plugin->script_handles['https-resource-proxy'] );
 	}
@@ -230,7 +266,7 @@ class HTTPS_Resource_Proxy {
 					$redirect_url = preg_replace( '#(?<=[^/])(?=\?)#', '/', $redirect_url );
 				}
 			} else {
-				$redirect_url = preg_replace( '#/(?=$|\?)#', '', $redirect_url );
+				$redirect_url = preg_replace( '#/(?=\?|$)#', '', $redirect_url );
 			}
 		}
 		return $redirect_url;

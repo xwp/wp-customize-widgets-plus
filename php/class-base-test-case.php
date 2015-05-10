@@ -11,6 +11,9 @@ abstract class Base_Test_Case extends \WP_UnitTestCase {
 
 	function setUp() {
 		$this->plugin = get_plugin_instance();
+		remove_action( 'widgets_init', 'twentyfourteen_widgets_init' );
+		remove_action( 'customize_register', 'twentyfourteen_customize_register' );
+		remove_all_actions( 'send_headers' ); // prevent X-hacker header in VIP Quickstart
 		parent::setUp();
 	}
 

@@ -21,10 +21,9 @@ class Test_HTTPS_Resource_Proxy extends Base_Test_Case {
 
 		$this->assertEquals( 10, has_action( 'init', array( $instance, 'add_rewrite_rule' ) ) );
 		$this->assertEquals( 10, has_filter( 'query_vars', array( $instance, 'filter_query_vars' ) ) );
-		$this->assertEquals( 10, has_filter( 'redirect_canonical', array( $instance, 'prevent_canonical_redirect_trailingslashing' ) ) );
+		$this->assertEquals( 10, has_filter( 'redirect_canonical', array( $instance, 'enforce_trailingslashing' ) ) );
 		$this->assertEquals( 10, has_action( 'template_redirect', array( $instance, 'handle_proxy_request' ) ) );
 		$this->assertEquals( 10, has_action( 'init', array( $instance, 'add_proxy_filtering' ) ) );
-		$this->assertNotEmpty( $instance->rewrite_regex );
 	}
 
 	/**
@@ -85,6 +84,29 @@ class Test_HTTPS_Resource_Proxy extends Base_Test_Case {
 	}
 
 	/**
+	 * @see HTTPS_Resource_Proxy::add_rewrite_rule()
+	 */
+	function test_add_rewrite_rule() {
+		/** @var \WP_Rewrite $wp_rewrite */
+		global $wp_rewrite;
+		$instance = new HTTPS_Resource_Proxy( $this->plugin );
+		$this->assertEmpty( $instance->rewrite_regex );
+		$instance->add_rewrite_rule();
+		$this->assertNotEmpty( $instance->rewrite_regex );
+		$this->assertArrayHasKey( $instance->rewrite_regex, $wp_rewrite->extra_rules_top );
+	}
+
+	/**
+	 * @see HTTPS_Resource_Proxy::reserve_api_endpoint()
+	 */
+	function test_reserve_api_endpoint() {
+		$instance = new HTTPS_Resource_Proxy( $this->plugin );
+		$instance->add_rewrite_rule();
+		$this->assertTrue( $instance->reserve_api_endpoint( false, $instance->config( 'endpoint' ) ) );
+		$this->assertFalse( $instance->reserve_api_endpoint( false, 'prefix-' . $instance->config( 'endpoint' ) . '-suffix' ) );
+	}
+
+	/**
 	 * @see HTTPS_Resource_Proxy::filter_loader_src()
 	 * @see HTTPS_Resource_Proxy::filter_script_loader_src()
 	 * @see HTTPS_Resource_Proxy::filter_style_loader_src()
@@ -121,13 +143,33 @@ class Test_HTTPS_Resource_Proxy extends Base_Test_Case {
 	}
 
 	/**
-	 * @see HTTPS_Resource_Proxy::prevent_canonical_redirect_trailingslashing()
+	 * @see HTTPS_Resource_Proxy::enqueue_scripts()
 	 */
-	function test_prevent_canonical_redirect_trailingslashing() {
+	function test_enqueue_scripts() {
+		$instance = new HTTPS_Resource_Proxy( $this->plugin );
+		add_filter( 'https_resource_proxy_filtering_enabled', '__return_true' );
+		$instance->add_proxy_filtering();
+
+		unset( $instance );
+		$wp_scripts = wp_scripts(); // and fire wp_default_scripts
+		wp_styles(); // fire wp_default_styles
+		do_action( 'wp_enqueue_scripts' );
+		$this->assertContains( $this->plugin->script_handles['https-resource-proxy'], $wp_scripts->queue );
+		$this->assertContains( 'var _httpsResourceProxyExports', $wp_scripts->get_data( $this->plugin->script_handles['https-resource-proxy'], 'data' ) );
+	}
+
+	/**
+	 * @see HTTPS_Resource_Proxy::enforce_trailingslashing()
+	 */
+	function test_enforce_trailingslashing() {
 		$instance = new HTTPS_Resource_Proxy( $this->plugin );
 		set_query_var( HTTPS_Resource_Proxy::PATH_QUERY_VAR, '/main.css' );
-		$this->assertStringEndsWith( '.js', $instance->prevent_canonical_redirect_trailingslashing( 'http://example.com/main.js/' ) );
-		$this->assertStringEndsWith( '.js?ver=1', $instance->prevent_canonical_redirect_trailingslashing( 'http://example.com/main.js/?ver=1' ) );
+		$instance->plugin->config[ HTTPS_Resource_Proxy::MODULE_SLUG ]['trailingslash_srcs'] = true;
+		$this->assertStringEndsWith( '.js/', $instance->enforce_trailingslashing( 'http://example.com/main.js' ) );
+		$this->assertStringEndsWith( '.js/?ver=1', $instance->enforce_trailingslashing( 'http://example.com/main.js?ver=1' ) );
+		$instance->plugin->config[ HTTPS_Resource_Proxy::MODULE_SLUG ]['trailingslash_srcs'] = false;
+		$this->assertStringEndsWith( '.js', $instance->enforce_trailingslashing( 'http://example.com/main.js/' ) );
+		$this->assertStringEndsWith( '.js?ver=1', $instance->enforce_trailingslashing( 'http://example.com/main.js/?ver=1' ) );
 		set_query_var( HTTPS_Resource_Proxy::PATH_QUERY_VAR, null );
 	}
 
