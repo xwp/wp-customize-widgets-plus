@@ -14,5 +14,29 @@ Lab features and a testbed for improvements to Widgets and the Customizer.
 
 ## Description ##
 
-Lab features and a testbed for improvements to Widgets and the Customizer.
+This plugin consists of lab features and a testbed for improvements to Widgets and the Customizer.
+
+Requires PHP 5.3+.
+
+**Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-widgets-plus). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-widgets-plus/issues) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-widgets-plus).**
+
+Current features:
+### `non_autoloaded_widget_options` ###
+Widgets are stored in options (normally). Multi-widgets store all of their instances in one big serialized array specific to that type. When there are many widgets of a given type, the size of the serialized array can grow very large. What's more is that `WP_Widget` does not explicitly `add_option(... 'no' )` before calling `update_option()`, and so all of the settings get added with autoloading. This is very bad when using Memcached Object Cache specifically because it can result in the total `alloptions` cache key to become larger than 1MB and result in Memcached failing to store the value in the cache. On WordPress.com the result is a ["Matt's fault" error](https://github.com/Automattic/vip-quickstart/blob/master/www/wp-content/mu-plugins/alloptions-limit.php) which has to be fixed by the VIP team. Widget settings should not be stored in serialized arrays to begin with; each widget instance should be stored in a custom post type. But until this is done we should stop autoloading options. See also [#26876](https://core.trac.wordpress.org/ticket/26876) and [#23909](https://core.trac.wordpress.org/ticket/23909).
+
+### `widget_number_incrementing` ###
+Implements fixes for Core issue [#32183](https://core.trac.wordpress.org/ticket/32183) (Widget ID auto-increments conflict for concurrent users). The stored widget_number option provides a centralized auto-increment number for whenever a widget is instantiated, even widgets in the Customizer that are not yet saved.
+
+### `efficient_multidimensional_setting_sanitizing` ###
+Settings for multidimensional options and theme_mods are extremely inefficient to sanitize in Core because all of the Customizer settings registered for the subsets of the `option` or `theme_mod` need filters that are added to the entire value, meaning sanitizing one single setting will result in all filters for all other settings in that `option`/`theme_mod` will also get applied. This functionality seeks to improve this as much as possible, especially for widgets which are the worst offenders. Implements partial fix for [#32103](https://core.trac.wordpress.org/ticket/32103).
+
+### `https_resource_proxy` ###
+When `FORCE_SSL_ADMIN` is enabled (such as on WordPress.com), the Customizer will load the site into the preview iframe using HTTPS as well. If, however, external resources are being referenced which are not HTTPS, they will fail to load due to the browser's security model raise mixed content warnings. This functionality will attempt to rewrite any HTTP URLs to be HTTPS ones via a WordPress-based proxy.
+
+
+## Changelog ##
+
+### 0.1 ###
+Initial release.
+
 
