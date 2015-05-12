@@ -172,7 +172,7 @@ class Widget_Number_Incrementing {
 		}
 
 		$admin_widgets_script = wp_scripts()->registered['admin-widgets'];
-		$admin_widgets_script->src = $this->plugin->dir_url . 'js/admin-widgets-patched.js';
+		$admin_widgets_script->src = $this->plugin->dir_url . 'core-patched/wp-admin/js/widgets.js';
 		$admin_widgets_script->deps[] = $this->plugin->script_handles['widget-number-incrementing'];
 		$admin_widgets_script->deps[] = 'wp-util';
 		$this->export_script_data();
