@@ -1,6 +1,7 @@
 /*global ajaxurl, isRtl, wpCustomizeWidgetsPlus, console */
 var wpWidgets;
 (function($) {
+	var $document = $( document );
 
 wpWidgets = {
 
@@ -22,10 +23,13 @@ wpWidgets = {
 			} else {
 				$wrap.addClass('closed');
 			}
+
+			$document.triggerHandler( 'wp-pin-menu' );
 		});
 
 		$('#widgets-left .sidebar-name').click( function() {
 			$(this).closest('.widgets-holder-wrap').toggleClass('closed');
+			$document.triggerHandler( 'wp-pin-menu' );
 		});
 
 		$(document.body).bind('click.widgets-toggle', function(e) {
@@ -89,7 +93,7 @@ wpWidgets = {
 			distance: 2,
 			helper: 'clone',
 			zIndex: 100,
-			containment: 'document',
+			containment: '#wpwrap',
 			start: function( event, ui ) {
 				var chooser = $(this).find('.widgets-chooser');
 
@@ -119,7 +123,7 @@ wpWidgets = {
 			handle: '> .widget-top > .widget-title',
 			cursor: 'move',
 			distance: 2,
-			containment: 'document',
+			containment: '#wpwrap',
 			start: function( event, ui ) {
 				var height, $this = $(this),
 					$wrap = $this.parent(),
@@ -172,8 +176,8 @@ wpWidgets = {
 						}
 
 						wpWidgets.save( $widget, 0, 0, 1 );
-						$widget.find( 'input.add_new' ).val( '' );
-						$( document ).trigger( 'widget-added', [$widget] );
+						$widget.find('input.add_new').val('');
+						$document.trigger( 'widget-added', [ $widget ] );
 					}
 
 					$sidebar = $widget.parent();
@@ -200,7 +204,7 @@ wpWidgets = {
 					}
 				};
 
-				if ( 'multi' !== addNew ) {
+				if ( 'multi' !== addNew || 'undefined' === typeof wpCustomizeWidgetsPlus ) {
 					continuation();
 					return;
 				}
@@ -409,7 +413,7 @@ wpWidgets = {
 				if ( r && r.length > 2 ) {
 					$( 'div.widget-content', widget ).html( r );
 					wpWidgets.appendTitle( widget );
-					$( document ).trigger( 'widget-updated', [ widget ] );
+					$document.trigger( 'widget-updated', [ widget ] );
 				}
 			}
 			if ( order ) {
@@ -477,7 +481,7 @@ wpWidgets = {
 			// No longer "new" widget
 			widget.find( 'input.add_new' ).val('');
 
-			$( document ).trigger( 'widget-added', [ widget ] );
+			$document.trigger( 'widget-added', [ widget ] );
 
 			/*
 			 * Check if any part of the sidebar is visible in the viewport. If it is, don't scroll.
@@ -505,7 +509,7 @@ wpWidgets = {
 			}, 250 );
 		};
 
-		if ( 'multi' !== add ) {
+		if ( 'multi' !== add || 'undefined' === typeof wpCustomizeWidgetsPlus ) {
 			continuation( n );
 			return;
 		}
@@ -551,6 +555,6 @@ wpWidgets = {
 	}
 };
 
-$(document).ready( function(){ wpWidgets.init(); } );
+$document.ready( function(){ wpWidgets.init(); } );
 
 })(jQuery);

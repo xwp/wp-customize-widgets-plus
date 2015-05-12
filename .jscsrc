@@ -4,6 +4,6 @@
 		"**/vendor/**",
 		"**.min.js",
 		"**/node_modules/**",
-		"js/admin-widgets-patched.js"
+		"core-patched/wp-admin/js/widgets.js"
 	]
 }
