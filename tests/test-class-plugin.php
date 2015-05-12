@@ -26,6 +26,15 @@ class Test_Plugin extends Base_Test_Case {
 	}
 
 	/**
+	 * @see Plugin::is_module_active()
+	 */
+	function test_is_module_active() {
+		foreach ( $this->plugin->config['active_modules'] as $module_name => $is_active ) {
+			$this->assertEquals( $is_active, $this->plugin->is_module_active( $module_name ) );
+		}
+	}
+
+	/**
 	 * @see Plugin::init()
 	 */
 	function test_init() {

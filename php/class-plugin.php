@@ -72,6 +72,20 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
+	 * Return whether the given module is active.
+	 *
+	 * @param string $module_name
+	 * @throws Exception
+	 * @return bool
+	 */
+	function is_module_active( $module_name ) {
+		if ( ! array_key_exists( $module_name, $this->config['active_modules'] ) ) {
+			throw new Exception( "Unrecognized module_name: $module_name" );
+		}
+		return ! empty( $this->config['active_modules'][ $module_name ] );
+	}
+
+	/**
 	 * @action after_setup_theme
 	 */
 	function init() {
@@ -95,16 +109,16 @@ class Plugin extends Plugin_Base {
 			$this->disable_widgets_factory();
 		}
 
-		if ( ! empty( $this->config['active_modules']['non_autoloaded_widget_options'] ) ) {
+		if ( $this->is_module_active( 'non_autoloaded_widget_options' ) ) {
 			$this->non_autoloaded_widget_options = new Non_Autoloaded_Widget_Options( $this );
 		}
-		if ( ! empty( $this->config['active_modules']['widget_number_incrementing'] ) ) {
+		if ( $this->is_module_active( 'widget_number_incrementing' ) ) {
 			$this->widget_number_incrementing = new Widget_Number_Incrementing( $this );
 		}
-		if ( ! empty( $this->config['active_modules']['https_resource_proxy'] ) ) {
+		if ( $this->is_module_active( 'https_resource_proxy' ) ) {
 			$this->https_resource_proxy = new HTTPS_Resource_Proxy( $this );
 		}
-		if ( ! empty( $this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] ) && ! empty( $wp_customize ) ) {
+		if ( $this->is_module_active( 'efficient_multidimensional_setting_sanitizing' ) && ! empty( $wp_customize ) ) {
 			$this->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this, $wp_customize );
 		}
 	}
