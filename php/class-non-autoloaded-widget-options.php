@@ -52,7 +52,13 @@ class Non_Autoloaded_Widget_Options {
 		 */
 		global $wp_widget_factory;
 
-		$autoloaded_option_names = array_keys( wp_load_alloptions() );
+		$alloptions = wp_load_alloptions();
+		if ( ! is_array( $alloptions ) ) {
+			$this->plugin->trigger_warning( sprintf( 'wp_load_alloptions() did not return an array but a "%s"; object cache may be corrupted and may need to be flushed. Please follow https://core.trac.wordpress.org/ticket/31245', gettype( $alloptions ) ) );
+			$alloptions = array();
+		}
+
+		$autoloaded_option_names = array_keys( $alloptions );
 		$pending_unautoload_option_names = array();
 
 		foreach ( $wp_widget_factory->widgets as $widget_obj ) {
