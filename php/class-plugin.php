@@ -60,7 +60,15 @@ class Plugin extends Plugin_Base {
 			'disable_widgets_init' => false,
 			'disable_widgets_factory' => false,
 			'active_modules' => array(
-				'non_autoloaded_widget_options' => true,
+				/*
+				 * Note that non_autoloaded_widget_options is disabled by default
+				 * on WordPress.com because it has no effect since all options
+				 * are autoloaded. We need to go deeper and stop storing widgets
+				 * in options altogether, e.g. in a custom post type.
+				 * See https://github.com/Automattic/vip-quickstart/issues/430#issuecomment-102183247
+				 */
+				'non_autoloaded_widget_options' => ! $this->is_wpcom_vip_prod(),
+
 				'widget_number_incrementing' => true,
 				'https_resource_proxy' => true,
 				'efficient_multidimensional_setting_sanitizing' => true,
