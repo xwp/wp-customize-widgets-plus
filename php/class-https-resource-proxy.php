@@ -116,7 +116,14 @@ class HTTPS_Resource_Proxy {
 		add_filter( 'style_loader_src', array( $this, 'filter_style_loader_src' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
-		// @todo need to prevent the WordPress.com CDN domain from overriding the site_url() proxy endpoint
+		/*
+		 * On WordPress.com, prevent hostname in assets from being replaced with
+		 * the WPCOM CDN (e.g. w1.wp.com) as then the assets will 404.
+		 */
+		if ( $this->plugin->is_wpcom_vip_prod() ) {
+			remove_filter( 'style_loader_src', 'staticize_subdomain' );
+			remove_filter( 'script_loader_src', 'staticize_subdomain' );
+		}
 	}
 
 	/**
