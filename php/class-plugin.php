@@ -52,7 +52,9 @@ class Plugin extends Plugin_Base {
 	public function __construct( $config = array() ) {
 
 		// @todo If running unit tests, we can just skip adding this action
-		add_action( 'after_setup_theme', array( $this, 'init' ) );
+
+		$priority = 9; // because WP_Customize_Widgets::register_settings() happens at after_setup_theme priority 10
+		add_action( 'after_setup_theme', array( $this, 'init' ), $priority );
 
 		parent::__construct(); // autoload classes and set $slug, $dir_path, and $dir_url vars
 

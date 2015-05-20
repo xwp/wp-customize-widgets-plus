@@ -9,6 +9,11 @@ class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 	 */
 	public $wp_customize_manager;
 
+	/**
+	 * @var Efficient_Multidimensional_Setting_Sanitizing
+	 */
+	public $efficient_multidimensional_setting_sanitizing;
+
 	function setUp() {
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
 		parent::setUp();
@@ -17,6 +22,7 @@ class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 	function init_customizer() {
 		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
 		$this->wp_customize_manager = new \WP_Customize_Manager();
+		$this->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this->plugin, $this->wp_customize_manager );
 	}
 
 	/**
