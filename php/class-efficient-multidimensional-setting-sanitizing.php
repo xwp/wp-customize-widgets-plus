@@ -51,6 +51,11 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 	public $disabled_filtering_pre_option_widget_settings = false;
 
 	/**
+	 * @var \WP_Widget[]
+	 */
+	public $widget_objs;
+
+	/**
 	 * @param Plugin $plugin
 	 * @param \WP_Customize_Manager $manager
 	 */
@@ -60,13 +65,30 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 		$this->manager->efficient_multidimensional_setting_sanitizing = $this;
 
 		add_filter( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 2 );
+		add_action( 'widgets_init', array( $this, 'save_widget_objs' ), 90 );
 
+		// Note that customize_register happens at wp_loaded, so we register the settings just before
 		$priority = has_action( 'wp_loaded', array( $this->manager, 'wp_loaded' ) );
 		$priority -= 1;
 		add_action( 'wp_loaded', array( $this, 'register_widget_instance_settings_early' ), $priority );
 
 		add_action( 'customize_save', array( $this, 'disable_filtering_pre_option_widget_settings' ) );
 		add_action( 'customize_save_after', array( $this, 'enable_filtering_pre_option_widget_settings' ) );
+	}
+
+	/**
+	 * Since at widgets_init,100 the single instances of widgets get copied out
+	 * to the many instances in $wp_registered_widgets, we capture all of the
+	 * registered widgets up front so we don't have to search through the big
+	 * list later.
+	 *
+	 * @see WP_Customize_Widget_Setting::__construct()
+	 */
+	function save_widget_objs() {
+		foreach ( $this->plugin->widget_factory->widgets as $widget_obj ) {
+			/** @var \WP_Widget $widget_obj */
+			$this->widget_objs[ $widget_obj->id_base ] = $widget_obj;
+		}
 	}
 
 	/**
