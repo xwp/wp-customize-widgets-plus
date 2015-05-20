@@ -29,18 +29,44 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 	public $manager;
 
 	/**
+	 * All current instance data for registered widgets.
+	 *
+	 * @see WP_Customize_Widget_Setting::__construct()
+	 * @see WP_Customize_Widget_Setting::value()
+	 * @see WP_Customize_Widget_Setting::preview()
+	 * @see WP_Customize_Widget_Setting::update()
+	 * @see WP_Customize_Widget_Setting::filter_pre_option_widget_settings()
+	 *
+	 * @var array
+	 */
+	public $current_widget_type_values = array();
+
+	/**
+	 * Whether or not all of the filter_pre_option_widget_settings handlers should no-op.
+	 *
+	 * This is set to true at customize_save action, and returned to false at customize_save_after.
+	 *
+	 * @var bool
+	 */
+	public $disabled_filtering_pre_option_widget_settings = false;
+
+	/**
 	 * @param Plugin $plugin
 	 * @param \WP_Customize_Manager $manager
 	 */
 	function __construct( Plugin $plugin, \WP_Customize_Manager $manager ) {
 		$this->plugin = $plugin;
 		$this->manager = $manager;
+		$this->manager->efficient_multidimensional_setting_sanitizing = $this;
 
 		add_filter( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 2 );
 
 		$priority = has_action( 'wp_loaded', array( $this->manager, 'wp_loaded' ) );
 		$priority -= 1;
 		add_action( 'wp_loaded', array( $this, 'register_widget_instance_settings_early' ), $priority );
+
+		add_action( 'customize_save', array( $this, 'disable_filtering_pre_option_widget_settings' ) );
+		add_action( 'customize_save_after', array( $this, 'enable_filtering_pre_option_widget_settings' ) );
 	}
 
 	/**
@@ -71,6 +97,9 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 		$this->register_widget_settings();
 
 		// Register any remaining widgets that are registered after WP is initialized
+		if ( is_admin() ) {
+			$this->register_widget_settings();
+		}
 		$priority = 9; // Before \WP_Customize_Manager::customize_register() is called
 		add_action( 'wp', array( $this, 'register_widget_settings' ), $priority );
 	}
@@ -108,5 +137,21 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 			}
 			$new_setting_ids[] = $setting_id;
 		}
+	}
+
+	/**
+	 * @see WP_Customize_Widget_Setting::filter_pre_option_widget_settings()
+	 * @action customize_save
+	 */
+	function disable_filtering_pre_option_widget_settings() {
+		$this->disabled_filtering_pre_option_widget_settings = true;
+	}
+
+	/**
+	 * @see WP_Customize_Widget_Setting::filter_pre_option_widget_settings()
+	 * @action customize_save_after
+	 */
+	function enable_filtering_pre_option_widget_settings() {
+		$this->disabled_filtering_pre_option_widget_settings = false;
 	}
 }
