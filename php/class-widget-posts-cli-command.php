@@ -83,6 +83,9 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 	 */
 	public function migrate( $id_bases, $options ) {
 		try {
+			if ( ! defined( 'WP_IMPORTING' ) ) {
+				define( 'WP_IMPORTING', true );
+			}
 			$widget_posts = $this->get_widget_posts();
 
 			$options = array_merge(

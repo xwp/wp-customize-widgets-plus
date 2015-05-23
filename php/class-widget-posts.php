@@ -298,18 +298,22 @@ class Widget_Posts {
 	 *
 	 * @see WP_Customize_Widgets::capture_filter_pre_update_option()
 	 *
-	 * @param array $value
-	 * @param array $old_value
+	 * @param Widget_Settings|array $value
+	 * @param Widget_Settings|array $old_value
 	 * @return array
 	 */
 	function filter_pre_update_option_widget_settings( $value, $old_value ) {
+		// Get literal arrays for comparison since two separate instances can never be identical (===)
+		$value_array = ( $value instanceof Widget_Settings ? $value->getArrayCopy() : $value );
+		$old_value_array = ( $old_value instanceof Widget_Settings ? $old_value->getArrayCopy() : $old_value );
+
 		$matches = array();
 		$should_filter = (
 			! $this->pre_option_filters_disabled
 			&&
-			( $value !== $old_value )
+			( $value_array !== $old_value_array )
 			&&
-			( $value instanceof \ArrayIterator )
+			( $value instanceof Widget_Settings )
 			&&
 			preg_match( '/pre_update_option_widget_(.+)/', current_filter(), $matches )
 		);
