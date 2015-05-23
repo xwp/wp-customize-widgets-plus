@@ -85,17 +85,20 @@ class Widget_Posts {
 	function init() {
 		add_action( 'widgets_init', array( $this, 'prepare_widget_data' ), 91 );
 		add_action( 'init', array( $this, 'register_instance_post_type' ) );
-		add_filter( 'wp_insert_post_data', array( $this, 'preserve_content_filtered' ), 10, 2 ); // @todo priority 20? Before or after Widget_Instance_Post_Edit::insert_post_name()?
-		add_action( 'delete_post', array( $this, 'flush_widget_instance_numbers_cache' ) );
-		add_action( 'save_post', array( $this, 'flush_widget_instance_numbers_cache' ) );
 	}
 
 	/**
 	 * Register the widget_instance post type.
 	 *
 	 * @action init
+	 * @return object The post type object.
+	 * @throws Exception
 	 */
 	function register_instance_post_type() {
+		$post_type_object = get_post_type_object( static::INSTANCE_POST_TYPE );
+		if ( $post_type_object ) {
+			return $post_type_object;
+		}
 
 		$labels = array(
 			'name'               => _x( 'Widget Instances', 'post type general name', 'mandatory-widgets' ),
@@ -123,14 +126,23 @@ class Widget_Posts {
 			'menu_position' => null,
 			'supports' => array( 'none' ), // @todo 'revisions' when there is a UI.
 		);
-		register_post_type( static::INSTANCE_POST_TYPE, $args );
+		$r = register_post_type( static::INSTANCE_POST_TYPE, $args );
+		if ( is_wp_error( $r ) ) {
+			throw new Exception( $r->get_error_message() );
+		}
+
+		add_filter( 'wp_insert_post_data', array( $this, 'preserve_content_filtered' ), 10, 2 ); // @todo priority 20? Before or after Widget_Instance_Post_Edit::insert_post_name()?
+		add_action( 'delete_post', array( $this, 'flush_widget_instance_numbers_cache' ) );
+		add_action( 'save_post', array( $this, 'flush_widget_instance_numbers_cache' ) );
+
+		return $r;
 	}
 
 	/**
 	 * @see \WP_Widget::get_settings()
 	 *
-	 * @param string $id_base
-	 * @param array $instances
+	 * @param string $id_base Widget ID Base.
+	 * @param array $instances Mapping of widget numbers to instance arrays.
 	 * @param array [$options]
 	 * @throws Exception
 	 */
@@ -138,6 +150,8 @@ class Widget_Posts {
 		if ( ! array_key_exists( $id_base, $this->widget_objs ) ) {
 			throw new Exception( "Unrecognized $id_base widget ID base." );
 		}
+		$this->register_instance_post_type(); // In case the Widget Posts is not enabled, or init hasn't fired.
+
 		$options = wp_parse_args( $options, array(
 			'update' => false,
 			'dry-run' => false,
@@ -175,6 +189,7 @@ class Widget_Posts {
 	 * filter_pre_update_option_widget_settings() should no-op.
 	 *
 	 * @see Widget_Posts::migrate_widgets_from_options()
+	 * @see Widget_Posts::import_widget_instances()
 	 *
 	 * @var bool
 	 */
