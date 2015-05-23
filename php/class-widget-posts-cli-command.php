@@ -180,8 +180,13 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 			unset( $assoc_args );
 
 			$widget_posts = $this->get_widget_posts();
-			$data = $widget_posts->get_widget_instance_data( $widget_id );
-			echo json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n";
+			$post = $widget_posts->get_widget_post( $widget_id );
+			if ( ! $post ) {
+				\WP_CLI::warning( "Widget post $widget_id does not exist." );
+			} else {
+				$data = $widget_posts->get_widget_instance_data( $post );
+				echo json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n";
+			}
 		} catch ( \Exception $e ) {
 			\WP_CLI::error( sprintf( '%s: %s', get_class( $e ), $e->getMessage() ) );
 		}
