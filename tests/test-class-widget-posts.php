@@ -51,9 +51,6 @@ class Test_Widget_Posts extends Base_Test_Case {
 		$this->assertEquals( 90, has_action( 'widgets_init', array( $instance, 'store_widget_objects' ) ) );
 		$this->assertEquals( 91, has_action( 'widgets_init', array( $instance, 'prepare_widget_data' ) ) );
 		$this->assertEquals( 10, has_action( 'init', array( $instance, 'register_instance_post_type' ) ) );
-		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $instance, 'preserve_content_filtered' ) ) );
-		$this->assertEquals( 10, has_action( 'delete_post', array( $instance, 'flush_widget_instance_numbers_cache' ) ) );
-		$this->assertEquals( 10, has_action( 'save_post', array( $instance, 'flush_widget_instance_numbers_cache' ) ) );
 	}
 
 	/**
@@ -61,8 +58,12 @@ class Test_Widget_Posts extends Base_Test_Case {
 	 */
 	function test_register_instance_post_type() {
 		$instance = new Widget_Posts( $this->plugin );
-		$instance->register_instance_post_type();
+		$post_type_obj = $instance->register_instance_post_type();
+		$this->assertInternalType( 'object', $post_type_obj );
 		$this->assertNotEmpty( get_post_type_object( Widget_Posts::INSTANCE_POST_TYPE ) );
+		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $instance, 'preserve_content_filtered' ) ) );
+		$this->assertEquals( 10, has_action( 'delete_post', array( $instance, 'flush_widget_instance_numbers_cache' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . Widget_Posts::INSTANCE_POST_TYPE, array( $instance, 'flush_widget_instance_numbers_cache' ) ) );
 	}
 
 	/**
@@ -76,9 +77,12 @@ class Test_Widget_Posts extends Base_Test_Case {
 		$instance = new Widget_Posts( $this->plugin );
 		$instance->init();
 		wp_widgets_init();
+		$instance->register_instance_post_type();
 
 		$this->assertEmpty( $instance->get_widget_instance_numbers( $id_base ) );
 		$instance->migrate_widgets_from_options();
+		// @todo this should be getting called! wp_cache_delete( $id_base, 'widget_instance_numbers' );
+		$this->assertGreaterThan( 0, did_action( 'widget_posts_import_success' ) );
 		$shallow_instances = $instance->get_widget_instance_numbers( $id_base );
 		$this->assertNotEmpty( $shallow_instances );
 

@@ -133,7 +133,7 @@ class Widget_Posts {
 
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_content_filtered' ), 10, 2 ); // @todo priority 20? Before or after Widget_Instance_Post_Edit::insert_post_name()?
 		add_action( 'delete_post', array( $this, 'flush_widget_instance_numbers_cache' ) );
-		add_action( 'save_post', array( $this, 'flush_widget_instance_numbers_cache' ) );
+		add_action( 'save_post_' . static::INSTANCE_POST_TYPE, array( $this, 'flush_widget_instance_numbers_cache' ) );
 
 		return $r;
 	}
@@ -210,7 +210,7 @@ class Widget_Posts {
 		}
 		$this->pre_option_filters_disabled = true;
 		foreach ( $this->widget_objs as $id_base => $widget_obj ) {
-			$instances = $widget_obj->get_settings();
+			$instances = $widget_obj->get_settings(); // Note that $this->pre_option_filters_disabled must be true so this returns an array, not a Widget_Settings.
 			$this->import_widget_instances( $id_base, $instances, $options );
 		}
 		$this->pre_option_filters_disabled = false;
@@ -616,7 +616,7 @@ class Widget_Posts {
 	 * Flush the widget instance numbers cache when a post is updated or deleted.
 	 *
 	 * @param int $post_id
-	 * @action save_post
+	 * @action save_post_widget_instance
 	 * @action delete_post
 	 */
 	function flush_widget_instance_numbers_cache( $post_id ) {

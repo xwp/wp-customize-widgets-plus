@@ -18,11 +18,12 @@ abstract class Base_Test_Case extends \WP_UnitTestCase {
 	}
 
 	function clean_up_global_scope() {
-		global $wp_registered_sidebars, $wp_registered_widgets, $wp_registered_widget_controls, $wp_registered_widget_updates;
+		global $wp_registered_sidebars, $wp_registered_widgets, $wp_registered_widget_controls, $wp_registered_widget_updates, $wp_post_types;
 		// @codingStandardsIgnoreStart
 		$wp_registered_sidebars = $wp_registered_widgets = $wp_registered_widget_controls = $wp_registered_widget_updates = array();
 		// @codingStandardsIgnoreEnd
 		$this->plugin->widget_factory->widgets = array();
+		unset( $wp_post_types[ Widget_Posts::INSTANCE_POST_TYPE ] );
 		parent::clean_up_global_scope();
 	}
 
