@@ -144,8 +144,8 @@ class Widget_Posts {
 		) );
 		unset( $instances['_multiwidget'] );
 		foreach ( $instances as $widget_number => $instance ) {
-			$widget_number = absint( $widget_number );
-			if ( ! $widget_number ) {
+			$widget_number = intval( $widget_number );
+			if ( ! $widget_number || $widget_number < 2 ) {
 				continue;
 			}
 
@@ -268,7 +268,7 @@ class Widget_Posts {
 		if ( has_filter( "option_widget_{$id_base}" ) ) {
 			$filtered_settings = apply_filters( "option_widget_{$id_base}", $settings );
 
-			// Detect when a filter blew away our nice ArrayObject.
+			// Detect when a filter blew away our nice ArrayIterator.
 			if ( $filtered_settings !== $settings ) {
 				$settings = new Widget_Settings( $filtered_settings );
 			}
@@ -305,8 +305,8 @@ class Widget_Posts {
 
 		$instances = $value->getArrayCopy();
 		foreach ( $instances as $widget_number => $instance ) {
-			$widget_number = absint( $widget_number );
-			if ( ! $widget_number || ! is_array( $instance ) ) { // Note that non-arrays are most likely widget_instance post IDs.
+			$widget_number = intval( $widget_number );
+			if ( ! $widget_number || $widget_number < 2 || ! is_array( $instance ) ) { // Note that non-arrays are most likely widget_instance post IDs.
 				continue;
 			}
 			$widget_id = "$id_base-$widget_number";
@@ -368,6 +368,11 @@ class Widget_Posts {
 
 			wp_cache_set( $id_base, $numbers, 'widget_instance_numbers' );
 		}
+
+		// Widget numbers start at 2, so ensure this is the case.
+		unset( $numbers[0] );
+		unset( $numbers[1] );
+
 		return $numbers;
 	}
 
@@ -379,6 +384,14 @@ class Widget_Posts {
 	 */
 	function get_widget_post( $widget_id ) {
 		// @todo it may be better to just do a SQL query here: $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_type = %s AND post_name = %s", array( static::INSTANCE_POST_TYPE, $widget_id ) ) )
+
+		$parsed_widget_id = $this->plugin->parse_widget_id( $widget_id );
+		if ( ! $parsed_widget_id ) {
+			return null;
+		}
+		if ( ! $parsed_widget_id['widget_number'] || $parsed_widget_id['widget_number'] < 2 ) {
+			return null;
+		}
 
 		$post_stati = array_merge(
 			array( 'any' ),
@@ -515,6 +528,9 @@ class Widget_Posts {
 		if ( empty( $parsed_widget_id ) ) {
 			throw new Exception( "Invalid widget_id: $widget_id" );
 		}
+		if ( ! $parsed_widget_id['widget_number'] || $parsed_widget_id['widget_number'] < 2 ) {
+			throw new Exception( "Widgets must start numbering at 2: $widget_id" );
+		}
 
 		$post_id = null;
 		$old_instance = array();
@@ -599,6 +615,5 @@ class Widget_Posts {
 		}
 		wp_cache_delete( $parsed_widget_id['id_base'], 'widget_instance_numbers' );
 	}
-
 
 }

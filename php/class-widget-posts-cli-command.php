@@ -156,13 +156,10 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 		} catch ( \Exception $e ) {
 			\WP_CLI::error( sprintf( '%s: %s', get_class( $e ), $e->getMessage() ) );
 		}
-
 	}
 
 	/**
 	 * Import widget instances from a JSON dump mapping widget IDs (e.g. {"search-123":{"title":"Buscar"} }.
-	 *
-	 *
 	 */
 	public function import() {
 		\WP_CLI::error( 'Not implemented.' );

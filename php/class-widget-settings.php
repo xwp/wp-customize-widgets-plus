@@ -30,7 +30,18 @@ namespace CustomizeWidgetsPlus;
 class Widget_Settings extends \ArrayIterator {
 
 	/**
-	 *
+	 * @param array $array
+	 * @throws Exception
+	 */
+	function __construct( $array ) {
+		// Widget numbers start at 2.
+		unset( $array[0] );
+		unset( $array[1] );
+
+		parent::__construct( $array );
+	}
+
+	/**
 	 * \WP_Widget::update_callback(): $old_instance = isset($all_instances[$number]) ? $all_instances[$number] : array();
 	 * \WP_Widget::display_callback(): if ( array_key_exists( $this->number, $instance ) ) {
 	 * \WP_Widget::get_settings(): if ( !empty($settings) && !array_key_exists('_multiwidget', $settings) ) {
@@ -84,6 +95,10 @@ class Widget_Settings extends \ArrayIterator {
 		}
 		$key = filter_var( $key, FILTER_VALIDATE_INT );
 		if ( ! is_int( $key ) ) {
+			// @todo _doing_it_wrong()?
+			return;
+		}
+		if ( $key < 2 ) {
 			// @todo _doing_it_wrong()?
 			return;
 		}
