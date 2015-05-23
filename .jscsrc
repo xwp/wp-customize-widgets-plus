@@ -1,1 +1,9 @@
-dev-lib/.jscsrc
+{
+	"preset": "wordpress",
+	"excludeFiles": [
+		"**/vendor/**",
+		"**.min.js",
+		"**/node_modules/**",
+		"core-patched/wp-admin/js/widgets.js"
+	]
+}
