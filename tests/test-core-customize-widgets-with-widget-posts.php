@@ -38,12 +38,16 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 
 		$this->plugin->widget_posts->migrate_widgets_from_options();
 		$this->plugin->widget_posts->init();
+		$this->plugin->widget_posts->prepare_widget_data(); // Has to be called here because of wp_widgets_init() footwork done above.
+		$this->plugin->widget_posts->register_instance_post_type(); // Normally called at init action.
 	}
 
 	function test_register_settings() {
 		parent::test_register_settings();
 		$this->assertInstanceOf( __NAMESPACE__ . '\\WP_Customize_Widget_Setting', $this->manager->get_setting( 'widget_categories[2]' ) );
 		$this->assertEquals( 'widget', $this->manager->get_setting( 'widget_categories[2]' )->type );
+
+		$this->assertInstanceOf( __NAMESPACE__ . '\\Widget_Settings', get_option( 'widget_categories' ) );
 	}
 
 }

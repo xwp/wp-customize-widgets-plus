@@ -180,7 +180,6 @@ class Widget_Posts {
 			add_filter( "pre_option_{$widget_obj->option_name}", array( $this, 'filter_pre_option_widget_settings' ), 20 );
 			add_filter( "pre_update_option_{$widget_obj->option_name}", array( $this, 'filter_pre_update_option_widget_settings' ), 20, 2 );
 		}
-
 	}
 
 	/**
@@ -198,9 +197,9 @@ class Widget_Posts {
 	function filter_pre_option_widget_settings( $pre ) {
 		$matches = array();
 		$should_filter = (
-			null === $pre
+			false === $pre
 			&&
-			$this->is_migrating_widgets_from_options
+			! $this->is_migrating_widgets_from_options
 			&&
 			preg_match( '/pre_option_widget_(.+)/', current_filter(), $matches )
 		);
@@ -230,7 +229,6 @@ class Widget_Posts {
 			}
 		}
 
-		// @todo We probably should instead return $settings->getIterator();
 		return $settings;
 	}
 
@@ -247,11 +245,11 @@ class Widget_Posts {
 	function filter_pre_update_option_widget_settings( $value, $old_value ) {
 		$matches = array();
 		$should_filter = (
-			$this->is_migrating_widgets_from_options
+			! $this->is_migrating_widgets_from_options
 			&&
 			( $value !== $old_value )
 			&&
-			( $value instanceof \ArrayObject )
+			( $value instanceof \ArrayAccess )
 			&&
 			preg_match( '/pre_update_option_widget_(.+)/', current_filter(), $matches )
 		);

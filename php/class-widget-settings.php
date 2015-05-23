@@ -85,7 +85,7 @@ class Widget_Settings extends \ArrayIterator {
 	 * @param mixed      $value The array item value.
 	 */
 	public function offsetSet( $key, $value ) {
-		if ( '_multiwidget' === $key ) {
+		if ( '_multiwidget' === $key || '__i__' === $key ) {
 			return;
 		}
 		$key = filter_var( $key, FILTER_VALIDATE_INT );
@@ -107,15 +107,13 @@ class Widget_Settings extends \ArrayIterator {
 	 * @param int|string $key Array key.
 	 */
 	public function offsetUnset( $key ) {
-		if ( '_multiwidget' === $key ) {
+		if ( '_multiwidget' === $key || '__i__' === $key ) {
 			return;
 		}
 		parent::offsetUnset( $key );
 	}
 
 	/**
-	 * Get the
-	 *
 	 * @return array
 	 */
 	public function current() {

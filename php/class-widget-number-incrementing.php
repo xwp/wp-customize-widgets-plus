@@ -82,7 +82,14 @@ class Widget_Number_Incrementing {
 	function get_max_existing_widget_number( $id_base ) {
 		$widget_obj = $this->widget_objs[ $id_base ];
 		// @todo There should be a pre_existing_widget_numbers, pre_max_existing_widget_number filter, or pre_existing_widget_ids to short circuit the expensive WP_Widget::get_settings()
-		$widget_numbers = array_keys( $widget_obj->get_settings() );
+
+		$settings = $widget_obj->get_settings();
+		if ( $settings instanceof \ArrayAccess && method_exists( $settings, 'getArrayCopy' ) ) {
+			/** @see Widget_Settings */
+			$settings = $settings->getArrayCopy( $settings );
+		}
+
+		$widget_numbers = array_keys( $settings );
 		$widget_numbers[] = 2; // multi-widgets start numbering at 2
 		return max( $widget_numbers );
 	}
