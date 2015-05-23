@@ -7,9 +7,7 @@
 
 namespace CustomizeWidgetsPlus;
 
-// @todo WP_Widget::get_settings() that grabs all instance _numbers_
 // @todo WP-CLI command for migrating widget options to widget settings posts.
-// @todo Filters should not be added if the options haven't been migrated into posts.
 
 /**
  * Efficient emulation of the widget settings array as returned by \WP_Widget::get_settings().
@@ -19,10 +17,6 @@ namespace CustomizeWidgetsPlus;
  *
  * @see \WP_Widget::get_settings()
  * @see \WP_Widget::save_settings()
- *
- * The following PHP functions are compatible with ArrayObject:
- *  - array_key_exists
- *
  *
  * \WP_Widget::update_callback(): $all_instances = $this->get_settings();
  * \WP_Widget::update_callback(): $this->save_settings($all_instances);

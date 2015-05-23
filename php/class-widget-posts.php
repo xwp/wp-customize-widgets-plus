@@ -59,11 +59,22 @@ class Widget_Posts {
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
 
-		add_option( 'widget_posts_migrated', false, '', 'yes' );
+		add_option( 'widget_posts_enabled', false, '', 'yes' );
 		add_action( 'widgets_init', array( $this, 'store_widget_objects' ), 90 );
 
-		// @todo WP-CLI script for converting widget_options
-		if ( get_option( 'widget_posts_migrated' ) ) {
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			Widget_Posts_CLI_Command::$plugin_instance = $this->plugin;
+			\WP_CLI::add_command( 'widget-posts', __NAMESPACE__ . '\\Widget_Posts_CLI_Command' );
+
+			register_shutdown_function( function () {
+				$last_error = error_get_last();
+				if ( ! empty( $last_error ) && in_array( $last_error['type'], array( \E_ERROR, \E_USER_ERROR, \E_RECOVERABLE_ERROR ) ) ) {
+					\WP_CLI::warning( sprintf( '%s (type: %d, line: %d, file: %s)', $last_error['message'], $last_error['type'], $last_error['line'], $last_error['file'] ) );
+				}
+			} );
+		}
+
+		if ( get_option( 'widget_posts_enabled' ) ) {
 			$this->init();
 		}
 	}
@@ -120,12 +131,17 @@ class Widget_Posts {
 	 *
 	 * @param string $id_base
 	 * @param array $instances
+	 * @param array [$options]
 	 * @throws Exception
 	 */
-	function import_widget_instances( $id_base, array $instances ) {
+	function import_widget_instances( $id_base, array $instances, array $options = array() ) {
 		if ( ! array_key_exists( $id_base, $this->widget_objs ) ) {
 			throw new Exception( "Unrecognized $id_base widget ID base." );
 		}
+		$options = wp_parse_args( $options, array(
+			'update' => false,
+			'dry-run' => false,
+		) );
 		unset( $instances['_multiwidget'] );
 		foreach ( $instances as $widget_number => $instance ) {
 			$widget_number = absint( $widget_number );
@@ -134,26 +150,55 @@ class Widget_Posts {
 			}
 
 			$widget_id = "$id_base-$widget_number";
-			$this->update_widget( $widget_id, $instance );
+			$existing_post = $this->get_widget_post( $widget_id );
+			if ( ! $options['update'] && $existing_post ) {
+				do_action( 'widget_posts_import_skip_existing', compact( 'widget_id', 'instance', 'widget_number', 'id_base' ) );
+				continue;
+			}
+			$update = ! empty( $existing_post );
+
+			try {
+				$post = null;
+				if ( ! $options['dry-run'] ) {
+					$post = $this->update_widget( $widget_id, $instance );
+				}
+				do_action( 'widget_posts_import_success', compact( 'widget_id', 'post', 'instance', 'widget_number', 'id_base', 'update' ) );
+			} catch ( Exception $exception ) {
+				do_action( 'widget_posts_import_failure', compact( 'widget_id', 'exception', 'instance', 'widget_number', 'id_base', 'update' ) );
+			}
 			$this->plugin->stop_the_insanity();
 		}
 	}
 
-	public $is_migrating_widgets_from_options = false;
+	/**
+	 * Whether or not filter_pre_option_widget_settings() and
+	 * filter_pre_update_option_widget_settings() should no-op.
+	 *
+	 * @see Widget_Posts::migrate_widgets_from_options()
+	 *
+	 * @var bool
+	 */
+	public $pre_option_filters_disabled = false;
 
 	/**
+	 * Import instances from each registered widget.
 	 *
+	 * @param array $options
 	 */
-	function migrate_widgets_from_options() {
+	function migrate_widgets_from_options( $options = array() ) {
+		$options = wp_parse_args( $options, array(
+			'update' => false,
+		) );
+
 		if ( ! $this->plugin->is_running_unit_tests() && ! defined( 'WP_IMPORTING' ) ) {
 			define( 'WP_IMPORTING', true );
 		}
-		$this->is_migrating_widgets_from_options = true;
+		$this->pre_option_filters_disabled = true;
 		foreach ( $this->widget_objs as $id_base => $widget_obj ) {
 			$instances = $widget_obj->get_settings();
-			$this->import_widget_instances( $id_base, $instances );
+			$this->import_widget_instances( $id_base, $instances, $options );
 		}
-		$this->is_migrating_widgets_from_options = false;
+		$this->pre_option_filters_disabled = false;
 	}
 
 	/**
@@ -199,7 +244,7 @@ class Widget_Posts {
 		$should_filter = (
 			false === $pre
 			&&
-			! $this->is_migrating_widgets_from_options
+			! $this->pre_option_filters_disabled
 			&&
 			preg_match( '/pre_option_widget_(.+)/', current_filter(), $matches )
 		);
@@ -245,11 +290,11 @@ class Widget_Posts {
 	function filter_pre_update_option_widget_settings( $value, $old_value ) {
 		$matches = array();
 		$should_filter = (
-			! $this->is_migrating_widgets_from_options
+			! $this->pre_option_filters_disabled
 			&&
 			( $value !== $old_value )
 			&&
-			( $value instanceof \ArrayAccess )
+			( $value instanceof \ArrayIterator )
 			&&
 			preg_match( '/pre_update_option_widget_(.+)/', current_filter(), $matches )
 		);

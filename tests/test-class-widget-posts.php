@@ -25,9 +25,9 @@ class Test_Widget_Posts extends Base_Test_Case {
 	 * @see Widget_Posts::__construct()
 	 */
 	function test_construct_unmigrated() {
-		$this->assertNull( get_option( 'widget_posts_migrated', null ) );
+		$this->assertNull( get_option( 'widget_posts_enabled', null ) );
 		$instance = new Widget_Posts( $this->plugin );
-		$this->assertFalse( get_option( 'widget_posts_migrated', null ) );
+		$this->assertFalse( get_option( 'widget_posts_enabled', null ) );
 		wp_widgets_init();
 		$this->assertNotEmpty( $instance->widget_objs );
 		$this->assertFalse( has_action( 'widgets_init', array( $instance, 'prepare_widget_data' ) ) );
@@ -37,7 +37,7 @@ class Test_Widget_Posts extends Base_Test_Case {
 	 * @see Widget_Posts::__construct()
 	 */
 	function test_construct_migrated() {
-		update_option( 'widget_posts_migrated', true );
+		update_option( 'widget_posts_enabled', true );
 		$instance = new Widget_Posts( $this->plugin );
 		$this->assertEquals( 90, has_action( 'widgets_init', array( $instance, 'store_widget_objects' ) ) );
 	}
