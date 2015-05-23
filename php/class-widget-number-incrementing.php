@@ -135,13 +135,16 @@ class Widget_Number_Incrementing {
 	 */
 	function set_widget_number( $id_base, $number ) {
 		$this->add_widget_number_option( $id_base );
+		$existing_number = $this->get_widget_number( $id_base );
 		$number = max(
 			2, // multi-widget numbering starts here
 			$this->get_widget_number( $id_base ),
 			$this->get_max_existing_widget_number( $id_base ),
 			$number
 		);
-		update_option( $this->get_option_key_for_widget_number( $id_base ), $number );
+		if ( $existing_number !== $number ) {
+			update_option( $this->get_option_key_for_widget_number( $id_base ), $number );
+		}
 		return $number;
 	}
 
