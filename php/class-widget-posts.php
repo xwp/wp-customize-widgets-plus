@@ -708,18 +708,15 @@ class Widget_Posts {
 			$post_id = $post->ID;
 		}
 		if ( $options['needs_sanitization'] ) {
-			$old_instance = array();
 			if ( $post ) {
-				try {
-					$old_instance = $this->get_widget_instance_data( $post );
-				} catch ( Exception $e ) {
-					$old_instance = array();
-				}
+				$old_instance = $this->get_widget_instance_data( $post );
+			} else {
+				$old_instance = array();
 			}
 			$instance = $this->sanitize_instance( $parsed_widget_id['id_base'], $instance, $old_instance );
 		}
 
-		// Make sure that we have the max stored
+		// Make sure that we have the max stored.
 		$this->plugin->widget_number_incrementing->set_widget_number( $parsed_widget_id['id_base'], $parsed_widget_id['widget_number'] );
 
 		$post_arr = array(
