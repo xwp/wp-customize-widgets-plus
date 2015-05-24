@@ -103,6 +103,7 @@ class Widget_Posts {
 			'wp_insert_post_data' => array( $this, 'preserve_content_filtered' ),
 			'delete_post' => array( $this, 'flush_widget_instance_numbers_cache' ),
 			'save_post_' . static::INSTANCE_POST_TYPE => array( $this, 'flush_widget_instance_numbers_cache' ),
+			'export_wp' => array( $this, 'setup_export' ),
 		);
 		foreach ( $hooks as $hook => $callback ) {
 			// Note that add_action() and has_action() is an aliases for add_filter() and has_filter()
@@ -148,6 +149,19 @@ class Widget_Posts {
 		}
 
 		return $r;
+	}
+
+	/**
+	 * When exporting widget instance posts from WordPress, export the post_content_filtered as the post_content.
+	 *
+	 * @action export_wp
+	 */
+	function setup_export() {
+		add_action( 'the_post', function ( $post ) {
+			if ( static::INSTANCE_POST_TYPE === $post->post_type  ) {
+				$post->post_content = $post->post_content_filtered;
+			}
+		} );
 	}
 
 	/**

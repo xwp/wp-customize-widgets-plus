@@ -96,7 +96,7 @@ class Test_Widget_Posts extends Base_Test_Case {
 			$this->assertEquals( Widget_Posts::INSTANCE_POST_TYPE, $post->post_type );
 			$this->assertEquals( "$id_base-$widget_number", $post->post_name );
 
-			$this->assertEquals( $original_instances[ $widget_number ], unserialize( $post->post_content_filtered ) );
+			$this->assertEquals( $original_instances[ $widget_number ], Widget_Posts::parse_post_content_filtered( $post ) );
 		}
 
 		// Before any Widget_Settings::offsetGet() gets called, try iterating
