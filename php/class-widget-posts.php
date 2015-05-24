@@ -104,6 +104,7 @@ class Widget_Posts {
 			'delete_post' => array( $this, 'flush_widget_instance_numbers_cache' ),
 			'save_post_' . static::INSTANCE_POST_TYPE => array( $this, 'flush_widget_instance_numbers_cache' ),
 			'export_wp' => array( $this, 'setup_export' ),
+			'wp_import_post_data_processed' => array( $this, 'filter_wp_import_post_data_processed' ),
 		);
 		foreach ( $hooks as $hook => $callback ) {
 			// Note that add_action() and has_action() is an aliases for add_filter() and has_filter()
@@ -154,6 +155,8 @@ class Widget_Posts {
 	/**
 	 * When exporting widget instance posts from WordPress, export the post_content_filtered as the post_content.
 	 *
+	 * @see Widget_Posts::filter_wp_import_post_data_processed()
+	 *
 	 * @action export_wp
 	 */
 	function setup_export() {
@@ -162,6 +165,23 @@ class Widget_Posts {
 				$post->post_content = $post->post_content_filtered;
 			}
 		} );
+	}
+
+	/**
+	 * Restore post_content into post_content_filtered when importing via WordPress Importer plugin.
+	 *
+	 * @see Widget_Posts::setup_export()
+	 * @filter wp_import_post_data_processed
+	 *
+	 * @param array $postdata
+	 * @return array
+	 */
+	function filter_wp_import_post_data_processed( $postdata ) {
+		if ( static::INSTANCE_POST_TYPE === $postdata['post_type'] ) {
+			$postdata['post_content_filtered'] = $postdata['post_content'];
+			$postdata['post_content'] = '';
+		}
+		return $postdata;
 	}
 
 	/**
