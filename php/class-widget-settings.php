@@ -30,6 +30,13 @@ namespace CustomizeWidgetsPlus;
 class Widget_Settings extends \ArrayIterator {
 
 	/**
+	 * Keep track of all widget instances that were unset, as they will be deleted.
+	 *
+	 * @var int[] $unset_widget_numbers
+	 */
+	public $unset_widget_numbers = array();
+
+	/**
 	 * @param array $array
 	 * @throws Exception
 	 */
@@ -125,6 +132,11 @@ class Widget_Settings extends \ArrayIterator {
 		if ( '_multiwidget' === $key || '__i__' === $key ) {
 			return;
 		}
+		$key = filter_var( $key, FILTER_VALIDATE_INT );
+		if ( $key < 2 ) {
+			return;
+		}
+		$this->unset_widget_numbers[] = $key;
 		parent::offsetUnset( $key );
 	}
 

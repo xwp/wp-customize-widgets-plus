@@ -349,8 +349,9 @@ class Widget_Posts {
 			return $value;
 		}
 		$id_base = $matches[1];
+		$widget_settings = $value;
 
-		$instances = $value->getArrayCopy();
+		$instances = $widget_settings->getArrayCopy();
 		foreach ( $instances as $widget_number => $instance ) {
 			$widget_number = intval( $widget_number );
 			if ( ! $widget_number || $widget_number < 2 || ! is_array( $instance ) ) { // Note that non-arrays are most likely widget_instance post IDs.
@@ -360,6 +361,16 @@ class Widget_Posts {
 
 			$this->update_widget( $widget_id, $instance );
 		}
+
+		foreach ( $widget_settings->unset_widget_numbers as $widget_number ) {
+			$widget_id = "$id_base-$widget_number";
+			$post = $this->get_widget_post( $widget_id );
+			if ( $post ) {
+				// @todo eventually we should allow trashing
+				wp_delete_post( $post->ID, true );
+			}
+		}
+		$widget_settings->unset_widget_numbers = array();
 
 		/*
 		 * We return the old value so that update_option() short circuits,
@@ -428,13 +439,12 @@ class Widget_Posts {
 	}
 
 	/**
-	 * Get the widget instance post associated witha given widget ID.
+	 * Get the widget instance post associated with a given widget ID.
 	 *
 	 * @param string $widget_id
 	 * @return \WP_Post|null
 	 */
 	function get_widget_post( $widget_id ) {
-		// @todo it may be better to just do a SQL query here: $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_type = %s AND post_name = %s", array( static::INSTANCE_POST_TYPE, $widget_id ) ) )
 
 		$parsed_widget_id = $this->plugin->parse_widget_id( $widget_id );
 		if ( ! $parsed_widget_id ) {
@@ -443,6 +453,9 @@ class Widget_Posts {
 		if ( ! $parsed_widget_id['widget_number'] || $parsed_widget_id['widget_number'] < 2 ) {
 			return null;
 		}
+
+		// @todo it may be better to just do a SQL query here: $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_type = %s AND post_name = %s", array( static::INSTANCE_POST_TYPE, $widget_id ) ) )
+		// @todo we can do object cache for the widget ID to post ID lookup; remember to clear when the post gets deleted
 
 		$post_stati = array_merge(
 			array( 'any' ),

@@ -41,9 +41,13 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 		$this->plugin->widget_posts->register_instance_post_type(); // Normally called at init action.
 	}
 
+	/**
+	 * @see \Tests_Widgets::test_wp_widget_get_settings()
+	 * @link https://github.com/xwp/wordpress-develop/pull/85
+	 */
 	function test_wp_widget_get_settings() {
 		if ( ! method_exists( '\Tests_Widgets', 'test_wp_widget_get_settings' ) ) {
-			$this->markTestSkipped( 'Test requires Core patch to be applied.' );
+			$this->markTestSkipped( 'Test requires Core patch from https://github.com/xwp/wordpress-develop/pull/85 to be applied.' );
 			return;
 		}
 
@@ -55,15 +59,41 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 		parent::test_wp_widget_get_settings();
 	}
 
+	/**
+	 * @see \Tests_Widgets::test_wp_widget_save_settings()
+	 * @link https://github.com/xwp/wordpress-develop/pull/85
+	 */
 	function test_wp_widget_save_settings() {
 		if ( ! method_exists( '\Tests_Widgets', 'test_wp_widget_save_settings' ) ) {
-			$this->markTestSkipped( 'Test requires Core patch to be applied.' );
+			$this->markTestSkipped( 'Test requires Core patch from https://github.com/xwp/wordpress-develop/pull/85 to be applied.' );
 			return;
 		}
 
 		parent::test_wp_widget_save_settings();
 
 		$this->assertEquals( 0, did_action( 'update_option_widget_search' ), 'Expected update_option( "widget_meta" ) to short-circuit.' );
+	}
+
+	/**
+	 * @see \Tests_Widgets::test_wp_widget_save_settings_delete()
+	 * @link https://github.com/xwp/wordpress-develop/pull/85
+	 */
+	function test_wp_widget_save_settings_delete() {
+		if ( ! method_exists( '\Tests_Widgets', 'test_wp_widget_save_settings_delete' ) ) {
+			$this->markTestSkipped( 'Test requires Core patch from https://github.com/xwp/wordpress-develop/pull/85 to be applied.' );
+			return;
+		}
+
+		$deleted_widget_id = null;
+		add_action( 'delete_post', function ( $post_id ) use ( &$deleted_widget_id ) {
+			$post = get_post( $post_id );
+			$this->assertEquals( Widget_Posts::INSTANCE_POST_TYPE, $post->post_type );
+			$deleted_widget_id = $post->post_name;
+		}, 10, 2 );
+
+		parent::test_wp_widget_save_settings_delete();
+
+		$this->assertEquals( 'search-2', $deleted_widget_id );
 	}
 
 }
