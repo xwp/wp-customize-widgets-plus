@@ -704,10 +704,12 @@ class Widget_Posts {
 
 		$post_id = null;
 		$post = $this->get_widget_post( $widget_id );
+		if ( $post ) {
+			$post_id = $post->ID;
+		}
 		if ( $options['needs_sanitization'] ) {
 			$old_instance = array();
 			if ( $post ) {
-				$post_id = $post->ID;
 				try {
 					$old_instance = $this->get_widget_instance_data( $post );
 				} catch ( Exception $e ) {
