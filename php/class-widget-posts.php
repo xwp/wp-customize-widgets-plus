@@ -650,7 +650,7 @@ class Widget_Posts {
 		$widget_number = $this->plugin->widget_number_incrementing->incr_widget_number( $id_base );
 		$post_arr = array(
 			'post_name' => "$id_base-$widget_number",
-			// @todo 'post_content' => wp_json_encode( $instance ), // for search indexing
+			'post_content' => wp_json_encode( $instance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), // For search indexing and post revision UI.
 			'post_content_filtered' => static::encode_post_content_filtered( $instance ),
 			'post_status' => 'publish',
 			'post_type' => static::INSTANCE_POST_TYPE,
@@ -703,7 +703,7 @@ class Widget_Posts {
 		$post_arr = array(
 			'post_title' => ! empty( $instance['title'] ) ? $instance['title'] : '',
 			'post_name' => $widget_id,
-			// @todo 'post_content' => wp_json_encode( $instance ), // for search indexing
+			'post_content' => wp_json_encode( $instance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), // For search indexing and post revision UI.
 			'post_content_filtered' => static::encode_post_content_filtered( $instance ),
 			'post_status' => 'publish',
 			'post_type' => static::INSTANCE_POST_TYPE,
