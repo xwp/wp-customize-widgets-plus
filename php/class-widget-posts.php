@@ -15,6 +15,8 @@ class Widget_Posts {
 
 	const INSTANCE_POST_TYPE = 'widget_instance';
 
+	const ENABLED_FLAG_OPTION_NAME = 'enabled_widget_posts';
+
 	/**
 	 * @var Plugin
 	 */
@@ -59,7 +61,7 @@ class Widget_Posts {
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
 
-		add_option( 'widget_posts_enabled', false, '', 'yes' );
+		add_option( self::ENABLED_FLAG_OPTION_NAME, false, '', 'yes' );
 		add_action( 'widgets_init', array( $this, 'store_widget_objects' ), 90 );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -74,7 +76,7 @@ class Widget_Posts {
 			} );
 		}
 
-		if ( get_option( 'widget_posts_enabled' ) ) {
+		if ( get_option( self::ENABLED_FLAG_OPTION_NAME ) ) {
 			$this->init();
 		}
 	}
@@ -95,6 +97,20 @@ class Widget_Posts {
 	 * @throws Exception
 	 */
 	function register_instance_post_type() {
+
+		// Add required filters and actions for this post type.
+		$hooks = array(
+			'wp_insert_post_data' => array( $this, 'preserve_content_filtered' ),
+			'delete_post' => array( $this, 'flush_widget_instance_numbers_cache' ),
+			'save_post_' . static::INSTANCE_POST_TYPE => array( $this, 'flush_widget_instance_numbers_cache' ),
+		);
+		foreach ( $hooks as $hook => $callback ) {
+			// Note that add_action() and has_action() is an aliases for add_filter() and has_filter()
+			if ( ! has_filter( $hook, $callback ) ) {
+				add_filter( $hook, $callback, 10, PHP_INT_MAX );
+			}
+		}
+
 		$post_type_object = get_post_type_object( static::INSTANCE_POST_TYPE );
 		if ( $post_type_object ) {
 			return $post_type_object;
@@ -130,10 +146,6 @@ class Widget_Posts {
 		if ( is_wp_error( $r ) ) {
 			throw new Exception( $r->get_error_message() );
 		}
-
-		add_filter( 'wp_insert_post_data', array( $this, 'preserve_content_filtered' ), 10, 2 ); // @todo priority 20? Before or after Widget_Instance_Post_Edit::insert_post_name()?
-		add_action( 'delete_post', array( $this, 'flush_widget_instance_numbers_cache' ) );
-		add_action( 'save_post_' . static::INSTANCE_POST_TYPE, array( $this, 'flush_widget_instance_numbers_cache' ) );
 
 		return $r;
 	}
@@ -221,7 +233,7 @@ class Widget_Posts {
 	 * @action widgets_init, 90
 	 */
 	function store_widget_objects() {
-
+		$this->widget_objs = array();
 		foreach ( $this->plugin->widget_factory->widgets as $widget_obj ) {
 			/** @var \WP_Widget $widget_obj */
 			if ( "widget_{$widget_obj->id_base}" !== $widget_obj->option_name ) {
@@ -232,7 +244,11 @@ class Widget_Posts {
 	}
 
 	/**
+	 * This happens before Efficient_Multidimensional_Setting_Sanitizing::capture_widget_instance_data()
+	 * so that we have a chance to inject Widget_Settings ArrayIterators populated with data
+	 * from the widget_instance post type.
 	 *
+	 * @see Efficient_Multidimensional_Setting_Sanitizing::capture_widget_instance_data()
 	 * @action widgets_init, 91
 	 */
 	function prepare_widget_data() {
@@ -250,6 +266,7 @@ class Widget_Posts {
 	 * Note that this is after 10 so it is compatible with WP_Customize_Widgets::capture_filter_pre_get_option()
 	 *
 	 * @see WP_Customize_Widgets::capture_filter_pre_get_option()
+	 * @see Efficient_Multidimensional_Setting_Sanitizing::capture_widget_instance_data()
 	 * @filter pre_option_{WP_Widget::$option_name}, 20
 	 *
 	 * @return Widget_Settings|mixed
@@ -257,28 +274,25 @@ class Widget_Posts {
 	function filter_pre_option_widget_settings( $pre ) {
 		$matches = array();
 		$should_filter = (
-			false === $pre
-			&&
 			! $this->pre_option_filters_disabled
 			&&
-			preg_match( '/pre_option_widget_(.+)/', current_filter(), $matches )
+			preg_match( '/^pre_option_widget_(.+)/', current_filter(), $matches )
 		);
 		if ( ! $should_filter ) {
 			return $pre;
 		}
 		$id_base = $matches[1];
-		$instances = $this->get_widget_instance_numbers( $id_base ); // A.K.A. shallow widget instances.
 
-		if ( has_filter( "option_widget_{$id_base}" ) ) {
-			$filtered_instances = array_fill_keys( array_keys( $instances ), array() );
-			$filtered_instances = apply_filters( "option_widget_{$id_base}", $filtered_instances ); // Warning: filters may expect widget instances to be present.
-			$filtered_instances = array_filter( $filtered_instances, function ( $value ) {
-				return ! empty( $value );
-			} );
-			$instances = array_merge( $instances, $filtered_instances );
+		if ( false === $pre ) {
+			$instances = $this->get_widget_instance_numbers( $id_base ); // A.K.A. shallow widget instances.
+			$settings = new Widget_Settings( $instances );
+		} else if ( is_array( $pre ) ) {
+			$settings = new Widget_Settings( $pre );
+		} else if ( $pre instanceof Widget_Settings ) {
+			$settings = $pre;
+		} else {
+			return $pre;
 		}
-
-		$settings = new Widget_Settings( $instances );
 
 		if ( has_filter( "option_widget_{$id_base}" ) ) {
 			$filtered_settings = apply_filters( "option_widget_{$id_base}", $settings );
@@ -303,6 +317,20 @@ class Widget_Posts {
 	 * @return array
 	 */
 	function filter_pre_update_option_widget_settings( $value, $old_value ) {
+		global $wp_customize;
+
+		$is_widget_customizer_short_circuiting = (
+			isset( $wp_customize )
+			&&
+			$wp_customize instanceof \WP_Customize_Manager
+			&&
+			// Because we do not have access to $wp_customize->widgets->_is_capturing_option_updates.
+			has_filter( 'pre_update_option', array( $wp_customize->widgets, 'capture_filter_pre_update_option' ), 10, 3 )
+		);
+		if ( $is_widget_customizer_short_circuiting ) {
+			return $value;
+		}
+
 		// Get literal arrays for comparison since two separate instances can never be identical (===)
 		$value_array = ( $value instanceof Widget_Settings ? $value->getArrayCopy() : $value );
 		$old_value_array = ( $old_value instanceof Widget_Settings ? $old_value->getArrayCopy() : $old_value );
@@ -333,7 +361,11 @@ class Widget_Posts {
 			$this->update_widget( $widget_id, $instance );
 		}
 
-		// Return the old value so that update_option() short circuits.
+		/*
+		 * We return the old value so that update_option() short circuits,
+		 * in the same way that WP_Customize_Widgets::start_capturing_option_updates() works.
+		 * So note that we only do this if Widget Customizer isn't already short-circuiting things.
+		 */
 		return $old_value;
 	}
 

@@ -33,13 +33,6 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	public $widget_id_base;
 
 	/**
-	 * Instance of \WP_Widget for this setting.
-	 *
-	 * @var \WP_Widget
-	 */
-	public $widget_obj;
-
-	/**
 	 * The multi widget number for this setting.
 	 *
 	 * @var int
@@ -86,48 +79,26 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		}
 		$this->widget_id_base = $matches['widget_id_base'];
 
-		if ( ! did_action( 'widgets_init' ) ) {
-			throw new Exception( 'Expected widgets_init to have already been actioned.' );
-		}
-		if ( array_key_exists( $this->widget_id_base, $this->efficient_multidimensional_setting_sanitizing->widget_objs ) ) {
-			$this->widget_obj = $this->efficient_multidimensional_setting_sanitizing->widget_objs[ $this->widget_id_base ];
-		}
-
 		if ( isset( $matches['widget_number'] ) ) {
 			$this->widget_number = intval( $matches['widget_number'] );
-		}
-
-		if ( ! array_key_exists( $this->widget_id_base, $this->efficient_multidimensional_setting_sanitizing->current_widget_type_values ) ) {
-			$this->efficient_multidimensional_setting_sanitizing->current_widget_type_values[ $this->widget_id_base ] = get_option( "widget_{$this->widget_id_base}", array() );
-			add_filter( "pre_option_widget_{$this->widget_id_base}", array( $this, 'filter_pre_option_widget_settings' ) ); // Beware conflict with Widget Posts.
 		}
 
 		parent::__construct( $manager, $id, $args );
 	}
 
 	/**
-	 * Pre-option filter which intercepts the expensive WP_Customize_Setting::_preview_filter().
-	 *
-	 * @see WP_Customize_Setting::_preview_filter()
-	 * @param null|array $pre_value Value that, if set, short-circuits the normal get_option() return value.
-	 * @return array
-	 */
-	function filter_pre_option_widget_settings( $pre_value ) {
-		if ( ! $this->efficient_multidimensional_setting_sanitizing->disabled_filtering_pre_option_widget_settings ) {
-			$pre_value = $this->efficient_multidimensional_setting_sanitizing->current_widget_type_values[ $this->widget_id_base ];
-		}
-		return $pre_value;
-	}
-
-	/**
 	 * Get the instance data for a given widget setting.
 	 *
 	 * @return string
+	 * @throws Exception
 	 */
 	public function value() {
 		$value = $this->default;
 		$sanitizing = $this->efficient_multidimensional_setting_sanitizing;
-		if ( array_key_exists( $this->widget_number, $sanitizing->current_widget_type_values[ $this->widget_id_base ] ) ) {
+		if ( ! isset( $sanitizing->current_widget_type_values[ $this->widget_id_base ] ) ) {
+			throw new Exception( "current_widget_type_values not set yet for $this->widget_id_base. Current action: " . current_action() );
+		}
+		if ( isset( $sanitizing->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] ) ) {
 			$value = $sanitizing->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ];
 		}
 		return $value;
@@ -136,18 +107,44 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	/**
 	 * Handle previewing the widget setting.
 	 *
+	 * Because this can be called very early in the WordPress execution flow, as
+	 * early as after_setup_theme, if widgets_init hasn't been called yet then
+	 * the preview logic is deferred to the widgets_init action.
+	 *
+	 * @see WP_Customize_Widget_Setting::apply_preview()
+	 *
 	 * @return void
 	 */
 	public function preview() {
 		if ( $this->is_previewed ) {
 			return;
 		}
+		$this->is_previewed = true;
+
+		if ( did_action( 'widgets_init' ) ) {
+			$this->apply_preview();
+		} else {
+			$priority = 93; // Because Efficient_Multidimensional_Setting_Sanitizing::capture_widget_instance_data() happens at 92.
+			add_action( 'widgets_init', array( $this, 'apply_preview' ), $priority );
+		}
+	}
+
+	/**
+	 * Optionally-deferred continuation logic from the preview method.
+	 *
+	 * @see WP_Customize_Widget_Setting::preview()
+	 *
+	 * @throws Exception
+	 * @return void
+	 */
+	public function apply_preview() {
 		if ( ! isset( $this->_original_value ) ) {
 			$this->_original_value = $this->value();
 		}
 		if ( ! isset( $this->_previewed_blog_id ) ) {
 			$this->_previewed_blog_id = get_current_blog_id();
 		}
+		$sanitizing = $this->efficient_multidimensional_setting_sanitizing;
 		$value = $this->post_value();
 		$is_null_because_previewing_new_widget = (
 			is_null( $value )
@@ -165,7 +162,6 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		if ( ! is_null( $value ) ) {
 			$sanitizing->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
 		}
-		$this->is_previewed = true;
 	}
 
 	/**
@@ -175,6 +171,7 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	 * @return void
 	 */
 	protected function update( $value ) {
+		// @todo Better $this->efficient_multidimensional_setting_sanitizing->widget_objs[ $this->widget_id_base ]->get_settings()
 		$option_name = "widget_{$this->widget_id_base}";
 		$option_value = get_option( $option_name, array() );
 		$option_value[ $this->widget_number ] = $value;

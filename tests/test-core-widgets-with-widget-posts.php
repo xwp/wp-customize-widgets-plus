@@ -41,4 +41,29 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 		$this->plugin->widget_posts->register_instance_post_type(); // Normally called at init action.
 	}
 
+	function test_wp_widget_get_settings() {
+		if ( ! method_exists( '\Tests_Widgets', 'test_wp_widget_get_settings' ) ) {
+			$this->markTestSkipped( 'Test requires Core patch to be applied.' );
+			return;
+		}
+
+		add_filter( 'pre_option_widget_search', function ( $value ) {
+			$this->assertNotFalse( $value, 'Expected widget_search option to have been short-circuited.' );
+			return $value;
+		}, 1000 );
+
+		parent::test_wp_widget_get_settings();
+	}
+
+	function test_wp_widget_save_settings() {
+		if ( ! method_exists( '\Tests_Widgets', 'test_wp_widget_save_settings' ) ) {
+			$this->markTestSkipped( 'Test requires Core patch to be applied.' );
+			return;
+		}
+
+		parent::test_wp_widget_save_settings();
+
+		$this->assertEquals( 0, did_action( 'update_option_widget_search' ), 'Expected update_option( "widget_meta" ) to short-circuit.' );
+	}
+
 }
