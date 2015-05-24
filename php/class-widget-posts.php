@@ -247,7 +247,8 @@ class Widget_Posts {
 			try {
 				$post = null;
 				if ( ! $options['dry-run'] ) {
-					$post = $this->update_widget( $widget_id, $instance );
+					// When importing we assume already sanitized so that the update() callback won't be called with an empty $old_instance.
+					$post = $this->update_widget( $widget_id, $instance, array( 'needs_sanitization' => false ) );
 				}
 				do_action( 'widget_posts_import_success', compact( 'widget_id', 'post', 'instance', 'widget_number', 'id_base', 'update' ) );
 			} catch ( Exception $exception ) {
@@ -420,7 +421,8 @@ class Widget_Posts {
 			}
 			$widget_id = "$id_base-$widget_number";
 
-			$this->update_widget( $widget_id, $instance );
+			// Note that sanitization isn't needed because the widget's update callback has already been called.
+			$this->update_widget( $widget_id, $instance, array( 'needs_sanitization' => false ) );
 		}
 
 		foreach ( $widget_settings->unset_widget_numbers as $widget_number ) {
@@ -637,16 +639,25 @@ class Widget_Posts {
 	 *
 	 * @param string $id_base
 	 * @param array $instance
+	 * @param array [$options] {
+	 *     @type bool $needs_sanitization
+	 * }
 	 * @return \WP_Post
 	 *
 	 * @throws Exception
 	 */
-	function insert_widget( $id_base, $instance = array() ) {
+	function insert_widget( $id_base, $instance = array(), $options = array() ) {
 		if ( ! array_key_exists( $id_base, $this->widget_objs ) ) {
 			throw new Exception( "Unrecognized widget id_base: $id_base" );
 		}
+		$options = wp_parse_args( $options, array(
+			'needs_sanitization' => true,
+		) );
 
-		$instance = $this->sanitize_instance( $id_base, $instance );
+		if ( $options['needs_sanitization'] ) {
+			$instance = $this->sanitize_instance( $id_base, $instance );
+		}
+
 		$widget_number = $this->plugin->widget_number_incrementing->incr_widget_number( $id_base );
 		$post_arr = array(
 			'post_name' => "$id_base-$widget_number",
@@ -672,10 +683,17 @@ class Widget_Posts {
 	 *
 	 * @param string $widget_id
 	 * @param array $instance
+	 * @param array [$options] {
+	 *     @type bool $needs_sanitization
+	 * }
 	 * @throws Exception
 	 * @return \WP_Post
 	 */
-	function update_widget( $widget_id, $instance = array() ) {
+	function update_widget( $widget_id, $instance = array(), $options = array() ) {
+		$options = wp_parse_args( $options, array(
+			'needs_sanitization' => true,
+		) );
+
 		$parsed_widget_id = $this->plugin->parse_widget_id( $widget_id );
 		if ( empty( $parsed_widget_id ) ) {
 			throw new Exception( "Invalid widget_id: $widget_id" );
@@ -685,17 +703,19 @@ class Widget_Posts {
 		}
 
 		$post_id = null;
-		$old_instance = array();
 		$post = $this->get_widget_post( $widget_id );
-		if ( $post ) {
-			$post_id = $post->ID;
-			try {
-				$old_instance = $this->get_widget_instance_data( $post );
-			} catch ( Exception $e ) {
-				$old_instance = array();
+		if ( $options['needs_sanitization'] ) {
+			$old_instance = array();
+			if ( $post ) {
+				$post_id = $post->ID;
+				try {
+					$old_instance = $this->get_widget_instance_data( $post );
+				} catch ( Exception $e ) {
+					$old_instance = array();
+				}
 			}
+			$instance = $this->sanitize_instance( $parsed_widget_id['id_base'], $instance, $old_instance );
 		}
-		$instance = $this->sanitize_instance( $parsed_widget_id['id_base'], $instance, $old_instance );
 
 		// Make sure that we have the max stored
 		$this->plugin->widget_number_incrementing->set_widget_number( $parsed_widget_id['id_base'], $parsed_widget_id['widget_number'] );
