@@ -495,22 +495,49 @@ class Widget_Posts {
 		}
 
 		if ( empty( $post ) ) {
-			$this->plugin->trigger_warning( 'Invalid widget post' );
-			$instance = array();
-		} else if ( static::INSTANCE_POST_TYPE !== $post->post_type ) {
-			$this->plugin->trigger_warning( "Invalid widget post type: $post->post_type" );
-			$instance = array();
-		} else if ( empty( $post->post_content_filtered ) ) {
-			$instance = array(); // uninitialized widget post
-		} else if ( ! is_serialized( $post->post_content_filtered, true ) ) {
-			$this->plugin->trigger_warning( "Expected post $post->ID to have valid serialized data, but got: $post->post_content_filtered" );
 			$instance = array();
 		} else {
+			$instance = static::parse_post_content_filtered( $post );
+		}
+		return $instance;
+	}
+
+	/**
+	 * Encode a widget instance array for storage in post_content_filtered.
+	 *
+	 * We use base64-encoding to prevent WordPress slashing to corrupt the
+	 * serialized string.
+	 *
+	 * @param array $instance
+	 * @return string base64-encoded PHP-serialized string
+	 */
+	static function encode_post_content_filtered( array $instance ) {
+		return base64_encode( serialize( $instance ) );
+	}
+
+	/**
+	 * Parse the post_content_filtered, which is a base64-encoded PHP-serialized string.
+	 *
+	 * @param \WP_Post $post
+	 * @return array
+	 */
+	static function parse_post_content_filtered( \WP_Post $post ) {
+		if ( static::INSTANCE_POST_TYPE !== $post->post_type ) {
+			return array();
+		}
+		if ( empty( $post->post_content_filtered ) ) {
+			return array();
+		}
+		$decoded_instance = base64_decode( $post->post_content_filtered, true );
+		if ( false !== $decoded_instance ) {
+			$instance = unserialize( $decoded_instance );
+		} else if ( is_serialized( $post->post_content_filtered, true ) ) {
 			$instance = unserialize( $post->post_content_filtered );
-			if ( ! is_array( $instance ) ) {
-				$this->plugin->trigger_warning( "Expected post $post->ID to have an array, but got: $post->post_content_filtered" );
-				$instance = array();
-			}
+		} else {
+			$instance = array();
+		}
+		if ( ! is_array( $instance ) ) {
+			$instance = array();
 		}
 		return $instance;
 	}
@@ -563,7 +590,7 @@ class Widget_Posts {
 		$post_arr = array(
 			'post_name' => "$id_base-$widget_number",
 			// @todo 'post_content' => wp_json_encode( $instance ), // for search indexing
-			'post_content_filtered' => serialize( $instance ),
+			'post_content_filtered' => static::encode_post_content_filtered( $instance ),
 			'post_status' => 'publish',
 			'post_type' => static::INSTANCE_POST_TYPE,
 		);
@@ -616,7 +643,7 @@ class Widget_Posts {
 			'post_title' => ! empty( $instance['title'] ) ? $instance['title'] : '',
 			'post_name' => $widget_id,
 			// @todo 'post_content' => wp_json_encode( $instance ), // for search indexing
-			'post_content_filtered' => serialize( $instance ),
+			'post_content_filtered' => static::encode_post_content_filtered( $instance ),
 			'post_status' => 'publish',
 			'post_type' => static::INSTANCE_POST_TYPE,
 		);
@@ -655,7 +682,6 @@ class Widget_Posts {
 		);
 		if ( $should_preserve ) {
 			$previous_content_filtered = get_post( $postarr['ID'] )->post_content_filtered;
-			$previous_content_filtered = wp_slash( $previous_content_filtered ); // >:-(
 			$data['post_content_filtered'] = $previous_content_filtered;
 		}
 		return $data;

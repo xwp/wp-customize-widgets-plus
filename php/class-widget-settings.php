@@ -82,14 +82,7 @@ class Widget_Settings extends \ArrayIterator {
 		if ( is_int( $value ) ) {
 			// Fetch the widget post_content_filtered and store it in the array.
 			$post = get_post( $value );
-			if ( empty( $post ) ) {
-				$value = array();
-			} else {
-				$value = unserialize( $post->post_content_filtered );
-				if ( ! is_array( $value ) ) {
-					$value = array();
-				}
-			}
+			$value = Widget_Posts::parse_post_content_filtered( $post );
 			$this->offsetSet( $key, $value );
 		}
 		return $value;
