@@ -36,7 +36,7 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 			add_action( $widgets_init_hook, $callable, $priority );
 		}
 
-		update_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME, true );
+		$this->plugin->widget_posts->enable();
 		$this->plugin->widget_posts->migrate_widgets_from_options();
 		$this->plugin->widget_posts->init();
 		$this->plugin->widget_posts->prepare_widget_data(); // Has to be called here because of wp_widgets_init() footwork done above.

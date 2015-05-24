@@ -61,7 +61,7 @@ class Widget_Posts {
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
 
-		add_option( self::ENABLED_FLAG_OPTION_NAME, false, '', 'yes' );
+		add_option( self::ENABLED_FLAG_OPTION_NAME, 'no', '', 'yes' );
 		add_action( 'widgets_init', array( $this, 'store_widget_objects' ), 90 );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -76,9 +76,36 @@ class Widget_Posts {
 			} );
 		}
 
-		if ( get_option( self::ENABLED_FLAG_OPTION_NAME ) ) {
+		if ( $this->is_enabled() ) {
 			$this->init();
 		}
+	}
+
+	/**
+	 * Whether the functionality is enabled.
+	 *
+	 * @return bool Enabled.
+	 */
+	function is_enabled() {
+		return 'yes' === get_option( self::ENABLED_FLAG_OPTION_NAME );
+	}
+
+	/**
+	 * Enable the functionality (for the next load).
+	 *
+	 * @return bool Whether it was able to update the enabled state.
+	 */
+	function enable() {
+		return update_option( self::ENABLED_FLAG_OPTION_NAME, 'yes' );
+	}
+
+	/**
+	 * Disable the functionality (for the next load).
+	 *
+	 * @return bool Whether it was able to update the enabled state.
+	 */
+	function disable() {
+		return update_option( self::ENABLED_FLAG_OPTION_NAME, 'no' );
 	}
 
 	/**

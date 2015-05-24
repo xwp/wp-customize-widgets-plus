@@ -35,10 +35,10 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 	 * Enable looking for widgets in posts instead of options. You should run migrate first.
 	 */
 	public function enable() {
-		if ( get_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME ) ) {
+		if ( $this->get_widget_posts()->is_enabled() ) {
 			\WP_CLI::warning( 'Widget Posts already enabled.' );
 		} else {
-			$result = update_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME, true );
+			$result = $this->get_widget_posts()->enable();
 			if ( $result ) {
 				\WP_CLI::success( 'Widget Posts enabled.' );
 			} else {
@@ -51,10 +51,10 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 	 * Disable looking for widgets in posts instead of options.
 	 */
 	public function disable() {
-		if ( ! get_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME ) ) {
+		if ( ! $this->get_widget_posts()->is_enabled() ) {
 			\WP_CLI::warning( 'Widget Posts already disabled.' );
 		} else {
-			$result = update_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME, false );
+			$result = $this->get_widget_posts()->disable();
 			if ( $result ) {
 				\WP_CLI::success( 'Widget Posts disabled.' );
 			} else {

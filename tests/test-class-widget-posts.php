@@ -27,7 +27,7 @@ class Test_Widget_Posts extends Base_Test_Case {
 	function test_construct_unmigrated() {
 		$this->assertNull( get_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME, null ) );
 		$instance = new Widget_Posts( $this->plugin );
-		$this->assertFalse( get_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME, null ) );
+		$this->assertEquals( 'no', get_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME, null ) );
 		wp_widgets_init();
 		$this->assertNotEmpty( $instance->widget_objs );
 		$this->assertFalse( has_action( 'widgets_init', array( $instance, 'prepare_widget_data' ) ) );
@@ -37,7 +37,7 @@ class Test_Widget_Posts extends Base_Test_Case {
 	 * @see Widget_Posts::__construct()
 	 */
 	function test_construct_migrated() {
-		update_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME, true );
+		update_option( Widget_Posts::ENABLED_FLAG_OPTION_NAME, 'yes' );
 		$instance = new Widget_Posts( $this->plugin );
 		$this->assertEquals( 90, has_action( 'widgets_init', array( $instance, 'store_widget_objects' ) ) );
 	}
