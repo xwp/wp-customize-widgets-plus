@@ -206,7 +206,8 @@ class Widget_Posts {
 	function filter_wp_import_post_data_processed( $postdata ) {
 		if ( static::INSTANCE_POST_TYPE === $postdata['post_type'] ) {
 			$postdata['post_content_filtered'] = $postdata['post_content'];
-			$postdata['post_content'] = '';
+			$instance = Widget_Posts::parse_post_content_filtered( $postdata['post_content'] );
+			$postdata['post_content'] = $postdata['post_content'] = wp_json_encode( $instance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );;
 		}
 		return $postdata;
 	}
