@@ -565,7 +565,7 @@ class Widget_Posts {
 		if ( empty( $post ) ) {
 			$instance = array();
 		} else {
-			$instance = static::parse_post_content_filtered( $post );
+			$instance = static::get_post_content_filtered( $post );
 		}
 		return $instance;
 	}
@@ -589,18 +589,29 @@ class Widget_Posts {
 	 * @param \WP_Post $post
 	 * @return array
 	 */
-	static function parse_post_content_filtered( \WP_Post $post ) {
+	static function get_post_content_filtered( \WP_Post $post ) {
 		if ( static::INSTANCE_POST_TYPE !== $post->post_type ) {
 			return array();
 		}
 		if ( empty( $post->post_content_filtered ) ) {
 			return array();
 		}
-		$decoded_instance = base64_decode( $post->post_content_filtered, true );
+		return static::parse_post_content_filtered( $post->post_content_filtered );
+	}
+
+	/**
+	 * Parse the post_content_filtered from its base64-encodd PHP-serialized string.
+	 *
+	 * @param string $post_content_filtered
+	 *
+	 * @return array
+	 */
+	static function parse_post_content_filtered( $post_content_filtered ) {
+		$decoded_instance = base64_decode( $post_content_filtered, true );
 		if ( false !== $decoded_instance ) {
 			$instance = unserialize( $decoded_instance );
-		} else if ( is_serialized( $post->post_content_filtered, true ) ) {
-			$instance = unserialize( $post->post_content_filtered );
+		} else if ( is_serialized( $post_content_filtered, true ) ) {
+			$instance = unserialize( $post_content_filtered );
 		} else {
 			$instance = array();
 		}
