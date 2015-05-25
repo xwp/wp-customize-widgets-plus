@@ -221,7 +221,7 @@ class Widget_Posts {
 	 */
 	function import_widget_instances( $id_base, array $instances, array $options = array() ) {
 		if ( ! array_key_exists( $id_base, $this->widget_objs ) ) {
-			throw new Exception( "Unrecognized $id_base widget ID base." );
+			throw new Exception( "Unrecognized or unsupported widget type: $id_base" );
 		}
 		$this->register_instance_post_type(); // In case the Widget Posts is not enabled, or init hasn't fired.
 
@@ -230,21 +230,25 @@ class Widget_Posts {
 			'dry-run' => false,
 		) );
 		unset( $instances['_multiwidget'] );
-		foreach ( $instances as $widget_number => $instance ) {
-			$widget_number = intval( $widget_number );
-			if ( ! $widget_number || $widget_number < 2 ) {
-				continue;
-			}
-
-			$widget_id = "$id_base-$widget_number";
-			$existing_post = $this->get_widget_post( $widget_id );
-			if ( ! $options['update'] && $existing_post ) {
-				do_action( 'widget_posts_import_skip_existing', compact( 'widget_id', 'instance', 'widget_number', 'id_base' ) );
-				continue;
-			}
-			$update = ! empty( $existing_post );
-
+		foreach ( $instances as $key => $instance ) {
 			try {
+				$widget_number = intval( $key );
+				$widget_id = "$id_base-$widget_number";
+				if ( ! $widget_number || $widget_number < 2 ) {
+					throw new Exception( "Expected array key to be integer >= 2, but got $key" );
+				}
+
+				if ( ! is_array( $instance ) ) {
+					throw new Exception( "Instance data for $widget_id is not an array." );
+				}
+
+				$existing_post = $this->get_widget_post( $widget_id );
+				if ( ! $options['update'] && $existing_post ) {
+					do_action( 'widget_posts_import_skip_existing', compact( 'widget_id', 'instance', 'widget_number', 'id_base' ) );
+					continue;
+				}
+				$update = ! empty( $existing_post );
+
 				$post = null;
 				if ( ! $options['dry-run'] ) {
 					// When importing we assume already sanitized so that the update() callback won't be called with an empty $old_instance.
@@ -423,6 +427,7 @@ class Widget_Posts {
 
 			// Note that sanitization isn't needed because the widget's update callback has already been called.
 			$this->update_widget( $widget_id, $instance, array( 'needs_sanitization' => false ) );
+			// @todo catch exception.
 		}
 
 		foreach ( $widget_settings->unset_widget_numbers as $widget_number ) {

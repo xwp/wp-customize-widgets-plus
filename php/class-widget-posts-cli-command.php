@@ -64,6 +64,97 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 	}
 
 	/**
+	 * Number of widgets updated.
+	 *
+	 * @var int
+	 */
+	protected $updated_count = 0;
+
+	/**
+	 * Number of widgets skipped.
+	 *
+	 * @var int
+	 */
+	protected $skipped_count = 0;
+
+	/**
+	 * Number of widgets inserted.
+	 *
+	 * @var int
+	 */
+	protected $inserted_count = 0;
+
+	/**
+	 * Number of import-failed widgets.
+	 *
+	 * @var int
+	 */
+	protected $failed_count = 0;
+
+	/**
+	 * @param array $options
+	 */
+	protected function add_import_actions( $options ) {
+		$this->updated_count = 0;
+		$this->skipped_count = 0;
+		$this->inserted_count = 0;
+		$this->failed_count = 0;
+
+		add_action( 'widget_posts_import_skip_existing', function ( $context ) use ( $options ) {
+			// $context is compact( 'widget_id', 'instance', 'widget_number', 'id_base' )
+			\WP_CLI::line( "Skipping already-imported widget $context[widget_id] (to update, call with --update)." );
+			$this->skipped_count += 1;
+		} );
+
+		add_action( 'widget_posts_import_success', function ( $context ) use ( $options ) {
+			// $context is compact( 'widget_id', 'post', 'instance', 'widget_number', 'id_base', 'update' )
+			if ( $context['update'] ) {
+				$message = "Updated widget $context[widget_id].";
+				$this->updated_count += 1;
+			} else {
+				$message = "Inserted widget $context[widget_id].";
+				$this->inserted_count += 1;
+			}
+			if ( $options['dry-run'] ) {
+				$message .= ' (DRY RUN)';
+			}
+			\WP_CLI::success( $message );
+		} );
+
+		add_action( 'widget_posts_import_failure', function ( $context ) {
+			// $context is compact( 'widget_id', 'exception', 'instance', 'widget_number', 'id_base', 'update' )
+			/** @var Exception $exception */
+			$exception = $context['exception'];
+			\WP_CLI::warning( "Failed to import $context[widget_id]: " . $exception->getMessage() );
+			$this->failed_count += 1;
+		} );
+	}
+
+	/**
+	 * Remove actions added by add_import_actions().
+	 *
+	 * @see Widget_Posts_CLI_Command::add_import_actions()
+	 */
+	protected function remove_import_actions() {
+		remove_all_actions( 'widget_posts_import_skip_existing' );
+		remove_all_actions( 'widget_posts_import_success' );
+		remove_all_actions( 'widget_posts_import_failure' );
+	}
+
+	/**
+	 * Write out summary of data collected by actions in add_import_actions().
+	 *
+	 * @see Widget_Posts_CLI_Command::add_import_actions()
+	 */
+	protected function write_import_summary() {
+		\WP_CLI::line();
+		\WP_CLI::line( "Skipped: $this->skipped_count" );
+		\WP_CLI::line( "Updated: $this->updated_count" );
+		\WP_CLI::line( "Inserted: $this->inserted_count" );
+		\WP_CLI::line( "Failed: $this->failed_count" );
+	}
+
+	/**
 	 * Migrate widget instances from options into posts. Posts that already exist for given widget IDs will not be-imported unless --update is supplied.
 	 *
 	 * ## OPTIONS
@@ -106,42 +197,9 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 				}
 			}
 
-			$updated_count = 0;
-			$skipped_count = 0;
-			$inserted_count = 0;
-			$failed_count = 0;
+			$this->add_import_actions( $options );
 
-			add_action( 'widget_posts_import_skip_existing', function ( $context ) use ( $options, &$skipped_count ) {
-				// $context is compact( 'widget_id', 'instance', 'widget_number', 'id_base' )
-				if ( $options['verbose'] ) {
-					\WP_CLI::line( "Skipping already-imported widget $context[widget_id]." );
-				}
-				$skipped_count += 1;
-			} );
-
-			add_action( 'widget_posts_import_success', function ( $context ) use ( $options, &$updated_count, &$inserted_count ) {
-				// $context is compact( 'widget_id', 'post', 'instance', 'widget_number', 'id_base', 'update' )
-				if ( $context['update'] ) {
-					$message = "Updated widget $context[widget_id].";
-					$updated_count += 1;
-				} else {
-					$message = "Inserted widget $context[widget_id].";
-					$inserted_count += 1;
-				}
-				if ( $options['dry-run'] ) {
-					$message .= ' (Dry run.)';
-				}
-				\WP_CLI::success( $message );
-			} );
-
-			add_action( 'widget_posts_import_failure', function ( $context ) use ( &$failed_count ) {
-				// $context is compact( 'widget_id', 'exception', 'instance', 'widget_number', 'id_base', 'update' )
-				/** @var Exception $exception */
-				$exception = $context['exception'];
-				\WP_CLI::warning( "Failed to import $context[widget_id]: " . $exception->getMessage() );
-				$failed_count += 1;
-			} );
-
+			// Note we disable the pre_option filters because we need to get the underlying wp_options.
 			$widget_posts->pre_option_filters_disabled = true;
 			foreach ( $id_bases as $id_base ) {
 				$widget_obj = $widget_posts->widget_objs[ $id_base ];
@@ -150,11 +208,8 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 			}
 			$widget_posts->pre_option_filters_disabled = false;
 
-			\WP_CLI::line();
-			\WP_CLI::line( "Skipped: $skipped_count" );
-			\WP_CLI::line( "Updated: $updated_count" );
-			\WP_CLI::line( "Inserted: $inserted_count" );
-			\WP_CLI::line( "Failed: $failed_count" );
+			$this->write_import_summary();
+			$this->remove_import_actions();
 
 		} catch ( \Exception $e ) {
 			\WP_CLI::error( sprintf( '%s: %s', get_class( $e ), $e->getMessage() ) );
@@ -162,10 +217,122 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 	}
 
 	/**
-	 * Import widget instances from a JSON dump mapping widget IDs (e.g. {"search-123":{"title":"Buscar"} }.
+	 * Import widget instances from a JSON dump.
+	 *
+	 * JSON may be in either of two formats:
+	 *   {"search-123":{"title":"Buscar"}
+	 * or
+	 *   {"search":{"123":{"title":"Buscar"}}
+	 * or
+	 *   {"widget_search":{"123":{"title":"Buscar"}}
+	 *
+	 * Posts that already exist for given widget IDs will not be-imported unless --update is supplied.
+	 *
+	 * ## OPTIONS
+	 *
+	 * --update
+	 * : Update any widget instance posts already migrated/imported. This would override any changes made since the last migration.
+	 *
+	 * --dry-run
+	 * : Show what would be migrated.
+	 *
+	 * --verbose
+	 * : Show more info about what is going on.
+	 *
+	 * @param array [$args]
+	 * @param array $options
+	 * @synopsis [<file>] [--dry-run] [--update] [--verbose]
 	 */
-	public function import() {
-		\WP_CLI::error( 'Not implemented.' );
+	public function import( $args, $options ) {
+		try {
+			if ( ! defined( 'WP_IMPORTING' ) ) {
+				define( 'WP_IMPORTING', true );
+			}
+			$widget_posts = $this->get_widget_posts();
+
+			$file = array_shift( $args );
+			if ( '-' === $file ) {
+				$file = 'php://stdin';
+			}
+			$options = array_merge(
+				array(
+					'update' => false,
+					'verbose' => false,
+					'dry-run' => false,
+				),
+				$options
+			);
+
+			// @codingStandardsIgnoreStart
+			$json = file_get_contents( $file );
+			// @codingStandardsIgnoreSEnd
+			if ( false === $json ) {
+				throw new Exception( "$file could not be read" );
+			}
+
+			$data = json_decode( $json, true );
+			if ( json_last_error() ) {
+				throw new Exception( 'JSON parse error, code: ' . json_last_error() );
+			}
+			if ( ! is_array( $data ) ) {
+				throw new Exception( 'Expected array JSON to be an array.' );
+			}
+
+			$this->add_import_actions( $options );
+
+			// Reformat the data structure into a format that import_widget_instances() accepts.
+			$first_key = key( $data );
+			if ( ! filter_var( $first_key, FILTER_VALIDATE_INT ) ) {
+				if ( array_key_exists( $first_key, $widget_posts->widget_objs ) ) {
+					// Format: {"search":{"123":{"title":"Buscar"}}
+					$instances_by_type = $data;
+				} else {
+					// Format: {"widget_search":{"123":{"title":"Buscar"}}.
+					$instances_by_type = array();
+					foreach ( $data as $key => $value ) {
+						if ( ! preg_match( '/^widget_(?P<id_base>.+)/', $key, $matches ) ) {
+							throw new Exception( "Unexpected key: $key" );
+						}
+						$instances_by_type[ $matches['id_base'] ] = $value;
+					}
+				}
+			} else {
+				// Format: {"search-123":{"title":"Buscar"}.
+				$instances_by_type = array();
+				foreach ( $data as $widget_id => $instance ) {
+					$parsed_widget_id = $widget_posts->plugin->parse_widget_id( $widget_id );
+					if ( empty( $parsed_widget_id ) || empty( $parsed_widget_id['widget_number'] ) ) {
+						\WP_CLI::warning( "Rejecting instance with invalid widget ID: $widget_id" );
+						continue;
+					}
+					if ( ! isset( $instances_by_type[ $parsed_widget_id['id_base'] ] ) ) {
+						$instances_by_type[ $parsed_widget_id['id_base'] ] = array();
+					}
+					$instances_by_type[ $parsed_widget_id['id_base'] ][ $parsed_widget_id['widget_number'] ] = $instance;
+				}
+			}
+
+			// Import each of the instances.
+			foreach ( $instances_by_type as $id_base => $instances ) {
+				if ( ! is_array( $instances ) ) {
+					\WP_CLI::warning( "Expected array for $id_base instances. Skipping unknown number of widgets." );
+					continue;
+				}
+				try {
+					$widget_posts->import_widget_instances( $id_base, $instances, $options );
+				} catch ( Exception $e ) {
+					\WP_CLI::warning( 'Skipping: ' . $e->getMessage() );
+					if ( is_array( $instances ) ) {
+						$this->skipped_count += count( $instances );
+					}
+				}
+			}
+
+			$this->write_import_summary();
+			$this->remove_import_actions();
+		} catch ( \Exception $e ) {
+			\WP_CLI::error( sprintf( '%s: %s', get_class( $e ), $e->getMessage() ) );
+		}
 	}
 
 	/**
