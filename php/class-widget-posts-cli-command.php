@@ -176,8 +176,9 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 	 * @param array [$args]
 	 * @param array $assoc_args
 	 * @synopsis <widget_id>
+	 * @alias show
 	 */
-	public function show( $args, $assoc_args ) {
+	public function get( $args, $assoc_args ) {
 		try {
 			$widget_id = array_shift( $args );
 			unset( $assoc_args );
