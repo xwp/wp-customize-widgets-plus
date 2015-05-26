@@ -220,11 +220,13 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 	 * Import widget instances from a JSON dump.
 	 *
 	 * JSON may be in either of two formats:
-	 *   {"search-123":{"title":"Buscar"}
+	 *   {"search-123":{"title":"Buscar"}}
 	 * or
-	 *   {"search":{"123":{"title":"Buscar"}}
+	 *   {"search":{"123":{"title":"Buscar"}}}
 	 * or
-	 *   {"widget_search":{"123":{"title":"Buscar"}}
+	 *   {"widget_search":{"123":{"title":"Buscar"}}}
+	 * or
+	 *   {"version":5,"options":{"widget_search":"a:1:{i:123;a:1:{s:5:\"title\";s:6:\"Buscar\";}}"}}
 	 *
 	 * Posts that already exist for given widget IDs will not be-imported unless --update is supplied.
 	 *
@@ -283,11 +285,35 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 			// Reformat the data structure into a format that import_widget_instances() accepts.
 			$first_key = key( $data );
 			if ( ! filter_var( $first_key, FILTER_VALIDATE_INT ) ) {
-				if ( array_key_exists( $first_key, $widget_posts->widget_objs ) ) {
-					// Format: {"search":{"123":{"title":"Buscar"}}
+				$is_options_export = (
+					isset( $data['version'] )
+					&&
+					5 === $data['version']
+					&&
+					isset( $data['options'] )
+					&&
+					is_array( $data['options'] )
+				);
+				if ( $is_options_export ) {
+					// Format: {"version":5,"options":{"widget_search":"a:1:{i:123;a:1:{s:5:\"title\";s:6:\"Buscar\";}}"}}.
+					$instances_by_type = array();
+					foreach ( $data['options'] as $option_name => $option_value ) {
+						if ( ! preg_match( '/^widget_(?P<id_base>.+)/', $option_name, $matches ) ) {
+							continue;
+						}
+						if ( ! is_serialized( $option_value, true ) ) {
+							\WP_CLI::warning( "Option $option_name is not valid serialized data as expected." );
+							continue;
+						}
+						$instances_by_type[ $matches['id_base'] ] = unserialize( $option_value );
+					}
+
+				} else if ( array_key_exists( $first_key, $widget_posts->widget_objs ) ) {
+					// Format: {"search":{"123":{"title":"Buscar"}}}.
 					$instances_by_type = $data;
+
 				} else {
-					// Format: {"widget_search":{"123":{"title":"Buscar"}}.
+					// Format: {"widget_search":{"123":{"title":"Buscar"}}}.
 					$instances_by_type = array();
 					foreach ( $data as $key => $value ) {
 						if ( ! preg_match( '/^widget_(?P<id_base>.+)/', $key, $matches ) ) {
@@ -297,7 +323,7 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 					}
 				}
 			} else {
-				// Format: {"search-123":{"title":"Buscar"}.
+				// Format: {"search-123":{"title":"Buscar"}}.
 				$instances_by_type = array();
 				foreach ( $data as $widget_id => $instance ) {
 					$parsed_widget_id = $widget_posts->plugin->parse_widget_id( $widget_id );
