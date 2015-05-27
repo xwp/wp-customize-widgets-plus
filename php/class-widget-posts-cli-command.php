@@ -24,7 +24,7 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 	/**
 	 * @return Widget_Posts
 	 */
-	public function get_widget_posts() {
+	protected function get_widget_posts() {
 		if ( ! isset( static::$plugin_instance->widget_posts ) ) {
 			static::$plugin_instance->widget_posts = new Widget_Posts( static::$plugin_instance );
 		}
