@@ -7,8 +7,6 @@
 
 namespace CustomizeWidgetsPlus;
 
-// @todo WP-CLI command for migrating widget options to widget settings posts.
-
 /**
  * Efficient emulation of the widget settings array as returned by \WP_Widget::get_settings().
  *
