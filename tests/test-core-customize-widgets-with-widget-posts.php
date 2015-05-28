@@ -2,11 +2,10 @@
 
 namespace CustomizeWidgetsPlus;
 
-$_tests_dir = getenv( 'WP_TESTS_DIR' );
-if ( empty( $_tests_dir ) ) {
-	$_tests_dir = '/tmp/wordpress-tests-lib';
+if ( ! getenv( 'WP_TESTS_DIR' ) ) {
+	throw new \Exception( 'WP_TESTS_DIR env var is empty; expected to point to {develop.svn.wordpress.org}/tests/phpunit/' );
 }
-require_once $_tests_dir . '/tests/customize/widgets.php';
+require_once getenv( 'WP_TESTS_DIR' ) . '/tests/customize/widgets.php';
 
 class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_Widgets {
 

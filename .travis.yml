@@ -12,15 +12,12 @@ node_js:
     - 0.10
 
 env:
-    - WP_VERSION=latest WP_MULTISITE=0
-    - WP_VERSION=latest WP_MULTISITE=1
+    - WP_VERSION=trunk WP_MULTISITE=1
 
 before_script:
     - export DEV_LIB_PATH=dev-lib
     - if [ ! -e "$DEV_LIB_PATH" ] && [ -L .travis.yml ]; then export DEV_LIB_PATH=$( dirname $( readlink .travis.yml ) ); fi
     - source $DEV_LIB_PATH/travis.before_script.sh
-    - svn co --quiet https://develop.svn.wordpress.org/trunk/tests/phpunit/tests/ $WP_TESTS_DIR/tests/
-    - mkdir -p $WP_TESTS_DIR/data/
 
 script:
     - $DEV_LIB_PATH/travis.script.sh

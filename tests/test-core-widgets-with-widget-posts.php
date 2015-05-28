@@ -2,16 +2,15 @@
 
 namespace CustomizeWidgetsPlus;
 
-$_tests_dir = getenv( 'WP_TESTS_DIR' );
-if ( empty( $_tests_dir ) ) {
-	$_tests_dir = '/tmp/wordpress-tests-lib';
+if ( ! getenv( 'WP_TESTS_DIR' ) ) {
+	throw new \Exception( 'WP_TESTS_DIR env var is empty; expected to point to {develop.svn.wordpress.org}/tests/phpunit/' );
 }
-require_once $_tests_dir . '/tests/widgets.php';
+require_once getenv( 'WP_TESTS_DIR' ) . '/tests/widgets.php';
 
 class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 
 	/**
-	 * @var Widget_Posts
+	 * @var Plugin
 	 */
 	public $plugin;
 
@@ -19,6 +18,7 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 		global $wp_widget_factory;
 
 		parent::setUp();
+
 		$this->plugin = new Plugin();
 		$this->plugin->widget_factory = $wp_widget_factory;
 		$this->plugin->widget_number_incrementing = new Widget_Number_Incrementing( $this->plugin );
