@@ -5,7 +5,7 @@ Lab features and a testbed for improvements to Widgets and the Customizer.
 
 **Contributors:** [westonruter](https://profiles.wordpress.org/westonruter), [xwp](https://profiles.wordpress.org/xwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [widgets](https://wordpress.org/plugins/tags/widgets)  
-**Requires at least:** 4.2  
+**Requires at least:** trunk  
 **Tested up to:** trunk  
 **Stable tag:** trunk (master)  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
@@ -32,6 +32,9 @@ Settings for multidimensional options and theme_mods are extremely inefficient t
 
 ### HTTPS Resource Proxy ###
 When `FORCE_SSL_ADMIN` is enabled (such as on WordPress.com), the Customizer will load the site into the preview iframe using HTTPS as well. If, however, external resources are being referenced which are not HTTPS, they will fail to load due to the browser's security model raise mixed content warnings. This functionality will attempt to rewrite any HTTP URLs to be HTTPS ones via a WordPress-based proxy.
+
+### Widget Posts ###
+Store widget instances in posts instead of options. Requires trunk due to patch committed in [#32474](https://core.trac.wordpress.org/ticket/32474). More details forthcoming...
 
 
 ## Changelog ##

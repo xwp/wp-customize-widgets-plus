@@ -1,6 +1,6 @@
 === Customize Widgets Plus ===
 Contributors: westonruter, xwp, newscorpau
-Requires at least: 4.2
+Requires at least: trunk
 Tested up to: trunk
 Stable tag: trunk
 License: GPLv2 or later
@@ -34,6 +34,10 @@ Settings for multidimensional options and theme_mods are extremely inefficient t
 = HTTPS Resource Proxy =
 
 When `FORCE_SSL_ADMIN` is enabled (such as on WordPress.com), the Customizer will load the site into the preview iframe using HTTPS as well. If, however, external resources are being referenced which are not HTTPS, they will fail to load due to the browser's security model raise mixed content warnings. This functionality will attempt to rewrite any HTTP URLs to be HTTPS ones via a WordPress-based proxy.
+
+= Widget Posts =
+
+Store widget instances in posts instead of options. Requires trunk due to patch committed in [#32474](https://core.trac.wordpress.org/ticket/32474). More details forthcoming...
 
 == Changelog ==
 
