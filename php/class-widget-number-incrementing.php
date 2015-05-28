@@ -25,7 +25,7 @@ class Widget_Number_Incrementing {
 	/**
 	 * @var \WP_Widget[]
 	 */
-	public $widget_objs = array();
+	public $widget_objs;
 
 	/**
 	 * @param Plugin $plugin
@@ -33,10 +33,25 @@ class Widget_Number_Incrementing {
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
 
+		add_action( 'widgets_init', array( $this, 'store_widget_objects' ), 90 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'ajax_incr_widget_number' ) );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'customize_controls_enqueue_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
+	}
+
+	/**
+	 * @action widgets_init, 90
+	 */
+	function store_widget_objects() {
+		$this->widget_objs = array();
+		foreach ( $this->plugin->widget_factory->widgets as $widget_obj ) {
+			/** @var \WP_Widget $widget_obj */
+			if ( "widget_{$widget_obj->id_base}" !== $widget_obj->option_name ) {
+				continue;
+			}
+			$this->widget_objs[ $widget_obj->id_base ] = $widget_obj;
+		}
 	}
 
 	/**
@@ -65,10 +80,16 @@ class Widget_Number_Incrementing {
 	 * @return int
 	 */
 	function get_max_existing_widget_number( $id_base ) {
-		$widget_objs = $this->plugin->get_registered_widget_objects();
-		$widget_obj = $widget_objs[ $id_base ];
+		$widget_obj = $this->widget_objs[ $id_base ];
 		// @todo There should be a pre_existing_widget_numbers, pre_max_existing_widget_number filter, or pre_existing_widget_ids to short circuit the expensive WP_Widget::get_settings()
-		$widget_numbers = array_keys( $widget_obj->get_settings() );
+
+		$settings = $widget_obj->get_settings();
+		if ( $settings instanceof \ArrayAccess && method_exists( $settings, 'getArrayCopy' ) ) {
+			/** @see Widget_Settings */
+			$settings = $settings->getArrayCopy( $settings );
+		}
+
+		$widget_numbers = array_keys( $settings );
 		$widget_numbers[] = 2; // multi-widgets start numbering at 2
 		return max( $widget_numbers );
 	}
@@ -114,13 +135,16 @@ class Widget_Number_Incrementing {
 	 */
 	function set_widget_number( $id_base, $number ) {
 		$this->add_widget_number_option( $id_base );
+		$existing_number = $this->get_widget_number( $id_base );
 		$number = max(
 			2, // multi-widget numbering starts here
 			$this->get_widget_number( $id_base ),
 			$this->get_max_existing_widget_number( $id_base ),
 			$number
 		);
-		update_option( $this->get_option_key_for_widget_number( $id_base ), $number );
+		if ( $existing_number !== $number ) {
+			update_option( $this->get_option_key_for_widget_number( $id_base ), $number );
+		}
 		return $number;
 	}
 

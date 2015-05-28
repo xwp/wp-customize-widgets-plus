@@ -51,6 +51,11 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 	public $disabled_filtering_pre_option_widget_settings = false;
 
 	/**
+	 * @var \WP_Widget[]
+	 */
+	public $widget_objs;
+
+	/**
 	 * @param Plugin $plugin
 	 * @param \WP_Customize_Manager $manager
 	 */
@@ -60,13 +65,62 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 		$this->manager->efficient_multidimensional_setting_sanitizing = $this;
 
 		add_filter( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 2 );
+		$priority = 92; // Because Widget_Posts::prepare_widget_data() happens at 91.
+		add_action( 'widgets_init', array( $this, 'capture_widget_instance_data' ), $priority );
 
+		// Note that customize_register happens at wp_loaded, so we register the settings just before
 		$priority = has_action( 'wp_loaded', array( $this->manager, 'wp_loaded' ) );
 		$priority -= 1;
 		add_action( 'wp_loaded', array( $this, 'register_widget_instance_settings_early' ), $priority );
 
 		add_action( 'customize_save', array( $this, 'disable_filtering_pre_option_widget_settings' ) );
 		add_action( 'customize_save_after', array( $this, 'enable_filtering_pre_option_widget_settings' ) );
+	}
+
+	/**
+	 * Since at widgets_init,100 the single instances of widgets get copied out
+	 * to the many instances in $wp_registered_widgets, we capture all of the
+	 * registered widgets up front so we don't have to search through the big
+	 * list later. At this time we also add the pre_option filter to use the
+	 * settings as retrieved once from the database, and then manipulated in a
+	 * pre-unserialized data structure ready to be re-serialized once when the
+	 * Customizer setting is saved.
+	 *
+	 * @see WP_Customize_Widget_Setting::__construct()
+	 * @see Widget_Posts::filter_pre_option_widget_settings()
+	 */
+	function capture_widget_instance_data() {
+		foreach ( $this->plugin->widget_factory->widgets as $widget_obj ) {
+			/** @var \WP_Widget $widget_obj */
+			$this->widget_objs[ $widget_obj->id_base ] = $widget_obj;
+
+			// Store the widget settings once, after Widget_Posts::prepare_widget_data() has run, so we can get Widget_Settings ArrayIterators.
+			$this->current_widget_type_values[ $widget_obj->id_base ] = $widget_obj->get_settings();
+
+			// Note that this happens _before_ Widget_Posts::filter_pre_option_widget_settings().
+			add_filter( "pre_option_widget_{$widget_obj->id_base}", function ( $pre_value ) use ( $widget_obj ) {
+				return $this->filter_pre_option_widget_settings( $pre_value, $widget_obj );
+			} );
+		}
+	}
+
+	/**
+	 * Pre-option filter which intercepts the expensive WP_Customize_Setting::_preview_filter().
+	 *
+	 * @see WP_Customize_Setting::_preview_filter()
+	 * @param null|array $pre_value Value that, if set, short-circuits the normal get_option() return value.
+	 * @param \WP_Widget $widget_obj
+	 * @return array
+	 * @throws Exception
+	 */
+	function filter_pre_option_widget_settings( $pre_value, $widget_obj ) {
+		if ( ! $this->disabled_filtering_pre_option_widget_settings ) {
+			if ( ! isset( $this->current_widget_type_values[ $widget_obj->id_base ] ) ) {
+				throw new Exception( "current_widget_type_values not set yet for $widget_obj->id_base" );
+			}
+			$pre_value = $this->current_widget_type_values[ $widget_obj->id_base ];
+		}
+		return $pre_value;
 	}
 
 	/**
@@ -120,6 +174,7 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 	function register_widget_settings() {
 		global $wp_registered_widgets;
 		if ( empty( $wp_registered_widgets ) ) {
+			$this->plugin->trigger_warning( '$wp_registered_widgets is empty.' );
 			return;
 		}
 
