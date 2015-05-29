@@ -33,6 +33,19 @@ class Widget_Posts {
 	public $widget_objs;
 
 	/**
+	 * Blog ID for which the functionality is active.
+	 *
+	 * If the get_current_blog_id() does not match this later, then the option
+	 * filtering is bypassed. This was put in place by request of WordPress VIP.
+	 *
+	 * @see Widget_Posts::filter_pre_option_widget_settings()
+	 * @see Widget_Posts::filter_pre_update_option_widget_settings()
+	 *
+	 * @var int
+	 */
+	public $active_blog_id;
+
+	/**
 	 * @return array
 	 */
 	static function default_config() {
@@ -60,6 +73,7 @@ class Widget_Posts {
 	 */
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
+		$this->active_blog_id = get_current_blog_id();
 
 		add_option( self::ENABLED_FLAG_OPTION_NAME, 'no', '', 'yes' );
 		add_action( 'widgets_init', array( $this, 'store_widget_objects' ), 90 );
@@ -343,6 +357,8 @@ class Widget_Posts {
 		$should_filter = (
 			! $this->pre_option_filters_disabled
 			&&
+			get_current_blog_id() === $this->active_blog_id
+			&&
 			preg_match( '/^pre_option_widget_(.+)/', current_filter(), $matches )
 		);
 		if ( ! $should_filter ) {
@@ -405,6 +421,8 @@ class Widget_Posts {
 		$matches = array();
 		$should_filter = (
 			! $this->pre_option_filters_disabled
+			&&
+			get_current_blog_id() === $this->active_blog_id
 			&&
 			( $value_array !== $old_value_array )
 			&&
