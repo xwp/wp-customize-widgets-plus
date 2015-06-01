@@ -317,10 +317,9 @@ class Widget_Posts {
 		$this->widget_objs = array();
 		foreach ( $this->plugin->widget_factory->widgets as $widget_obj ) {
 			/** @var \WP_Widget $widget_obj */
-			if ( "widget_{$widget_obj->id_base}" !== $widget_obj->option_name ) {
-				continue;
+			if ( $this->plugin->is_normal_multi_widget( $widget_obj ) ) {
+				$this->widget_objs[ $widget_obj->id_base ] = $widget_obj;
 			}
-			$this->widget_objs[ $widget_obj->id_base ] = $widget_obj;
 		}
 	}
 
