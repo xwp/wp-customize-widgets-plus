@@ -144,7 +144,6 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		if ( ! isset( $this->_previewed_blog_id ) ) {
 			$this->_previewed_blog_id = get_current_blog_id();
 		}
-		$sanitizing = $this->efficient_multidimensional_setting_sanitizing;
 		$value = $this->post_value();
 		$is_null_because_previewing_new_widget = (
 			is_null( $value )
@@ -171,14 +170,16 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	 * @return void
 	 */
 	protected function update( $value ) {
-		// @todo Better $this->efficient_multidimensional_setting_sanitizing->widget_objs[ $this->widget_id_base ]->get_settings()
+		$sanitizing = $this->efficient_multidimensional_setting_sanitizing;
+
+		// @todo Maybe more elegant to do $sanitizing->widget_objs[ $this->widget_id_base ]->get_settings() or $sanitizing->current_widget_type_values[ $this->widget_id_base ]
 		$option_name = "widget_{$this->widget_id_base}";
 		$option_value = get_option( $option_name, array() );
 		$option_value[ $this->widget_number ] = $value;
+		$option_value['_multiwidget'] = 1; // Ensure this is set so that wp_convert_widget_settings() won't be called in WP_Widget::get_settings().
 		update_option( $option_name, $option_value );
 
 		if ( ! $this->is_previewed ) {
-			$sanitizing = $this->efficient_multidimensional_setting_sanitizing;
 			$sanitizing->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
 		}
 	}

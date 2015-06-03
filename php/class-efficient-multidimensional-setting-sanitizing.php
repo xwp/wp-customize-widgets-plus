@@ -88,14 +88,51 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 	 *
 	 * @see WP_Customize_Widget_Setting::__construct()
 	 * @see Widget_Posts::filter_pre_option_widget_settings()
+	 * @see Widget_Posts::prepare_widget_data()
 	 */
 	function capture_widget_instance_data() {
+		$is_widget_posts_enabled = (
+			$this->plugin->is_module_active( 'widget_posts' )
+			&&
+			$this->plugin->widget_posts->is_enabled()
+		);
+
 		foreach ( $this->plugin->widget_factory->widgets as $widget_obj ) {
 			/** @var \WP_Widget $widget_obj */
 			$this->widget_objs[ $widget_obj->id_base ] = $widget_obj;
 
-			// Store the widget settings once, after Widget_Posts::prepare_widget_data() has run, so we can get Widget_Settings ArrayIterators.
-			$this->current_widget_type_values[ $widget_obj->id_base ] = $widget_obj->get_settings();
+			/*
+			 * Get widget settings once, after Widget_Posts::prepare_widget_data()
+			 * has run, so we can get Widget_Settings ArrayIterators.
+			 */
+			$settings = $widget_obj->get_settings();
+
+			// Sanity check.
+			$expect_array_iterator = (
+				$is_widget_posts_enabled
+				&&
+				$this->plugin->is_normal_multi_widget( $widget_obj )
+			);
+			if ( $expect_array_iterator && ! ( $settings instanceof Widget_Settings ) ) {
+				throw new Exception( "Expected settings for $widget_obj->id_base to be a Widget_Settings instance since the Widget_Posts module is active." );
+			}
+
+			/*
+			 * Restore _multiwidget array key since it gets stripped by WP_Widget::get_settings()
+			 * and we're going to use this $settings data in a pre_option filter,
+			 * and we want to ensure that wp_convert_widget_settings() will not be
+			 * called later when WP_Widget::get_settings() is again called
+			 * and does get_option( "widget_{$id_base}" ). Note that if this is
+			 * a Widget_Settings instance, it wil do a no-op and offsetExists()
+			 * will always return true for the '_multiwidget' key.
+			 */
+			$settings['_multiwidget'] = 1;
+
+			/*
+			 * Store the settings to be used by WP_Customize_Widget_Setting::value(),
+			 * and in pre_option_{$id_base} filter.
+			 */
+			$this->current_widget_type_values[ $widget_obj->id_base ] = $settings;
 
 			// Note that this happens _before_ Widget_Posts::filter_pre_option_widget_settings().
 			add_filter( "pre_option_widget_{$widget_obj->id_base}", function ( $pre_value ) use ( $widget_obj ) {
