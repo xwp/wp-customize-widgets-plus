@@ -188,9 +188,6 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 		$this->register_widget_settings();
 
 		// Register any remaining widgets that are registered after WP is initialized
-		if ( is_admin() ) {
-			$this->register_widget_settings();
-		}
 		$priority = 9; // Before \WP_Customize_Manager::customize_register() is called
 		add_action( 'wp', array( $this, 'register_widget_settings' ), $priority );
 	}
