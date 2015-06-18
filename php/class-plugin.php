@@ -47,6 +47,11 @@ class Plugin extends Plugin_Base {
 	public $efficient_multidimensional_setting_sanitizing;
 
 	/**
+	 * @var Optimized_Widget_Registration
+	 */
+	public $optimized_widget_registration;
+
+	/**
 	 * @var \WP_Widget_Factory
 	 */
 	public $widget_factory;
@@ -80,6 +85,7 @@ class Plugin extends Plugin_Base {
 				'https_resource_proxy' => true,
 				'widget_posts' => true,
 				'efficient_multidimensional_setting_sanitizing' => true,
+				'optimized_widget_registration' => false,
 			),
 			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 			'widget_posts' => Widget_Posts::default_config(),
@@ -113,11 +119,14 @@ class Plugin extends Plugin_Base {
 		$this->widget_factory = $wp_widget_factory;
 		$this->config = apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
 
-		// Handle conflicting modules.
+		// Handle conflicting modules and dependencies.
+		if ( $this->config['active_modules']['optimized_widget_registration'] ) {
+			$this->config['active_modules']['widget_posts'] = true;
+			$this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] = true;
+		}
 		if ( $this->config['active_modules']['widget_posts'] ) {
 			$this->config['active_modules']['non_autoloaded_widget_options'] = false; // The widget_posts module makes this obsolete.
 			$this->config['active_modules']['widget_number_incrementing'] = true; // Dependency.
-			// @todo $this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] = true; // ?
 		}
 
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
@@ -150,6 +159,9 @@ class Plugin extends Plugin_Base {
 		}
 		if ( $this->is_module_active( 'efficient_multidimensional_setting_sanitizing' ) && ! empty( $wp_customize ) ) {
 			$this->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this, $wp_customize );
+		}
+		if ( $this->is_module_active( 'optimized_widget_registration' ) ) {
+			$this->optimized_widget_registration = new Optimized_Widget_Registration( $this );
 		}
 	}
 
@@ -226,6 +238,7 @@ class Plugin extends Plugin_Base {
 	/**
 	 * Disable the widget factory from registering widgets.
 	 *
+	 * @return int|false Priority that the widgets_init action was registered at.
 	 * @see \WP_Widget_Factory::_register_widgets()
 	 * @see Plugin::disable_widgets_init()
 	 */
@@ -239,6 +252,7 @@ class Plugin extends Plugin_Base {
 		if ( false !== $priority ) {
 			remove_action( $widgets_init_hook, $callable, $priority );
 		}
+		return $priority;
 	}
 
 	/**

@@ -85,7 +85,7 @@ class Test_Efficient_Multidimensional_Setting_Sanitizing extends Base_Test_Case 
 		$this->init_customizer();
 		$instance = new Efficient_Multidimensional_Setting_Sanitizing( $this->plugin, $this->wp_customize_manager );
 
-		$setting_class = apply_filters( 'customize_dynamic_setting_class', 'WP_Customize_Setting', 'widget_text[2]' );
+		$setting_class = apply_filters( 'customize_dynamic_setting_class', 'WP_Customize_Setting', 'widget_text[2]', array() );
 		$this->assertEquals( '\\' . __NAMESPACE__ . '\\WP_Customize_Widget_Setting', $setting_class );
 		$this->assertEquals( $setting_class, $instance->filter_dynamic_setting_class( 'WP_Customize_Setting', 'widget_text[2]' ) );
 
