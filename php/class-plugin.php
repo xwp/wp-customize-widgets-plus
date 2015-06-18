@@ -119,11 +119,15 @@ class Plugin extends Plugin_Base {
 		$this->widget_factory = $wp_widget_factory;
 		$this->config = apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
 
-		// Handle conflicting modules.
+
+		// Handle conflicting modules and dependencies.
+		if ( $this->config['active_modules']['optimized_widget_registration'] ) {
+			$this->config['active_modules']['widget_posts'] = true;
+			$this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] = true;
+		}
 		if ( $this->config['active_modules']['widget_posts'] ) {
 			$this->config['active_modules']['non_autoloaded_widget_options'] = false; // The widget_posts module makes this obsolete.
 			$this->config['active_modules']['widget_number_incrementing'] = true; // Dependency.
-			// @todo $this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] = true; // ?
 		}
 
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );

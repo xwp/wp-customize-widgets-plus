@@ -185,11 +185,12 @@ class Optimized_Widget_Registration {
 
 		foreach ( $register_widget_ids as $widget_id ) {
 			$setting_id   = $this->manager->widgets->get_setting_id( $widget_id );
-			$setting_args = $this->manager->widgets->get_setting_args( $setting_id );
 			if ( ! $this->manager->get_setting( $setting_id ) ) {
-				$this->manager->add_setting( $setting_id, $setting_args );
+				$setting_args = $this->manager->widgets->get_setting_args( $setting_id );
+				$setting = new WP_Customize_Widget_Setting( $this->manager, $setting_id, $setting_args );
+				$this->manager->add_setting( $setting );
+				$new_setting_ids[] = $setting_id;
 			}
-			$new_setting_ids[] = $setting_id;
 		}
 
 		// Add a control for each active widget (located in a sidebar).
