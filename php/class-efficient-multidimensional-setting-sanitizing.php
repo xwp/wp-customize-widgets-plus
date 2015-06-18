@@ -217,7 +217,7 @@ class Efficient_Multidimensional_Setting_Sanitizing {
 		 * inactive, and orphaned since a widget may get suppressed from a sidebar
 		 * via a plugin (like Widget Visibility).
 		 */
-		foreach ( array_keys( $wp_registered_widgets ) as $widget_id ) {
+		foreach ( $wp_registered_widgets as $widget_id => $registered_widget ) {
 			$setting_id = $this->manager->widgets->get_setting_id( $widget_id );
 			if ( ! $this->manager->get_setting( $setting_id ) ) {
 				$setting_args = $this->manager->widgets->get_setting_args( $setting_id );
