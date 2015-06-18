@@ -85,7 +85,7 @@ class Plugin extends Plugin_Base {
 				'https_resource_proxy' => true,
 				'widget_posts' => true,
 				'efficient_multidimensional_setting_sanitizing' => true,
-				'optimized_widget_registration' => true,
+				'optimized_widget_registration' => false,
 			),
 			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 			'widget_posts' => Widget_Posts::default_config(),
