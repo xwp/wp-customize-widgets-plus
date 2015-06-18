@@ -119,7 +119,6 @@ class Plugin extends Plugin_Base {
 		$this->widget_factory = $wp_widget_factory;
 		$this->config = apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
 
-
 		// Handle conflicting modules and dependencies.
 		if ( $this->config['active_modules']['optimized_widget_registration'] ) {
 			$this->config['active_modules']['widget_posts'] = true;
