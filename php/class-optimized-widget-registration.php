@@ -50,9 +50,6 @@ class Optimized_Widget_Registration {
 		add_action( 'wp', array( $this, 'register_all_sidebars_widgets' ), 9 );
 
 		add_action( 'wp', array( $this, 'register_remaining_sidebars_widgets' ), 11 );
-
-		// Experiment: add_action( 'widgets_init', array( $this, 'init_jit_widget_registration' ), $priority + 1 ); add_filter( 'widget_customizer_setting_args', array( $this, 'filter_widget_customizer_setting_args' ), 20, 2 );
-		// May be useful: add_action( 'dynamic_sidebar_before', array( $this, 'register_sidebar_widgets' ), 10, 2 );
 	}
 
 	/**
@@ -242,25 +239,6 @@ class Optimized_Widget_Registration {
 	}
 
 	/**
-	 * @param string $sidebar_id
-	 * @action dynamic_sidebar_before
-	 * @return int Number of widgets registered.
-	 */
-	function register_sidebar_widgets( $sidebar_id ) {
-		$sidebars_widgets = wp_get_sidebars_widgets();
-		$registered_count = 0;
-		if ( isset( $sidebars_widgets[ $sidebar_id ] ) ) {
-			foreach ( $sidebars_widgets[ $sidebar_id ] as $widget_id ) {
-				if ( $this->register_single_widget( $widget_id ) ) {
-					$registered_count += 1;
-				}
-			}
-		}
-		return $registered_count;
-
-	}
-
-	/**
 	 * @param string $widget_id
 	 *
 	 * @return bool Whether the widget was registered. False if already registered or invalid.
@@ -288,59 +266,6 @@ class Optimized_Widget_Registration {
 		$widget_obj->_set( $parsed_widget_id['widget_number'] );
 		$widget_obj->_register_one( $parsed_widget_id['widget_number'] );
 		return true;
-	}
-
-	/*
-	 * The following methods are experimental.
-	 */
-
-	/**
-	 * @todo This needs to be done right after Widget Customizer does its customize_register, since array_keys() is used in there.
-	 */
-	function init_jit_widget_registration() {
-		global $pagenow;
-		if ( 'widgets.php' === $pagenow ) {
-			return;
-		}
-
-		global $wp_registered_widgets, $wp_registered_widget_controls, $wp_registered_widget_updates;
-		$wp_registered_widgets = new Registered_Widgets_Array( $this, '$wp_registered_widgets', $wp_registered_widgets );
-		$wp_registered_widget_controls = new Registered_Widgets_Array( $this, '$wp_registered_widget_controls', $wp_registered_widget_controls );
-		$wp_registered_widget_updates = new Registered_Widgets_Array( $this, '$wp_registered_widget_updates', $wp_registered_widget_updates );
-	}
-
-	/**
-	 * Replace sanitize_js_callback for sidebars_widgets settings with one that is friendly to ArrayIterator.
-	 *
-	 * @see WP_Customize_Widgets::sanitize_sidebar_widgets_js_instance()
-	 * @param array $setting_args
-	 * @param string $setting_id
-	 *
-	 * @return array
-	 */
-	function filter_widget_customizer_setting_args( $setting_args, $setting_id ) {
-		if ( preg_match( '/^sidebars_widgets\[/', $setting_id ) ) {
-			$setting_args['sanitize_js_callback'] = null;
-		}
-		return $setting_args;
-	}
-
-	/**
-	 * ArrayIterator-friendly version of sidebar_widgets JS sanitizer.
-	 *
-	 * @see WP_Customize_Widgets::sanitize_sidebar_widgets_js_instance()
-	 *
-	 * @param array $widget_ids
-	 * @return array
-	 */
-	function sanitize_sidebars_widgets_js_callback( $widget_ids ) {
-		global $wp_registered_widgets;
-		$registered_widget_ids = array();
-		foreach ( $wp_registered_widgets as $widget_id => $registered_widget ) {
-			$registered_widget_ids[] = $widget_id;
-		}
-		$widget_ids = array_values( array_intersect( $widget_ids, $registered_widget_ids ) );
-		return $widget_ids;
 	}
 
 }
