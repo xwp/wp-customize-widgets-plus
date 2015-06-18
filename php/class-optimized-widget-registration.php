@@ -103,10 +103,6 @@ class Optimized_Widget_Registration {
 	function register_initial_widgets() {
 		global $pagenow, $wp_registered_widgets, $wp_widget_factory;
 
-		if ( $wp_registered_widgets instanceof Registered_Widgets_Array ) {
-			throw new Exception( 'Did not expect $wp_registered_widgets to be an Registered_Widgets_Array object at this point.' );
-		}
-
 		$registered_id_bases = array_unique( array_map( '_get_widget_id_base', array_keys( $wp_registered_widgets ) ) );
 
 		foreach ( $wp_widget_factory->widgets as $widget_class => $widget_obj ) {
@@ -193,7 +189,6 @@ class Optimized_Widget_Registration {
 			}
 			$new_setting_ids[] = $setting_id;
 		}
-
 
 		// Add a control for each active widget (located in a sidebar).
 		foreach ( $sidebars_widgets as $sidebar_id => $sidebar_widget_ids ) {
