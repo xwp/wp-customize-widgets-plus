@@ -223,13 +223,11 @@ class Widget_Posts {
 	public function columns_header( $columns ) {
 		$columns['title'] = __( 'Widget Name', 'mandatory-widgets' );
 		$columns['wi_id'] = __( 'Widget ID', 'mandatory-widgets' );
-
-		$customOrder = array('cb', 'title', 'wi_id', 'date');
-
-		foreach ( $customOrder as $colname ) {
-			$new_columns[ $colname ] = $columns[ $colname ];
+		$custom_order = array( 'cb', 'title', 'wi_id', 'date' );
+		$new_columns = array();
+		foreach ( $custom_order as $col_name ) {
+			$new_columns[ $col_name ] = $columns[ $col_name ];
 		}
-
 		 return $new_columns;
 	}
 
@@ -253,7 +251,7 @@ class Widget_Posts {
 	/**
 	 * Apply custom sorting to columns
 	 *
-	 * @param array $column  Column name
+	 * @param array $columns  Column name
 	 * @return array
 	 */
 	public function custom_sortable_column( $columns ) {
@@ -266,11 +264,10 @@ class Widget_Posts {
 	 * Remove the 'view' link
 	 *
 	 * @param array $actions
-	 * @param \WP_Post $post
 	 * @return array
 	 */
-	function filter_post_row_actions( $actions, $post ) {
-		unset( $actions['view']);
+	function filter_post_row_actions( $actions ) {
+		unset( $actions['view'] );
 		return $actions;
 	}
 
