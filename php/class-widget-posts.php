@@ -380,7 +380,7 @@ class Widget_Posts {
 			$filtered_settings = apply_filters( "option_widget_{$id_base}", $settings );
 
 			// Detect when a filter blew away our nice ArrayIterator.
-			if ( $filtered_settings !== $settings ) {
+			if ( is_array( $filtered_settings ) ) {
 				$settings = new Widget_Settings( $filtered_settings );
 			}
 		}

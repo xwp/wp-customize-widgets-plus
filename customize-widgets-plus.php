@@ -3,7 +3,7 @@
  * Plugin Name: Customize Widgets Plus
  * Plugin URI: https://github.com/xwp/wp-customize-widgets-plus
  * Description: Lab features and a testbed for improvements to Widgets and the Customizer.
- * Version: 0.1
+ * Version: 0.2
  * Author:  XWP, News Corp Australia
  * Author URI: https://xwp.co/
  * License: GPLv2+

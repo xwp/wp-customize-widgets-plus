@@ -39,6 +39,9 @@ Store widget instances in posts instead of options. Requires trunk due to patch 
 
 ## Changelog ##
 
+### 0.2 ###
+Add Widget Posts module. See [changelog](https://github.com/xwp/wp-customize-widgets-plus/compare/0.1...0.2).
+
 ### 0.1 ###
 Initial release.
 
