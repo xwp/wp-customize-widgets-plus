@@ -250,6 +250,12 @@ class Widget_Posts {
 		}
 	}
 
+	/**
+	 * Apply custom sorting to columns
+	 *
+	 * @param array $column  Column name
+	 * @return array
+	 */
 	public function custom_sortable_column( $columns ) {
 		$columns['wi_id'] = 'post_name';
 
@@ -259,9 +265,9 @@ class Widget_Posts {
 	/**
 	 * Remove the 'view' link
 	 *
-	 * @param string[] $actions
+	 * @param array $actions
 	 * @param \WP_Post $post
-	 * @return string[]
+	 * @return array
 	 */
 	function filter_post_row_actions( $actions, $post ) {
 		unset( $actions['view']);
@@ -283,7 +289,6 @@ class Widget_Posts {
 		return $post_data;
 	}
 
-
 	/**
 	 * Add the metabox.
 	 */
@@ -296,7 +301,6 @@ class Widget_Posts {
 		$priority = 'high';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
 	}
-
 
 	/**
 	 * Render the metabox.
@@ -329,7 +333,6 @@ class Widget_Posts {
 						echo esc_html( str_repeat( ' ', 4 * $indent ) . wp_json_encode( $area_id ) . ": {\n" );
 						$indent += 1;
 						foreach ( $area_widgets as $sub_widget_id => $sub_instance_id ) {
-							// unset( $widget_instance['areas_widgets'][ $area_id ][ $sub_widget_id ] );
 							$widget_post = $this->get_widget_post( $sub_instance_id );
 							$widget_sub_instance = $this->get_widget_instance_data( $widget_post );
 							echo '<details class="widgets-plus-widget-instance"><summary>' . esc_html( wp_json_encode( $sub_instance_id ) ) . '</summary>';
@@ -337,7 +340,6 @@ class Widget_Posts {
 							echo esc_html( self::encode_json( $widget_sub_instance ) );
 							echo '</blockquote>';
 							echo '</details>';
-							// $widget_instance['areas_widgets'][ $area_id ][ $sub_instance_id ] = $widget_sub_instance;
 						}
 						$indent -= 1;
 						echo esc_html( str_repeat( ' ', 4 * $indent ) . "},\n" );
