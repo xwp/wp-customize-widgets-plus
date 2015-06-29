@@ -85,7 +85,7 @@ class Plugin extends Plugin_Base {
 				'https_resource_proxy' => true,
 				'widget_posts' => true,
 				'efficient_multidimensional_setting_sanitizing' => true,
-				'optimized_widget_registration' => false,
+				'optimized_widget_registration' => true,
 			),
 			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 			'widget_posts' => Widget_Posts::default_config(),
@@ -132,6 +132,7 @@ class Plugin extends Plugin_Base {
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
 		add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'customize_controls_enqueue_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
 
 		if ( $this->is_running_unit_tests() ) {
 			$this->disable_widgets_init();
@@ -213,6 +214,11 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'css/customize-widgets.css';
 		$wp_styles->add( $handle, $src );
 		$this->style_handles[ $slug ] = $handle;
+
+		$handle = "{$this->slug}-post-edit";
+		$src = $this->dir_url . 'css/post-edit.css';
+		$wp_styles->add( $handle, $src );
+		$this->style_handles['post_edit'] = $handle;
 	}
 
 	/**
@@ -220,6 +226,13 @@ class Plugin extends Plugin_Base {
 	 */
 	function customize_controls_enqueue_scripts() {
 		wp_enqueue_style( $this->style_handles['customize-widgets'] );
+	}
+
+	/**
+	 * @action admin_enqueue_scripts
+	 */
+	function admin_enqueue_scripts() {
+		wp_enqueue_style( $this->style_handles['post_edit'] );
 	}
 
 	/**

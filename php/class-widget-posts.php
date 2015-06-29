@@ -128,6 +128,12 @@ class Widget_Posts {
 	function init() {
 		add_action( 'widgets_init', array( $this, 'prepare_widget_data' ), 91 );
 		add_action( 'init', array( $this, 'register_instance_post_type' ) );
+		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
+		add_filter( '_wp_post_revision_fields', array( $this, 'filter_post_revision_fields_to_include_content_filtered' ) );
+		add_filter( sprintf( 'manage_%s_posts_columns', static::INSTANCE_POST_TYPE ), array( $this, 'columns_header' ) );
+		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
+		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
+		add_filter( 'wp_insert_post_data', array( $this, 'prevent_post_name_corruption' ), 10, 2 );
 	}
 
 	/**
@@ -177,20 +183,218 @@ class Widget_Posts {
 
 		$args = array(
 			'labels' => $labels,
-			'public' => false,
+			'description' => __( 'Widget Instances.', 'mandatory-widgets' ),
+			'public' => true,
 			'capability_type' => static::INSTANCE_POST_TYPE,
+			'capabilities' => array(
+			    'create_posts' => 'do_not_allow',
+			),
+			'publicly_queryable' => false,
+			'query_var' => false,
+			'exclude_from_search' => true,
+			'show_ui' => true,
+			'show_in_nav_menus' => false,
+			'show_in_menu' => true,
+			'show_in_admin_bar' => false,
 			'map_meta_cap' => true,
 			'hierarchical' => false,
 			'delete_with_user' => false,
 			'menu_position' => null,
-			'supports' => array( 'none' ), // @todo 'revisions' when there is a UI.
+			'supports' => array( 'title', 'revisions' ),
+			'register_meta_box_cb' => array( $this, 'setup_metaboxes' ),
 		);
+
 		$r = register_post_type( static::INSTANCE_POST_TYPE, $args );
 		if ( is_wp_error( $r ) ) {
 			throw new Exception( $r->get_error_message() );
 		}
 
 		return $r;
+	}
+
+	/**
+	 * Custom columns for this post type.
+	 *
+	 * @param  array $columns
+	 * @return array
+	 *
+	 * @filter manage_{post_type}_posts_columns
+	 */
+	public function columns_header( $columns ) {
+		$columns['title'] = __( 'Widget Name', 'mandatory-widgets' );
+		$columns['wi_id'] = __( 'Widget ID', 'mandatory-widgets' );
+
+		$customOrder = array('cb', 'title', 'wi_id', 'date');
+
+		foreach ( $customOrder as $colname ) {
+			$new_columns[ $colname ] = $columns[ $colname ];
+		}
+
+		 return $new_columns;
+	}
+
+	/**
+	 * Custom column appears in each row.
+	 *
+	 * @param string $column  Column name
+	 * @param int    $post_id Post ID
+	 *
+	 * @action manage_{post_type}_posts_custom_column
+	 */
+	public function custom_column_row( $column, $post_id ) {
+		$post = get_post( $post_id );
+		switch ( $column ) {
+			case 'wi_id':
+				echo '<code>' . esc_html( $post->post_name ) . '</code>';
+				break;
+		}
+	}
+
+	public function custom_sortable_column( $columns ) {
+		$columns['wi_id'] = 'post_name';
+
+		return $columns;
+	}
+
+	/**
+	 * Remove the 'view' link
+	 *
+	 * @param string[] $actions
+	 * @param \WP_Post $post
+	 * @return string[]
+	 */
+	function filter_post_row_actions( $actions, $post ) {
+		unset( $actions['view']);
+		return $actions;
+	}
+
+
+	/**
+	 * Prevent editing of a context_setting post's slug. Once set, it remains until deleted.
+	 *
+	 * @param array $post_data
+	 * @param array $raw_post_data
+	 * @return array
+	 */
+	function prevent_post_name_corruption( $post_data, $raw_post_data ) {
+		if ( ! empty( $raw_post_data['ID'] ) && static::INSTANCE_POST_TYPE === get_post_type( $raw_post_data['ID'] ) ) {
+			$post_data['post_name'] = get_post( $raw_post_data['ID'] )->post_name;
+		}
+		return $post_data;
+	}
+
+
+	/**
+	 * Add the metabox.
+	 */
+	function setup_metaboxes() {
+		$id = 'widget_instance';
+		$title = __( 'Data', 'mandatory-widgets' );
+		$callback = array( $this, 'render_data_metabox' );
+		$screen = static::INSTANCE_POST_TYPE;
+		$context = 'normal';
+		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+	}
+
+
+	/**
+	 * Render the metabox.
+	 * @param \WP_Post $post
+	 */
+	function render_data_metabox( $post ) {
+		$widget_instance = $this->get_widget_instance_data( $post );
+
+		if ( empty( $widget_instance ) ) {
+			echo '<p><em>' . esc_html__( 'No widget instance found.', 'mandatory-widgets' ) . '</em></p>';
+		} else {
+			if ( isset( $widget_instance['collections'] ) ) {
+				$widget_instance['collections'] = json_decode( $widget_instance['collections'] );
+			}
+			echo '<pre>';
+			if ( isset( $widget_instance['areas_widgets'] ) ) {
+				$areas_widgets = $widget_instance['areas_widgets'];
+				unset( $widget_instance['areas_widgets'] );
+				$json = self::encode_json( $widget_instance );
+				$json = preg_replace( '/\s+}\\n}$/', "\n\x20\x20\x20\x20},", $json );
+				$json = preg_replace( '/\s+}$/', ',', $json );
+				$json .= "\n";
+				echo esc_html( $json );
+				$indent = 1;
+				echo esc_html( str_repeat( ' ', 4 * $indent ) . wp_json_encode( 'areas_widgets' ) . ': ' . "{\n" );
+				foreach ( $areas_widgets as $area_id => $area_widgets ) {
+					// @todo:  remove the final comma of the last  object
+					if ( ! empty( $area_widgets ) ) {
+						$indent += 1;
+						echo esc_html( str_repeat( ' ', 4 * $indent ) . wp_json_encode( $area_id ) . ": {\n" );
+						$indent += 1;
+						foreach ( $area_widgets as $sub_widget_id => $sub_instance_id ) {
+							// unset( $widget_instance['areas_widgets'][ $area_id ][ $sub_widget_id ] );
+							$widget_post = $this->get_widget_post( $sub_instance_id );
+							$widget_sub_instance = $this->get_widget_instance_data( $widget_post );
+							echo '<details class="widgets-plus-widget-instance"><summary>' . esc_html( wp_json_encode( $sub_instance_id ) ) . '</summary>';
+							echo '<blockquote>';
+							echo esc_html( self::encode_json( $widget_sub_instance ) );
+							echo '</blockquote>';
+							echo '</details>';
+							// $widget_instance['areas_widgets'][ $area_id ][ $sub_instance_id ] = $widget_sub_instance;
+						}
+						$indent -= 1;
+						echo esc_html( str_repeat( ' ', 4 * $indent ) . "},\n" );
+						$indent -= 1;
+					} else {
+						$indent += 1;
+						echo esc_html( str_repeat( ' ', 4 * $indent ) . wp_json_encode( $area_id ) . ": [],\n" );
+						$indent -= 1;
+					}
+				}
+				echo esc_html( str_repeat( ' ', 4 * $indent ) .  "}\n}" );
+			} else {
+				echo esc_html( self::encode_json( $widget_instance ) );
+			}
+			echo '</pre>';
+		}
+	}
+
+	/**
+	 * @param $value
+	 * @return string
+	 */
+	static function encode_json( $value ) {
+		$flags = 0;
+		if ( defined( '\JSON_PRETTY_PRINT' ) ) {
+			$flags |= \JSON_PRETTY_PRINT;
+		}
+		if ( defined( '\JSON_UNESCAPED_SLASHES' ) ) {
+			$flags |= \JSON_UNESCAPED_SLASHES;
+		}
+		return wp_json_encode( $value, $flags );
+	}
+
+	/**
+	 * @param string[] $fields
+	 * @return string[]
+	 */
+	function filter_post_revision_fields_to_include_content_filtered( $fields ) {
+		$fields['post_content_filtered'] = __( 'Raw Content', 'mandatory-widgets' );
+		return $fields;
+	}
+
+	/**
+	 * @param int|\WP_Post $post
+	 * @throws \Exception
+	 * @return array
+	 */
+	function read_widget_instance_from_post( $post ) {
+		$widget_instance = array();
+		$post = get_post( $post );
+		if ( $post ) {
+			$widget_instance = json_decode( $post->post_content_filtered, true );
+			if ( json_last_error() ) {
+				throw new \Exception( "JSON parse error for widget_instance {$post->ID}: error code " . json_last_error() );
+			}
+		}
+		return $widget_instance;
 	}
 
 	/**

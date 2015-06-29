@@ -1,0 +1,15 @@
+.widgets-plus-widget-instance {
+	margin-left: 100px;
+}
+.widgets-plus-widget-instance > summary {
+	cursor: pointer;
+}
+.widgets-plus-widget-instance > summary:after {
+	content: ',';
+}
+.widgets-plus-widget-instance:last-child > summary:after {
+	content: ':';
+}
+.widgets-plus-widget-instance[open] > summary:after {
+	content: ':';
+}
