@@ -129,6 +129,7 @@ class Widget_Posts {
 		add_action( 'widgets_init', array( $this, 'prepare_widget_data' ), 91 );
 		add_action( 'init', array( $this, 'register_instance_post_type' ) );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
+		add_filter( sprintf( 'bulk_actions-edit-%s', static::INSTANCE_POST_TYPE ), array( $this, 'filter_bulk_actions' ) );
 		add_filter( sprintf( 'manage_%s_posts_columns', static::INSTANCE_POST_TYPE ), array( $this, 'columns_header' ) );
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
@@ -271,6 +272,15 @@ class Widget_Posts {
 			unset( $actions['view'] );
 			unset( $actions['inline hide-if-no-js'] );
 		}
+		return $actions;
+	}
+
+	/**
+	 * @param array $actions
+	 * @return array
+	 */
+	function filter_bulk_actions( $actions ) {
+		unset( $actions['edit'] );
 		return $actions;
 	}
 
