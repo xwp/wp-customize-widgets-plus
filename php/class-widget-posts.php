@@ -226,7 +226,7 @@ class Widget_Posts {
 	 */
 	function remove_add_new_submenu() {
 		global $submenu;
-		unset( $submenu[ 'edit.php?post_type=' . static::INSTANCE_POST_TYPE ][10]); // Removes 'Add New'.
+		unset( $submenu[ 'edit.php?post_type=' . static::INSTANCE_POST_TYPE ][10] ); // Removes 'Add New'.
 	}
 
 	/**
