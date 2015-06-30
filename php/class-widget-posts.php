@@ -296,6 +296,8 @@ class Widget_Posts {
 		$context = 'normal';
 		$priority = 'high';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+
+		remove_meta_box( 'slugdiv', $screen, 'normal' );
 	}
 
 	/**
