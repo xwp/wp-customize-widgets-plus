@@ -49,7 +49,9 @@ class Widget_Posts {
 	 * @return array
 	 */
 	static function default_config() {
-		return array();
+		return array(
+			'capability' => 'edit_theme_options',
+		);
 	}
 
 	/**
@@ -134,6 +136,7 @@ class Widget_Posts {
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
 		add_filter( 'wp_insert_post_data', array( $this, 'prevent_post_name_corruption' ), 10, 2 );
+		add_action( 'admin_menu', array( $this, 'remove_add_new_submenu' ) );
 	}
 
 	/**
@@ -186,9 +189,6 @@ class Widget_Posts {
 			'description' => __( 'Widget Instances.', 'mandatory-widgets' ),
 			'public' => true,
 			'capability_type' => static::INSTANCE_POST_TYPE,
-			'capabilities' => array(
-				'create_posts' => 'do_not_allow',
-			),
 			'publicly_queryable' => false,
 			'query_var' => false,
 			'exclude_from_search' => true,
@@ -209,7 +209,24 @@ class Widget_Posts {
 			throw new Exception( $r->get_error_message() );
 		}
 
+		// Now override the caps to all be the cap defined in the config
+		$config = static::default_config();
+		$post_type_object = get_post_type_object( static::INSTANCE_POST_TYPE );
+		foreach ( array_keys( (array) $post_type_object->cap ) as $cap ) {
+			$post_type_object->cap->$cap = $config['capability'];
+		}
+
 		return $r;
+	}
+
+	/**
+	 * Remove the  'Add New' submenu
+	 *
+	 * @return [type] [description]
+	 */
+	function remove_add_new_submenu() {
+		global $submenu;
+		unset( $submenu[ 'edit.php?post_type=' . static::INSTANCE_POST_TYPE ][10]); // Removes 'Add New'.
 	}
 
 	/**
