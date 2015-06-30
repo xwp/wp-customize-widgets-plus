@@ -222,8 +222,8 @@ class Widget_Posts {
 	 */
 	public function columns_header( $columns ) {
 		$columns['title'] = __( 'Widget Name', 'mandatory-widgets' );
-		$columns['wi_id'] = __( 'Widget ID', 'mandatory-widgets' );
-		$custom_order = array( 'cb', 'title', 'wi_id', 'date' );
+		$columns['widget_id'] = __( 'Widget ID', 'mandatory-widgets' );
+		$custom_order = array( 'cb', 'title', 'widget_id', 'date' );
 		$new_columns = array();
 		foreach ( $custom_order as $col_name ) {
 			$new_columns[ $col_name ] = $columns[ $col_name ];
@@ -242,7 +242,7 @@ class Widget_Posts {
 	public function custom_column_row( $column, $post_id ) {
 		$post = get_post( $post_id );
 		switch ( $column ) {
-			case 'wi_id':
+			case 'widget_id':
 				echo '<code>' . esc_html( $post->post_name ) . '</code>';
 				break;
 		}
@@ -255,7 +255,7 @@ class Widget_Posts {
 	 * @return array
 	 */
 	public function custom_sortable_column( $columns ) {
-		$columns['wi_id'] = 'post_name';
+		$columns['widget_id'] = 'post_name';
 
 		return $columns;
 	}
