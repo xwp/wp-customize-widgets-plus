@@ -129,7 +129,6 @@ class Widget_Posts {
 		add_action( 'widgets_init', array( $this, 'prepare_widget_data' ), 91 );
 		add_action( 'init', array( $this, 'register_instance_post_type' ) );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
-		add_filter( '_wp_post_revision_fields', array( $this, 'filter_post_revision_fields_to_include_content_filtered' ) );
 		add_filter( sprintf( 'manage_%s_posts_columns', static::INSTANCE_POST_TYPE ), array( $this, 'columns_header' ) );
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
@@ -368,15 +367,6 @@ class Widget_Posts {
 			$flags |= \JSON_UNESCAPED_SLASHES;
 		}
 		return wp_json_encode( $value, $flags );
-	}
-
-	/**
-	 * @param string[] $fields
-	 * @return string[]
-	 */
-	function filter_post_revision_fields_to_include_content_filtered( $fields ) {
-		$fields['post_content_filtered'] = __( 'Raw Content', 'mandatory-widgets' );
-		return $fields;
 	}
 
 	/**
