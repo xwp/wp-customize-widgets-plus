@@ -187,7 +187,7 @@ class Widget_Posts {
 			'public' => true,
 			'capability_type' => static::INSTANCE_POST_TYPE,
 			'capabilities' => array(
-			    'create_posts' => 'do_not_allow',
+				'create_posts' => 'do_not_allow',
 			),
 			'publicly_queryable' => false,
 			'query_var' => false,
