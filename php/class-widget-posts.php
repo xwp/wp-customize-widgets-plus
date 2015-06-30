@@ -200,7 +200,7 @@ class Widget_Posts {
 			'hierarchical' => false,
 			'delete_with_user' => false,
 			'menu_position' => null,
-			'supports' => array( 'title', 'revisions' ),
+			'supports' => array( 'revisions' ),
 			'register_meta_box_cb' => array( $this, 'setup_metaboxes' ),
 		);
 
