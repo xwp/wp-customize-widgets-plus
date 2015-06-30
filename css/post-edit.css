@@ -19,6 +19,7 @@ body.post-type-widget_instance #minor-publishing-actions,
 body.post-type-widget_instance #publishing-action,
 body.post-type-widget_instance .misc-pub-section.misc-pub-post-status,
 body.post-type-widget_instance .misc-pub-section.misc-pub-visibility,
-body.post-type-widget_instance .misc-pub-section.curtime.misc-pub-curtime {
+body.post-type-widget_instance .misc-pub-section.curtime.misc-pub-curtime,
+body.post-type-widget_instance #delete-action {
 	display: none;
 }

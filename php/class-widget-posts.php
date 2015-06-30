@@ -285,6 +285,7 @@ class Widget_Posts {
 	function filter_post_row_actions( $actions, $post ) {
 		if ( static::INSTANCE_POST_TYPE === $post->post_type ) {
 			unset( $actions['view'] );
+			unset( $actions['trash'] );
 			unset( $actions['inline hide-if-no-js'] );
 		}
 		return $actions;
@@ -296,6 +297,7 @@ class Widget_Posts {
 	 */
 	function filter_bulk_actions( $actions ) {
 		unset( $actions['edit'] );
+		unset( $actions['trash'] );
 		return $actions;
 	}
 
