@@ -169,24 +169,24 @@ class Widget_Posts {
 		}
 
 		$labels = array(
-			'name'               => _x( 'Widget Instances', 'post type general name', 'mandatory-widgets' ),
-			'singular_name'      => _x( 'Widget Instance', 'post type singular name', 'mandatory-widgets' ),
-			'menu_name'          => _x( 'Widget Instances', 'admin menu', 'mandatory-widgets' ),
-			'name_admin_bar'     => _x( 'Widget Instance', 'add new on admin bar', 'mandatory-widgets' ),
-			'add_new'            => _x( 'Add New', 'Widget', 'mandatory-widgets' ),
-			'add_new_item'       => __( 'Add New Widget Instance', 'mandatory-widgets' ),
-			'new_item'           => __( 'New Widget Instance', 'mandatory-widgets' ),
-			'edit_item'          => __( 'Inspect Widget Instance', 'mandatory-widgets' ),
-			'view_item'          => __( 'View Widget Instance', 'mandatory-widgets' ),
-			'all_items'          => __( 'All Widget Instances', 'mandatory-widgets' ),
-			'search_items'       => __( 'Search Widget instances', 'mandatory-widgets' ),
-			'not_found'          => __( 'No widget instances found.', 'mandatory-widgets' ),
-			'not_found_in_trash' => __( 'No widget instances found in Trash.', 'mandatory-widgets' ),
+			'name'               => _x( 'Widget Instances', 'post type general name', 'customize-widgets-plus' ),
+			'singular_name'      => _x( 'Widget Instance', 'post type singular name', 'customize-widgets-plus' ),
+			'menu_name'          => _x( 'Widget Instances', 'admin menu', 'customize-widgets-plus' ),
+			'name_admin_bar'     => _x( 'Widget Instance', 'add new on admin bar', 'customize-widgets-plus' ),
+			'add_new'            => _x( 'Add New', 'Widget', 'customize-widgets-plus' ),
+			'add_new_item'       => __( 'Add New Widget Instance', 'customize-widgets-plus' ),
+			'new_item'           => __( 'New Widget Instance', 'customize-widgets-plus' ),
+			'edit_item'          => __( 'Inspect Widget Instance', 'customize-widgets-plus' ),
+			'view_item'          => __( 'View Widget Instance', 'customize-widgets-plus' ),
+			'all_items'          => __( 'All Widget Instances', 'customize-widgets-plus' ),
+			'search_items'       => __( 'Search Widget instances', 'customize-widgets-plus' ),
+			'not_found'          => __( 'No widget instances found.', 'customize-widgets-plus' ),
+			'not_found_in_trash' => __( 'No widget instances found in Trash.', 'customize-widgets-plus' ),
 		);
 
 		$args = array(
 			'labels' => $labels,
-			'description' => __( 'Widget Instances.', 'mandatory-widgets' ),
+			'description' => __( 'Widget Instances.', 'customize-widgets-plus' ),
 			'public' => true,
 			'capability_type' => static::INSTANCE_POST_TYPE,
 			'publicly_queryable' => false,
@@ -236,8 +236,8 @@ class Widget_Posts {
 	 * @filter manage_{post_type}_posts_columns
 	 */
 	public function columns_header( $columns ) {
-		$columns['title'] = __( 'Widget Name', 'mandatory-widgets' );
-		$columns['widget_id'] = __( 'Widget ID', 'mandatory-widgets' );
+		$columns['title'] = __( 'Widget Name', 'customize-widgets-plus' );
+		$columns['widget_id'] = __( 'Widget ID', 'customize-widgets-plus' );
 		$custom_order = array( 'cb', 'title', 'widget_id', 'date' );
 		$new_columns = array();
 		foreach ( $custom_order as $col_name ) {
@@ -318,7 +318,7 @@ class Widget_Posts {
 	 */
 	function setup_metaboxes() {
 		$id = 'widget_instance';
-		$title = __( 'Data', 'mandatory-widgets' );
+		$title = __( 'Data', 'customize-widgets-plus' );
 		$callback = array( $this, 'render_data_metabox' );
 		$screen = static::INSTANCE_POST_TYPE;
 		$context = 'normal';
@@ -336,7 +336,7 @@ class Widget_Posts {
 		$widget_instance = $this->get_widget_instance_data( $post );
 
 		if ( empty( $widget_instance ) ) {
-			echo '<p><em>' . esc_html__( 'No widget instance found.', 'mandatory-widgets' ) . '</em></p>';
+			echo '<p><em>' . esc_html__( 'No widget instance found.', 'customize-widgets-plus' ) . '</em></p>';
 		} else {
 			if ( isset( $widget_instance['collections'] ) ) {
 				$widget_instance['collections'] = json_decode( $widget_instance['collections'] );
