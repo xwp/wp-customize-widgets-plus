@@ -172,7 +172,7 @@ class Widget_Posts {
 			'add_new'            => _x( 'Add New', 'Widget', 'mandatory-widgets' ),
 			'add_new_item'       => __( 'Add New Widget Instance', 'mandatory-widgets' ),
 			'new_item'           => __( 'New Widget Instance', 'mandatory-widgets' ),
-			'edit_item'          => __( 'Edit Widget Instance', 'mandatory-widgets' ),
+			'edit_item'          => __( 'Inspect Widget Instance', 'mandatory-widgets' ),
 			'view_item'          => __( 'View Widget Instance', 'mandatory-widgets' ),
 			'all_items'          => __( 'All Widget Instances', 'mandatory-widgets' ),
 			'search_items'       => __( 'Search Widget instances', 'mandatory-widgets' ),
