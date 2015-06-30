@@ -263,13 +263,16 @@ class Widget_Posts {
 	 * Remove the 'view' link
 	 *
 	 * @param array $actions
+	 * @param \WP_Post $post
 	 * @return array
 	 */
-	function filter_post_row_actions( $actions ) {
-		unset( $actions['view'] );
+	function filter_post_row_actions( $actions, $post ) {
+		if ( static::INSTANCE_POST_TYPE === $post->post_type ) {
+			unset( $actions['view'] );
+			unset( $actions['inline hide-if-no-js'] );
+		}
 		return $actions;
 	}
-
 
 	/**
 	 * Prevent editing of a context_setting post's slug. Once set, it remains until deleted.
