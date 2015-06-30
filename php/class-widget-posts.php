@@ -77,7 +77,7 @@ class Widget_Posts {
 		$this->plugin = $plugin;
 		$this->active_blog_id = get_current_blog_id();
 
-		add_option( self::ENABLED_FLAG_OPTION_NAME, 'no', '', 'yes' );
+		add_option( static::ENABLED_FLAG_OPTION_NAME, 'no', '', 'yes' );
 		add_action( 'widgets_init', array( $this, 'store_widget_objects' ), 90 );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -103,7 +103,7 @@ class Widget_Posts {
 	 * @return bool Enabled.
 	 */
 	function is_enabled() {
-		return 'yes' === get_option( self::ENABLED_FLAG_OPTION_NAME );
+		return 'yes' === get_option( static::ENABLED_FLAG_OPTION_NAME );
 	}
 
 	/**
@@ -112,7 +112,7 @@ class Widget_Posts {
 	 * @return bool Whether it was able to update the enabled state.
 	 */
 	function enable() {
-		return update_option( self::ENABLED_FLAG_OPTION_NAME, 'yes' );
+		return update_option( static::ENABLED_FLAG_OPTION_NAME, 'yes' );
 	}
 
 	/**
@@ -121,7 +121,7 @@ class Widget_Posts {
 	 * @return bool Whether it was able to update the enabled state.
 	 */
 	function disable() {
-		return update_option( self::ENABLED_FLAG_OPTION_NAME, 'no' );
+		return update_option( static::ENABLED_FLAG_OPTION_NAME, 'no' );
 	}
 
 	/**
@@ -347,7 +347,7 @@ class Widget_Posts {
 			if ( isset( $widget_instance['areas_widgets'] ) ) {
 				$areas_widgets = $widget_instance['areas_widgets'];
 				unset( $widget_instance['areas_widgets'] );
-				$json = self::encode_json( $widget_instance );
+				$json = static::encode_json( $widget_instance );
 				$json = preg_replace( '/\s+}\\n}$/', "\n\x20\x20\x20\x20},", $json );
 				$json = preg_replace( '/\s+}$/', ',', $json );
 				$json .= "\n";
@@ -365,7 +365,7 @@ class Widget_Posts {
 							$widget_sub_instance = $this->get_widget_instance_data( $widget_post );
 							echo '<details class="widgets-plus-widget-instance"><summary>' . esc_html( wp_json_encode( $sub_instance_id ) ) . '</summary>';
 							echo '<blockquote>';
-							echo esc_html( self::encode_json( $widget_sub_instance ) );
+							echo esc_html( static::encode_json( $widget_sub_instance ) );
 							echo '</blockquote>';
 							echo '</details>';
 						}
@@ -380,7 +380,7 @@ class Widget_Posts {
 				}
 				echo esc_html( str_repeat( ' ', 4 * $indent ) .  "}\n}" );
 			} else {
-				echo esc_html( self::encode_json( $widget_instance ) );
+				echo esc_html( static::encode_json( $widget_instance ) );
 			}
 			echo '</pre>';
 		}
