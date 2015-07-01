@@ -135,7 +135,6 @@ class Widget_Posts {
 		add_filter( sprintf( 'manage_%s_posts_columns', static::INSTANCE_POST_TYPE ), array( $this, 'columns_header' ) );
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
-		add_filter( 'wp_insert_post_data', array( $this, 'prevent_post_name_corruption' ), 10, 2 );
 		add_action( 'admin_menu', array( $this, 'remove_add_new_submenu' ) );
 	}
 
@@ -299,20 +298,6 @@ class Widget_Posts {
 		unset( $actions['edit'] );
 		unset( $actions['trash'] );
 		return $actions;
-	}
-
-	/**
-	 * Prevent editing of a context_setting post's slug. Once set, it remains until deleted.
-	 *
-	 * @param array $post_data
-	 * @param array $raw_post_data
-	 * @return array
-	 */
-	function prevent_post_name_corruption( $post_data, $raw_post_data ) {
-		if ( ! empty( $raw_post_data['ID'] ) && static::INSTANCE_POST_TYPE === get_post_type( $raw_post_data['ID'] ) ) {
-			$post_data['post_name'] = get_post( $raw_post_data['ID'] )->post_name;
-		}
-		return $post_data;
 	}
 
 	/**
