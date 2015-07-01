@@ -337,53 +337,16 @@ class Widget_Posts {
 	function render_data_metabox( $post ) {
 		$widget_instance = $this->get_widget_instance_data( $post );
 
-		if ( empty( $widget_instance ) ) {
-			echo '<p><em>' . esc_html__( 'No widget instance found.', 'customize-widgets-plus' ) . '</em></p>';
-		} else {
-			if ( isset( $widget_instance['collections'] ) ) {
-				$widget_instance['collections'] = json_decode( $widget_instance['collections'] );
-			}
-			echo '<pre>';
-			if ( isset( $widget_instance['areas_widgets'] ) ) {
-				$areas_widgets = $widget_instance['areas_widgets'];
-				unset( $widget_instance['areas_widgets'] );
-				$json = static::encode_json( $widget_instance );
-				$json = preg_replace( '/\s+}\\n}$/', "\n\x20\x20\x20\x20},", $json );
-				$json = preg_replace( '/\s+}$/', ',', $json );
-				$json .= "\n";
-				echo esc_html( $json );
-				$indent = 1;
-				echo esc_html( str_repeat( ' ', 4 * $indent ) . wp_json_encode( 'areas_widgets' ) . ': ' . "{\n" );
-				foreach ( $areas_widgets as $area_id => $area_widgets ) {
-					// @todo:  remove the final comma of the last  object
-					if ( ! empty( $area_widgets ) ) {
-						$indent += 1;
-						echo esc_html( str_repeat( ' ', 4 * $indent ) . wp_json_encode( $area_id ) . ": {\n" );
-						$indent += 1;
-						foreach ( $area_widgets as $sub_widget_id => $sub_instance_id ) {
-							$widget_post = $this->get_widget_post( $sub_instance_id );
-							$widget_sub_instance = $this->get_widget_instance_data( $widget_post );
-							echo '<details class="widgets-plus-widget-instance"><summary>' . esc_html( wp_json_encode( $sub_instance_id ) ) . '</summary>';
-							echo '<blockquote>';
-							echo esc_html( static::encode_json( $widget_sub_instance ) );
-							echo '</blockquote>';
-							echo '</details>';
-						}
-						$indent -= 1;
-						echo esc_html( str_repeat( ' ', 4 * $indent ) . "},\n" );
-						$indent -= 1;
-					} else {
-						$indent += 1;
-						echo esc_html( str_repeat( ' ', 4 * $indent ) . wp_json_encode( $area_id ) . ": [],\n" );
-						$indent -= 1;
-					}
-				}
-				echo esc_html( str_repeat( ' ', 4 * $indent ) .  "}\n}" );
-			} else {
-				echo esc_html( static::encode_json( $widget_instance ) );
-			}
-			echo '</pre>';
-		}
+		$allowed_tags = array(
+			'details' => array( 'class' => true ),
+			'pre' => array(),
+			'summary' => array(),
+		);
+		$rendered_instance = sprintf( '<pre>%s</pre>', static::encode_json( $widget_instance ) );
+		echo wp_kses(
+			apply_filters( 'rendered_widget_instance_data', $rendered_instance, $widget_instance, $post ),
+			$allowed_tags
+		);
 	}
 
 	/**
