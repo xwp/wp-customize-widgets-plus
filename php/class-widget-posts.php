@@ -350,23 +350,6 @@ class Widget_Posts {
 	}
 
 	/**
-	 * @param int|\WP_Post $post
-	 * @throws \Exception
-	 * @return array
-	 */
-	function read_widget_instance_from_post( $post ) {
-		$widget_instance = array();
-		$post = get_post( $post );
-		if ( $post ) {
-			$widget_instance = json_decode( $post->post_content_filtered, true );
-			if ( json_last_error() ) {
-				throw new \Exception( "JSON parse error for widget_instance {$post->ID}: error code " . json_last_error() );
-			}
-		}
-		return $widget_instance;
-	}
-
-	/**
 	 * When exporting widget instance posts from WordPress, export the post_content_filtered as the post_content.
 	 *
 	 * @see Widget_Posts::filter_wp_import_post_data_processed()
