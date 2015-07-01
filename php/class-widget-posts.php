@@ -49,7 +49,9 @@ class Widget_Posts {
 	 * @return array
 	 */
 	static function default_config() {
-		return array();
+		return array(
+			'capability' => 'edit_theme_options',
+		);
 	}
 
 	/**
@@ -75,7 +77,7 @@ class Widget_Posts {
 		$this->plugin = $plugin;
 		$this->active_blog_id = get_current_blog_id();
 
-		add_option( self::ENABLED_FLAG_OPTION_NAME, 'no', '', 'yes' );
+		add_option( static::ENABLED_FLAG_OPTION_NAME, 'no', '', 'yes' );
 		add_action( 'widgets_init', array( $this, 'store_widget_objects' ), 90 );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -101,7 +103,7 @@ class Widget_Posts {
 	 * @return bool Enabled.
 	 */
 	function is_enabled() {
-		return 'yes' === get_option( self::ENABLED_FLAG_OPTION_NAME );
+		return 'yes' === get_option( static::ENABLED_FLAG_OPTION_NAME );
 	}
 
 	/**
@@ -110,7 +112,7 @@ class Widget_Posts {
 	 * @return bool Whether it was able to update the enabled state.
 	 */
 	function enable() {
-		return update_option( self::ENABLED_FLAG_OPTION_NAME, 'yes' );
+		return update_option( static::ENABLED_FLAG_OPTION_NAME, 'yes' );
 	}
 
 	/**
@@ -119,7 +121,7 @@ class Widget_Posts {
 	 * @return bool Whether it was able to update the enabled state.
 	 */
 	function disable() {
-		return update_option( self::ENABLED_FLAG_OPTION_NAME, 'no' );
+		return update_option( static::ENABLED_FLAG_OPTION_NAME, 'no' );
 	}
 
 	/**
@@ -128,6 +130,12 @@ class Widget_Posts {
 	function init() {
 		add_action( 'widgets_init', array( $this, 'prepare_widget_data' ), 91 );
 		add_action( 'init', array( $this, 'register_instance_post_type' ) );
+		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
+		add_filter( sprintf( 'bulk_actions-edit-%s', static::INSTANCE_POST_TYPE ), array( $this, 'filter_bulk_actions' ) );
+		add_filter( sprintf( 'manage_%s_posts_columns', static::INSTANCE_POST_TYPE ), array( $this, 'columns_header' ) );
+		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
+		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
+		add_action( 'admin_menu', array( $this, 'remove_add_new_submenu' ) );
 	}
 
 	/**
@@ -160,37 +168,185 @@ class Widget_Posts {
 		}
 
 		$labels = array(
-			'name'               => _x( 'Widget Instances', 'post type general name', 'mandatory-widgets' ),
-			'singular_name'      => _x( 'Widget Instance', 'post type singular name', 'mandatory-widgets' ),
-			'menu_name'          => _x( 'Widget Instances', 'admin menu', 'mandatory-widgets' ),
-			'name_admin_bar'     => _x( 'Widget Instance', 'add new on admin bar', 'mandatory-widgets' ),
-			'add_new'            => _x( 'Add New', 'Widget', 'mandatory-widgets' ),
-			'add_new_item'       => __( 'Add New Widget Instance', 'mandatory-widgets' ),
-			'new_item'           => __( 'New Widget Instance', 'mandatory-widgets' ),
-			'edit_item'          => __( 'Edit Widget Instance', 'mandatory-widgets' ),
-			'view_item'          => __( 'View Widget Instance', 'mandatory-widgets' ),
-			'all_items'          => __( 'All Widget Instances', 'mandatory-widgets' ),
-			'search_items'       => __( 'Search Widget instances', 'mandatory-widgets' ),
-			'not_found'          => __( 'No widget instances found.', 'mandatory-widgets' ),
-			'not_found_in_trash' => __( 'No widget instances found in Trash.', 'mandatory-widgets' ),
+			'name'               => _x( 'Widget Instances', 'post type general name', 'customize-widgets-plus' ),
+			'singular_name'      => _x( 'Widget Instance', 'post type singular name', 'customize-widgets-plus' ),
+			'menu_name'          => _x( 'Widget Instances', 'admin menu', 'customize-widgets-plus' ),
+			'name_admin_bar'     => _x( 'Widget Instance', 'add new on admin bar', 'customize-widgets-plus' ),
+			'add_new'            => _x( 'Add New', 'Widget', 'customize-widgets-plus' ),
+			'add_new_item'       => __( 'Add New Widget Instance', 'customize-widgets-plus' ),
+			'new_item'           => __( 'New Widget Instance', 'customize-widgets-plus' ),
+			'edit_item'          => __( 'Inspect Widget Instance', 'customize-widgets-plus' ),
+			'view_item'          => __( 'View Widget Instance', 'customize-widgets-plus' ),
+			'all_items'          => __( 'All Widget Instances', 'customize-widgets-plus' ),
+			'search_items'       => __( 'Search Widget instances', 'customize-widgets-plus' ),
+			'not_found'          => __( 'No widget instances found.', 'customize-widgets-plus' ),
+			'not_found_in_trash' => __( 'No widget instances found in Trash.', 'customize-widgets-plus' ),
 		);
 
 		$args = array(
 			'labels' => $labels,
-			'public' => false,
+			'description' => __( 'Widget Instances.', 'customize-widgets-plus' ),
+			'public' => true,
 			'capability_type' => static::INSTANCE_POST_TYPE,
+			'publicly_queryable' => false,
+			'query_var' => false,
+			'exclude_from_search' => true,
+			'show_ui' => true,
+			'show_in_nav_menus' => false,
+			'show_in_menu' => true,
+			'show_in_admin_bar' => false,
 			'map_meta_cap' => true,
 			'hierarchical' => false,
 			'delete_with_user' => false,
 			'menu_position' => null,
-			'supports' => array( 'none' ), // @todo 'revisions' when there is a UI.
+			'supports' => array( 'revisions' ),
+			'register_meta_box_cb' => array( $this, 'setup_metaboxes' ),
 		);
+
 		$r = register_post_type( static::INSTANCE_POST_TYPE, $args );
 		if ( is_wp_error( $r ) ) {
 			throw new Exception( $r->get_error_message() );
 		}
 
+		// Now override the caps to all be the cap defined in the config
+		$config = static::default_config();
+		$post_type_object = get_post_type_object( static::INSTANCE_POST_TYPE );
+		foreach ( array_keys( (array) $post_type_object->cap ) as $cap ) {
+			$post_type_object->cap->$cap = $config['capability'];
+		}
+
 		return $r;
+	}
+
+	/**
+	 * Remove the 'Add New' submenu
+	 */
+	function remove_add_new_submenu() {
+		global $submenu;
+		unset( $submenu[ 'edit.php?post_type=' . static::INSTANCE_POST_TYPE ][10] );
+	}
+
+	/**
+	 * Custom columns for this post type.
+	 *
+	 * @param  array $columns
+	 * @return array
+	 *
+	 * @filter manage_{post_type}_posts_columns
+	 */
+	public function columns_header( $columns ) {
+		$columns['title'] = __( 'Widget Name', 'customize-widgets-plus' );
+		$columns['widget_id'] = __( 'Widget ID', 'customize-widgets-plus' );
+		$custom_order = array( 'cb', 'title', 'widget_id', 'date' );
+		$new_columns = array();
+		foreach ( $custom_order as $col_name ) {
+			$new_columns[ $col_name ] = $columns[ $col_name ];
+		}
+		 return $new_columns;
+	}
+
+	/**
+	 * Custom column appears in each row.
+	 *
+	 * @param string $column  Column name
+	 * @param int    $post_id Post ID
+	 *
+	 * @action manage_{post_type}_posts_custom_column
+	 */
+	public function custom_column_row( $column, $post_id ) {
+		$post = get_post( $post_id );
+		switch ( $column ) {
+			case 'widget_id':
+				echo '<code>' . esc_html( $post->post_name ) . '</code>';
+				break;
+		}
+	}
+
+	/**
+	 * Apply custom sorting to columns
+	 *
+	 * @param array $columns  Column name
+	 * @return array
+	 */
+	public function custom_sortable_column( $columns ) {
+		$columns['widget_id'] = 'post_name';
+
+		return $columns;
+	}
+
+	/**
+	 * Remove the 'view' link
+	 *
+	 * @param array $actions
+	 * @param \WP_Post $post
+	 * @return array
+	 */
+	function filter_post_row_actions( $actions, $post ) {
+		if ( static::INSTANCE_POST_TYPE === $post->post_type ) {
+			unset( $actions['view'] );
+			unset( $actions['trash'] );
+			unset( $actions['inline hide-if-no-js'] );
+		}
+		return $actions;
+	}
+
+	/**
+	 * @param array $actions
+	 * @return array
+	 */
+	function filter_bulk_actions( $actions ) {
+		unset( $actions['edit'] );
+		unset( $actions['trash'] );
+		return $actions;
+	}
+
+	/**
+	 * Add the metabox.
+	 */
+	function setup_metaboxes() {
+		$id = 'widget_instance';
+		$title = __( 'Data', 'customize-widgets-plus' );
+		$callback = array( $this, 'render_data_metabox' );
+		$screen = static::INSTANCE_POST_TYPE;
+		$context = 'normal';
+		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+
+		remove_meta_box( 'slugdiv', $screen, 'normal' );
+	}
+
+	/**
+	 * Render the metabox.
+	 * @param \WP_Post $post
+	 */
+	function render_data_metabox( $post ) {
+		$widget_instance = $this->get_widget_instance_data( $post );
+
+		$allowed_tags = array(
+			'details' => array( 'class' => true ),
+			'pre' => array(),
+			'summary' => array(),
+		);
+		$rendered_instance = sprintf( '<pre>%s</pre>', static::encode_json( $widget_instance ) );
+		echo wp_kses(
+			apply_filters( 'rendered_widget_instance_data', $rendered_instance, $widget_instance, $post ),
+			$allowed_tags
+		);
+	}
+
+	/**
+	 * @param $value
+	 * @return string
+	 */
+	static function encode_json( $value ) {
+		$flags = 0;
+		if ( defined( '\JSON_PRETTY_PRINT' ) ) {
+			$flags |= \JSON_PRETTY_PRINT;
+		}
+		if ( defined( '\JSON_UNESCAPED_SLASHES' ) ) {
+			$flags |= \JSON_UNESCAPED_SLASHES;
+		}
+		return wp_json_encode( $value, $flags );
 	}
 
 	/**
