@@ -136,6 +136,9 @@ class Widget_Posts {
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
 		add_action( 'admin_menu', array( $this, 'remove_add_new_submenu' ) );
+		add_action( 'pre_post_update', array( $this, 'delete_post_id_lookup_cache_on_pre_post_update' ), 10, 2 );
+		add_action( 'delete_post', array( $this, 'clear_post_id_lookup_cache_on_delete_post' ) );
+		add_action( 'save_post', array( $this, 'update_post_id_lookup_cache_on_save_post' ), 10, 2 );
 	}
 
 	/**
@@ -680,6 +683,8 @@ class Widget_Posts {
 		return $numbers;
 	}
 
+	const POST_NAME_TO_POST_ID_CACHE_GROUP = 'widget-post-id-lookup';
+
 	/**
 	 * Get the widget instance post associated with a given widget ID.
 	 *
@@ -696,31 +701,116 @@ class Widget_Posts {
 			return null;
 		}
 
-		// @todo it may be better to just do a SQL query here: $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE post_type = %s AND post_name = %s", array( static::INSTANCE_POST_TYPE, $widget_id ) ) )
-		// @todo we can do object cache for the widget ID to post ID lookup; remember to clear when the post gets deleted
+		$post_id = wp_cache_get( $widget_id, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+		if ( false === $post_id ) {
 
-		$post_stati = array_merge(
-			array( 'any' ),
-			array_values( get_post_stati( array( 'exclude_from_search' => true ) ) ) // otherwise, we could get duplicates
-		);
+			/** @var \wpdb $wpdb */
+			global $wpdb;
 
-		// Force is_single and is_page to be false, so that draft and scheduled posts can be queried by name
-		$married = function ( $q ) {
-			$q->is_single = false;
-		};
-		add_action( 'pre_get_posts', $married );
+			/*
+			 * Note tha we are using a direct DB query because there is no elegant
+			 * way to get a single post of arbitrary status by post_name. The get_posts()
+			 * function will not return draft posts if not is_singular.
+			 */
+			$post_id = $wpdb->get_var( $wpdb->prepare(
+				"
+				SELECT p.ID
+				FROM $wpdb->posts p
+				WHERE p.post_type = %s AND p.post_name = %s
+				LIMIT 1
+				",
+				static::INSTANCE_POST_TYPE,
+				$widget_id
+			) ); // WPCS: db call ok.
 
-		$query = new \WP_Query( array(
-			'post_status' => $post_stati,
-			'posts_per_page' => 1,
-			'post_type' => static::INSTANCE_POST_TYPE,
-			'name' => $widget_id,
-		) );
+			if ( ! $post_id ) {
+				// This will prevent DB query when non-existent post is requested.
+				$post_id = 0;
+			}
 
-		remove_action( 'pre_get_posts', $married );
+			wp_cache_set( $widget_id, $post_id, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+		}
 
-		$post = array_shift( $query->posts );
+		if ( empty( $post_id ) ) {
+			return null;
+		}
+		$post = get_post( $post_id );
+		if ( empty( $post ) ) {
+			return null;
+		}
 		return $post;
+	}
+
+	/**
+	 * Store the post_name=>ID lookup cache for a saved post.
+	 *
+	 * @param int $post_id
+	 * @param \WP_Post $post
+	 * @action save_post
+	 */
+	public function update_post_id_lookup_cache_on_save_post( $post_id, $post ) {
+		unset( $post_id );
+		$is_valid_post = (
+			$post->post_type === static::INSTANCE_POST_TYPE
+		);
+		if ( ! $is_valid_post ) {
+			return;
+		}
+		wp_cache_set( $post->post_name, $post->ID, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+	}
+
+	/**
+	 * Clear the post_name=>ID lookup cache for a deleted post.
+	 *
+	 * @param int $post_id
+	 * @action delete_post
+	 */
+	public function clear_post_id_lookup_cache_on_delete_post( $post_id ) {
+		$post = get_post( $post_id );
+		$is_valid_post = (
+			! empty( $post )
+			&&
+			$post->post_type === static::INSTANCE_POST_TYPE
+		);
+		if ( ! $is_valid_post ) {
+			return;
+		}
+		$post_name = $post->post_name;
+		add_action( 'deleted_post', function( $deleted_post_id ) use ( $post_id, $post_name ) {
+			if ( $post_id === $deleted_post_id ) {
+				wp_cache_set( $post_name, 0, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+			}
+		} );
+	}
+
+	/**
+	 * Clear the post_name=>ID lookup cache for a post_name that is to be changed.
+	 *
+	 * @param int $post_id
+	 * @param array $data
+	 * @action pre_post_update
+	 */
+	public function delete_post_id_lookup_cache_on_pre_post_update( $post_id, $data ) {
+		$post = get_post( $post_id );
+		$ok = (
+			! empty( $post )
+			&&
+			$post->post_type === static::INSTANCE_POST_TYPE
+			&&
+			! empty( $data['post_name'] )
+			&&
+			$post->post_name !== $data['post_name']
+		);
+		if ( ! $ok ) {
+			return;
+		}
+		$old_post_name = $post->post_name;
+		add_action( 'save_post', function( $saved_post_id ) use ( $post_id, $old_post_name ) {
+			if ( $saved_post_id !== $post_id ) {
+				return;
+			}
+			wp_cache_delete( $old_post_name, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+		} );
 	}
 
 	/**
