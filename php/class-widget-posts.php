@@ -136,9 +136,6 @@ class Widget_Posts {
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
 		add_action( 'admin_menu', array( $this, 'remove_add_new_submenu' ) );
-		add_action( 'pre_post_update', array( $this, 'delete_post_id_lookup_cache_on_pre_post_update' ), 10, 2 );
-		add_action( 'delete_post', array( $this, 'clear_post_id_lookup_cache_on_delete_post' ) );
-		add_action( 'save_post', array( $this, 'update_post_id_lookup_cache_on_save_post' ), 10, 2 );
 	}
 
 	/**
@@ -152,16 +149,43 @@ class Widget_Posts {
 
 		// Add required filters and actions for this post type.
 		$hooks = array(
-			'wp_insert_post_data' => array( $this, 'preserve_content_filtered' ),
-			'delete_post' => array( $this, 'flush_widget_instance_numbers_cache' ),
-			'save_post_' . static::INSTANCE_POST_TYPE => array( $this, 'flush_widget_instance_numbers_cache' ),
-			'export_wp' => array( $this, 'setup_export' ),
-			'wp_import_post_data_processed' => array( $this, 'filter_wp_import_post_data_processed' ),
+			array(
+				'tag' => 'wp_insert_post_data',
+				'callback' => array( $this, 'preserve_content_filtered' ),
+			),
+			array(
+				'tag' => 'delete_post',
+				'callback' => array( $this, 'flush_widget_instance_numbers_cache' ),
+			),
+			array(
+				'tag' => 'save_post_' . static::INSTANCE_POST_TYPE,
+				'callback' => array( $this, 'flush_widget_instance_numbers_cache' ),
+			),
+			array(
+				'tag' => 'export_wp',
+				'callback' => array( $this, 'setup_export' ),
+			),
+			array(
+				'tag' => 'wp_import_post_data_processed',
+				'callback' => array( $this, 'filter_wp_import_post_data_processed' ),
+			),
+			array(
+				'tag' => 'pre_post_update',
+				'callback' => array( $this, 'delete_post_id_lookup_cache_on_pre_post_update' ),
+			),
+			array(
+				'tag' => 'delete_post',
+				'callback' => array( $this, 'clear_post_id_lookup_cache_on_delete_post' ),
+			),
+			array(
+				'tag' => 'save_post',
+				'callback' => array( $this, 'update_post_id_lookup_cache_on_save_post' ),
+			),
 		);
-		foreach ( $hooks as $hook => $callback ) {
+		foreach ( $hooks as $hook ) {
 			// Note that add_action() and has_action() is an aliases for add_filter() and has_filter()
-			if ( ! has_filter( $hook, $callback ) ) {
-				add_filter( $hook, $callback, 10, PHP_INT_MAX );
+			if ( ! has_filter( $hook['tag'], $hook['callback'] ) ) {
+				add_filter( $hook['tag'], $hook['callback'], 10, PHP_INT_MAX );
 			}
 		}
 
