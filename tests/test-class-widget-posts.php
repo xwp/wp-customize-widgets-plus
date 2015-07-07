@@ -9,6 +9,11 @@ class Test_Widget_Posts extends Base_Test_Case {
 	 */
 	public $wp_customize_manager;
 
+	/**
+	 * @var Widget_Posts
+	 */
+	public $module;
+
 	function setUp() {
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
 		parent::setUp();
@@ -19,6 +24,14 @@ class Test_Widget_Posts extends Base_Test_Case {
 	function init_customizer() {
 		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
 		$this->wp_customize_manager = new \WP_Customize_Manager();
+	}
+
+	function init_and_migrate() {
+		$this->module = new Widget_Posts( $this->plugin );
+		$this->module->init();
+		wp_widgets_init();
+		$this->module->register_instance_post_type();
+		$this->module->migrate_widgets_from_options();
 	}
 
 	/**
@@ -115,4 +128,32 @@ class Test_Widget_Posts extends Base_Test_Case {
 		$this->assertEquals( 0, did_action( 'update_option_widget_meta' ), 'Expected update_option( "widget_meta" ) to short-circuit.' );
 	}
 
+	function test_update_post_id_lookup_cache_on_save_post() {
+		$this->init_and_migrate();
+		$post = $this->module->insert_widget( 'search', array( 'title' => 'Hi' ) );
+		$this->assertEquals( $post->ID, wp_cache_get( $post->post_name, Widget_Posts::POST_NAME_TO_POST_ID_CACHE_GROUP ) );
+	}
+
+	function test_clear_post_id_lookup_cache_on_delete_post() {
+		$this->init_and_migrate();
+		$post = $this->module->insert_widget( 'search', array( 'title' => 'Hi' ) );
+		$this->assertEquals( $post->ID, wp_cache_get( $post->post_name, Widget_Posts::POST_NAME_TO_POST_ID_CACHE_GROUP ) );
+		wp_delete_post( $post->ID, true );
+		$this->assertEquals( 0, wp_cache_get( "$post->post_name", Widget_Posts::POST_NAME_TO_POST_ID_CACHE_GROUP ) );
+	}
+
+	function test_delete_post_id_lookup_cache_on_pre_post_update() {
+		$this->init_and_migrate();
+		$post = $this->module->insert_widget( 'search', array( 'title' => 'Hi' ) );
+		$this->assertEquals( $post->ID, wp_cache_get( $post->post_name, Widget_Posts::POST_NAME_TO_POST_ID_CACHE_GROUP ) );
+
+		$old_post_name = $post->post_name;
+		$new_post_name = $post->post_name . '123';
+		$post_data = $post->to_array();
+		$post_data['post_name'] = $new_post_name;
+		wp_insert_post( $post_data );
+
+		$this->assertEmpty( wp_cache_get( $old_post_name, Widget_Posts::POST_NAME_TO_POST_ID_CACHE_GROUP ) );
+		$this->assertEquals( $post->ID, wp_cache_get( $new_post_name, Widget_Posts::POST_NAME_TO_POST_ID_CACHE_GROUP ) );
+	}
 }
