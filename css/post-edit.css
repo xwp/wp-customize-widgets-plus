@@ -7,3 +7,8 @@ body.post-type-widget_instance .misc-pub-section.curtime.misc-pub-curtime,
 body.post-type-widget_instance #delete-action {
 	display: none;
 }
+
+.raw-content {
+	display: 90%;
+	  word-wrap: break-word;
+};

@@ -331,9 +331,17 @@ class Widget_Posts {
 	 * Add the metabox.
 	 */
 	function setup_metaboxes() {
-		$id = 'widget_instance';
-		$title = __( 'Data', 'customize-widgets-plus' );
+		$id = 'widget_instance_data';
+		$title = __( 'Decoded Data', 'customize-widgets-plus' );
 		$callback = array( $this, 'render_data_metabox' );
+		$screen = static::INSTANCE_POST_TYPE;
+		$context = 'normal';
+		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+
+		$id = 'widget_instance_raw_data';
+		$title = __( 'Raw Data', 'customize-widgets-plus' );
+		$callback = array( $this, 'render_raw_data_metabox' );
 		$screen = static::INSTANCE_POST_TYPE;
 		$context = 'normal';
 		$priority = 'high';
@@ -343,7 +351,7 @@ class Widget_Posts {
 	}
 
 	/**
-	 * Render the metabox.
+	 * Render the metabox for the decoded data.
 	 * @param \WP_Post $post
 	 */
 	function render_data_metabox( $post ) {
@@ -359,6 +367,15 @@ class Widget_Posts {
 			apply_filters( 'rendered_widget_instance_data', $rendered_instance, $widget_instance, $post ),
 			$allowed_tags
 		);
+	}
+
+	/**
+	 * Render the metabox for the raw data.
+	 * @param \WP_Post $post
+	 */
+	function render_raw_data_metabox( $post ) {
+		$raw_widget_instance = $this->get_widget_instance_data( $post, true );
+		echo '<div class="raw-content">' . esc_html( $raw_widget_instance ) . '</div>';
 	}
 
 	/**
@@ -841,9 +858,15 @@ class Widget_Posts {
 	 * Get the instance data associated with a widget post.
 	 *
 	 * @param int|\WP_Post|string $post Widget ID, post, or widget_ID string.
-	 * @return array
+	 * @param bool $raw Whether or not getting the instance data associated with a widget post as raw
+	 * @return mixed array/string
 	 */
-	function get_widget_instance_data( $post ) {
+	function get_widget_instance_data( $post, $raw = false ) {
+		$emptyValue = array();
+		if ( $raw ) {
+			$emptyValue = '';
+		}
+
 		if ( is_string( $post ) ) {
 			$post = $this->get_widget_post( $post );
 		} else {
@@ -851,9 +874,9 @@ class Widget_Posts {
 		}
 
 		if ( empty( $post ) ) {
-			$instance = array();
+			$instance = $emptyValue;
 		} else {
-			$instance = static::get_post_content_filtered( $post );
+			$instance = static::get_post_content_filtered( $post, $raw );
 		}
 		return $instance;
 	}
@@ -872,19 +895,29 @@ class Widget_Posts {
 	}
 
 	/**
-	 * Parse the post_content_filtered, which is a base64-encoded PHP-serialized string.
+	 * Get the post_content_filtered value either raw or parsed, which is a base64-encoded PHP-serialized string.
 	 *
 	 * @param \WP_Post $post
-	 * @return array
+	 * @param bool $Raw Whether or not return the post_content_filtered as raw string
+	 * @return mixed array/string
 	 */
-	static function get_post_content_filtered( \WP_Post $post ) {
+	static function get_post_content_filtered( \WP_Post $post, $raw = false ) {
+		$emptyValue = array();
+		if ( $raw ) {
+			$emptyValue = '';
+		}
+
 		if ( static::INSTANCE_POST_TYPE !== $post->post_type ) {
 			return array();
 		}
 		if ( empty( $post->post_content_filtered ) ) {
 			return array();
 		}
-		return static::parse_post_content_filtered( $post->post_content_filtered );
+		if ( $raw ) {
+			return $post->post_content_filtered;
+		} else {
+			return static::parse_post_content_filtered( $post->post_content_filtered );
+		}
 	}
 
 	/**
