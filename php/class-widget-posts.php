@@ -80,6 +80,8 @@ class Widget_Posts {
 		add_option( static::ENABLED_FLAG_OPTION_NAME, 'no', '', 'yes' );
 		add_action( 'widgets_init', array( $this, 'store_widget_objects' ), 90 );
 
+		add_filter( 'wp_insert_post_empty_content', array( $this, 'check_widget_instance_is_empty' ), 10, 2 );
+
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			Widget_Posts_CLI_Command::$plugin_instance = $this->plugin;
 			\WP_CLI::add_command( 'widget-posts', __NAMESPACE__ . '\\Widget_Posts_CLI_Command' );
@@ -95,6 +97,34 @@ class Widget_Posts {
 		if ( $this->is_enabled() ) {
 			$this->init();
 		}
+	}
+
+	/**
+	 * Check if the widget instance is empty.
+	 *
+	 * @param bool $is_empty Is empty.
+	 * @param array $post_arr Post Array.
+	 *
+	 * @return bool Empty.
+	 */
+	function check_widget_instance_is_empty( $is_empty, $post_arr ) {
+		if ( static::INSTANCE_POST_TYPE !== $post_arr['post_type'] ) {
+			return $is_empty;
+		}
+
+		if ( empty( $post_arr['ID'] ) ) {
+			return $is_empty;
+		}
+		$post = get_post( $post_arr['ID'] );
+		if ( empty( $post_arr['post_content_filtered'] ) ) {
+			return true;
+		}
+		$decoded = unserialize( base64_decode( $post_arr['post_content_filtered'] ) );
+		if ( empty( $decoded ) ) {
+			return true;
+		}
+
+		return $is_empty;
 	}
 
 	/**
@@ -626,9 +656,15 @@ class Widget_Posts {
 			}
 			$widget_id = "$id_base-$widget_number";
 
-			// Note that sanitization isn't needed because the widget's update callback has already been called.
-			$this->update_widget( $widget_id, $instance, array( 'needs_sanitization' => false ) );
-			// @todo catch exception.
+			try {
+				// Note that sanitization isn't needed because the widget's update callback has already been called.
+				$this->update_widget( $widget_id, $instance, array( 'needs_sanitization' => false ) );
+			} catch ( Exception $exception ) {
+				add_filter( 'customize_save_response', function( $data ) {
+					$data['widget_save_failure'] = true;
+					return $data;
+				} );
+			}
 		}
 
 		foreach ( $widget_settings->unset_widget_numbers as $widget_number ) {
