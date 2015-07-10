@@ -136,6 +136,7 @@ class Widget_Posts {
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
 		add_action( 'admin_menu', array( $this, 'remove_add_new_submenu' ) );
+		add_filter( 'posts_where', array( $this, 'custom_search_where' ), 10, 2 );
 	}
 
 	/**
@@ -376,6 +377,26 @@ class Widget_Posts {
 	function render_raw_data_metabox( $post ) {
 		$raw_widget_instance = $this->get_widget_instance_data( $post, true );
 		echo '<div class="raw-content">' . esc_html( $raw_widget_instance ) . '</div>';
+	}
+
+
+	/**
+	 * Custom search query to add search by post_name
+	 *
+	 * @param  string $where Where clause
+	 *
+	 * @return string        Modified where clause
+	 */
+	function custom_search_where( $where ) {
+		global $pagenow, $wpdb;
+		if ( is_admin() && 'edit.php' === $pagenow && static::INSTANCE_POST_TYPE === $_GET['post_type'] && '' !== $_GET['s'] ) {
+			$where = preg_replace(
+				'/\(\s*'.$wpdb->posts.'.post_title\s+LIKE\s*(\'[^\']+\')\s*\)/',
+				'('.$wpdb->posts.'.post_title LIKE $1) OR ('. $wpdb->posts.'.post_name LIKE $1)', $where
+			);
+		}
+
+		return $where;
 	}
 
 	/**
