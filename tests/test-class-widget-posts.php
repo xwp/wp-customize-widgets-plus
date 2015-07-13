@@ -56,6 +56,40 @@ class Test_Widget_Posts extends Base_Test_Case {
 	}
 
 	/**
+	 * @see Widget_Posts::check_widget_instance_is_empty()
+	 */
+	function test_check_widget_instance_is_empty() {
+		$widget_posts = new Widget_Posts( $this->plugin );
+
+		$this->assertTrue( $widget_posts->check_widget_instance_is_empty( true, array( 'post_type' => 'post' ) ) );
+
+		$this->assertTrue( $widget_posts->check_widget_instance_is_empty( true, array(
+			'post_type' => Widget_Posts::INSTANCE_POST_TYPE,
+			'post_content_filtered' => '',
+		) ) );
+
+		$this->assertTrue( $widget_posts->check_widget_instance_is_empty( true, array(
+			'post_type' => Widget_Posts::INSTANCE_POST_TYPE,
+			'post_content_filtered' => '#### BAD',
+		) ) );
+
+		$this->assertTrue( $widget_posts->check_widget_instance_is_empty( true, array(
+			'post_type' => Widget_Posts::INSTANCE_POST_TYPE,
+			'post_content_filtered' => base64_encode( 'HELLO WORLD' ),
+		) ) );
+
+		$this->assertTrue( $widget_posts->check_widget_instance_is_empty( true, array(
+			'post_type' => Widget_Posts::INSTANCE_POST_TYPE,
+			'post_content_filtered' => base64_encode( serialize( (object) array( 'foo' => 'bar' ) ) ),
+		) ) );
+
+		$this->assertFalse( $widget_posts->check_widget_instance_is_empty( false, array(
+			'post_type' => Widget_Posts::INSTANCE_POST_TYPE,
+			'post_content_filtered' => base64_encode( serialize( array( 'title' => 'hello' ) ) ),
+		) ) );
+	}
+
+	/**
 	 * @see Widget_Posts::init()
 	 */
 	function test_init() {

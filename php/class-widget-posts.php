@@ -112,15 +112,17 @@ class Widget_Posts {
 			return $is_empty;
 		}
 
-		if ( empty( $post_arr['ID'] ) ) {
-			return $is_empty;
-		}
-		$post = get_post( $post_arr['ID'] );
 		if ( empty( $post_arr['post_content_filtered'] ) ) {
 			return true;
 		}
-		$decoded = unserialize( base64_decode( $post_arr['post_content_filtered'] ) );
-		if ( empty( $decoded ) ) {
+		$decoded = base64_decode( $post_arr['post_content_filtered'], true );
+		if ( false === $decoded ) {
+			return true;
+		}
+		// @codingStandardsIgnoreStart
+		$unserialized = @unserialize( $decoded );
+		// @codingStandardsIgnoreStop
+		if ( ! is_array( $unserialized ) ) {
 			return true;
 		}
 
