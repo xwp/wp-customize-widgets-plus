@@ -926,7 +926,7 @@ class Widget_Posts {
 	}
 
 	/**
-	 * Parse the post_content_filtered from its base64-encodd PHP-serialized string.
+	 * Parse the post_content_filtered from its base64-encoded PHP-serialized string.
 	 *
 	 * @param string $post_content_filtered
 	 *
