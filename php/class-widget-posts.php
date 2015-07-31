@@ -697,7 +697,11 @@ class Widget_Posts {
 	function get_widget_instance_numbers( $id_base ) {
 		/** @var \wpdb $wpdb */
 		global $wpdb;
-		$numbers = wp_cache_get( $id_base, 'widget_instance_numbers' );
+
+		$cache_get = function_exists( 'wpcom_vip_cache_get' ) ? 'wpcom_vip_cache_get' : 'wp_cache_get';
+		$cache_set = function_exists( 'wpcom_vip_cache_set' ) ? 'wpcom_vip_cache_set' : 'wp_cache_set';
+
+		$numbers = $cache_get( $id_base, 'widget_instance_numbers' );
 		if ( false === $numbers ) {
 			$post_type = static::INSTANCE_POST_TYPE;
 			$widget_id_hyphen_strpos = strlen( $id_base ) + 1; // Start at the last hyphen in the widget ID
@@ -735,7 +739,7 @@ class Widget_Posts {
 				$numbers[ intval( $result->widget_number ) ] = intval( $result->post_id );
 			}
 
-			wp_cache_set( $id_base, $numbers, 'widget_instance_numbers' );
+			$cache_set( $id_base, $numbers, 'widget_instance_numbers' );
 		}
 
 		// Widget numbers start at 2, so ensure this is the case.
@@ -754,6 +758,8 @@ class Widget_Posts {
 	 * @return \WP_Post|null
 	 */
 	function get_widget_post( $widget_id ) {
+		$cache_get = function_exists( 'wpcom_vip_cache_get' ) ? 'wpcom_vip_cache_get' : 'wp_cache_get';
+		$cache_set = function_exists( 'wpcom_vip_cache_set' ) ? 'wpcom_vip_cache_set' : 'wp_cache_set';
 
 		$parsed_widget_id = $this->plugin->parse_widget_id( $widget_id );
 		if ( ! $parsed_widget_id ) {
@@ -763,7 +769,7 @@ class Widget_Posts {
 			return null;
 		}
 
-		$post_id = wp_cache_get( $widget_id, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+		$post_id = $cache_get( $widget_id, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
 		if ( false === $post_id ) {
 
 			/** @var \wpdb $wpdb */
@@ -790,7 +796,7 @@ class Widget_Posts {
 				$post_id = 0;
 			}
 
-			wp_cache_set( $widget_id, $post_id, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+			$cache_set( $widget_id, $post_id, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
 		}
 
 		if ( empty( $post_id ) ) {
@@ -811,6 +817,8 @@ class Widget_Posts {
 	 * @action save_post
 	 */
 	public function update_post_id_lookup_cache_on_save_post( $post_id, $post ) {
+		$cache_set = function_exists( 'wpcom_vip_cache_set' ) ? 'wpcom_vip_cache_set' : 'wp_cache_set';
+
 		unset( $post_id );
 		$is_valid_post = (
 			$post->post_type === static::INSTANCE_POST_TYPE
@@ -818,7 +826,7 @@ class Widget_Posts {
 		if ( ! $is_valid_post ) {
 			return;
 		}
-		wp_cache_set( $post->post_name, $post->ID, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+		$cache_set( $post->post_name, $post->ID, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
 	}
 
 	/**
@@ -840,7 +848,8 @@ class Widget_Posts {
 		$post_name = $post->post_name;
 		add_action( 'deleted_post', function( $deleted_post_id ) use ( $post_id, $post_name ) {
 			if ( $post_id === $deleted_post_id ) {
-				wp_cache_set( $post_name, 0, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
+				$cache_set = function_exists( 'wpcom_vip_cache_set' ) ? 'wpcom_vip_cache_set' : 'wp_cache_set';
+				$cache_set( $post_name, 0, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
 			}
 		} );
 	}
