@@ -87,9 +87,10 @@ class Optimized_Widget_Registration {
 		if ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX || ! isset( $_POST['action'] ) ) { // WPCS: input var ok.
 			return false;
 		}
-		// @codingStandardsIgnoreEnd
 
 		$is_ajax_widget_action = ( 'save-widget' === $_POST['action'] || 'update-widget' === $_POST['action'] ); // WPCS: input var ok.
+		// @codingStandardsIgnoreEnd
+
 		if ( ! $is_ajax_widget_action ) {
 			return false;
 		}
