@@ -10,8 +10,6 @@ Lab features and a testbed for improvements to Widgets and the Customizer.
 **Stable tag:** trunk (master)  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
-[![Build Status](https://travis-ci.org/xwp/wp-customize-widgets-plus.png?branch=master)](https://travis-ci.org/xwp/wp-customize-widgets-plus) 
-
 ## Description ##
 
 This plugin consists of lab features and a testbed for improvements to Widgets and the Customizer.
