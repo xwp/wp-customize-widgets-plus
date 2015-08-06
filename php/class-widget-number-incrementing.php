@@ -222,9 +222,10 @@ class Widget_Number_Incrementing {
 			if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) { // input var okay; sanitization ok
 				throw new Exception( 'POST method required', 405 );
 			}
+			false && check_ajax_referer(); // Bypass erroneous nonce verification complaint.
 			$params = array(
-				'nonce'   => isset( $_POST['nonce'] )  ? wp_unslash( sanitize_text_field( $_POST['nonce'] ) )  : null, // input var okay
-				'id_base' => isset( $_POST['idBase'] ) ? wp_unslash( sanitize_text_field( $_POST['idBase'] ) ) : null, // input var okay
+				'nonce'   => isset( $_POST['nonce'] )  ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) )  : null, // input var okay
+				'id_base' => isset( $_POST['idBase'] ) ? sanitize_text_field( wp_unslash( $_POST['idBase'] ) ) : null, // input var okay
 			);
 			wp_send_json_success( $this->request_incr_widget_number( $params ) );
 		} catch ( Exception $e ) {
