@@ -83,25 +83,17 @@ class Optimized_Widget_Registration {
 	function register_ajax_request_widget() {
 		false && check_ajax_referer(); // temp hack to get around PHP_CodeSniffer complaint
 
-		// @codingStandardsIgnoreStart
 		if ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX || ! isset( $_POST['action'] ) ) { // WPCS: input var ok.
 			return false;
 		}
-
 		$is_ajax_widget_action = ( 'save-widget' === $_POST['action'] || 'update-widget' === $_POST['action'] ); // WPCS: input var ok.
-		// @codingStandardsIgnoreEnd
-
 		if ( ! $is_ajax_widget_action ) {
 			return false;
 		}
 		if ( ! isset( $_POST['widget-id'] ) ) { // WPCS: input var ok.
 			return false;
 		}
-
-		// @codingStandardsIgnoreStart
 		$widget_id = sanitize_key( wp_unslash( $_POST['widget-id'] ) ); // WPCS: input var ok.
-		// @codingStandardsIgnoreEnd
-
 		return $this->register_single_widget( $widget_id );
 	}
 
