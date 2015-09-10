@@ -140,14 +140,12 @@ class Optimized_Widget_Registration {
 		$registered_widget_ids = array();
 		$sidebars_widgets = wp_get_sidebars_widgets();
 		foreach ( $sidebars_widgets as $sidebar_id => $widget_ids ) {
-			if ( preg_match( '/^(wp_inactive_widgets|orphaned_widgets_\d+)$/', $sidebar_id ) ) {
+			if ( empty( $widget_ids ) || preg_match( '/^(wp_inactive_widgets|orphaned_widgets_\d+)$/', $sidebar_id ) ) {
 				continue;
 			}
-			if ( ! empty( $widget_ids ) ) {
-				foreach ( $widget_ids as $widget_id ) {
-					if ( $this->register_single_widget( $widget_id ) ) {
-						$registered_widget_ids[] = $widget_id;
-					}
+			foreach ( $widget_ids as $widget_id ) {
+				if ( $this->register_single_widget( $widget_id ) ) {
+					$registered_widget_ids[] = $widget_id;
 				}
 			}
 		}
