@@ -143,9 +143,11 @@ class Optimized_Widget_Registration {
 			if ( preg_match( '/^(wp_inactive_widgets|orphaned_widgets_\d+)$/', $sidebar_id ) ) {
 				continue;
 			}
-			foreach ( $widget_ids as $widget_id ) {
-				if ( $this->register_single_widget( $widget_id ) ) {
-					$registered_widget_ids[] = $widget_id;
+			if ( ! empty( $widget_ids ) ) {
+				foreach ( $widget_ids as $widget_id ) {
+					if ( $this->register_single_widget( $widget_id ) ) {
+						$registered_widget_ids[] = $widget_id;
+					}
 				}
 			}
 		}
