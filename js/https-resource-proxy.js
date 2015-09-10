@@ -26,7 +26,7 @@ var httpsResourceProxy = ( function( $ ) {
 			return src;
 		}
 
-		proxiedSrc = this.baseUrl; /* trailingslashed */
+		proxiedSrc = this.baseUrl; /* This is trailingslashed. */
 
 		proxiedSrc += urlParser.host;
 		proxiedSrc += urlParser.pathname;

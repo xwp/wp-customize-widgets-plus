@@ -60,7 +60,7 @@ wpCustomizeWidgetsPlus.widgetNumberIncrementing.customizer = ( function( $ ) {
 
 			incrWidgetNumberRequest.done( function( res ) {
 				var result;
-				widget.set( 'multi_number', res.number - 1 ); /* decrement by 1 because core's addWidget will add 1 */
+				widget.set( 'multi_number', res.number - 1 ); /* Decrement by 1 because core's addWidget will add 1. */
 				result = sidebarControl.originalAddWidget.apply( sidebarControl, originalArguments );
 				widgetAdded.resolve( result );
 			} );

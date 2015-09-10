@@ -19,7 +19,7 @@ var wpCustomizeWidgetsPlus = (function() {
 			parsed.idBase = matches[1];
 			parsed.number = parseInt( matches[2], 10 );
 		} else {
-			parsed.idBase = widgetId; /* likely an old single widget */
+			parsed.idBase = widgetId; /* Likely an old single widget. */
 		}
 		return parsed;
 	};
