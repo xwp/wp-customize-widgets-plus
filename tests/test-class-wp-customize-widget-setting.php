@@ -114,5 +114,4 @@ class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 		$instances = get_option( 'widget_archives' );
 		$this->assertEquals( $saved_value, $instances[ $widget_data['number'] ] );
 	}
-
 }

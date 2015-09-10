@@ -39,7 +39,7 @@ class Test_Widget_Number_Incrementing extends Base_Test_Case {
 	 */
 	function test_add_and_get_widget_number_option() {
 		$instance = new Widget_Number_Incrementing( $this->plugin );
-		add_action( 'widgets_init', function () {
+		add_action( 'widgets_init', function() {
 			register_widget( __NAMESPACE__ . '\\Acme_Widget' );
 		} );
 		wp_widgets_init();
@@ -53,7 +53,7 @@ class Test_Widget_Number_Incrementing extends Base_Test_Case {
 	 */
 	function test_set_widget_number() {
 		$instance = new Widget_Number_Incrementing( $this->plugin );
-		add_action( 'widgets_init', function () {
+		add_action( 'widgets_init', function() {
 			register_widget( __NAMESPACE__ . '\\Acme_Widget' );
 		} );
 		wp_widgets_init();
@@ -155,5 +155,4 @@ class Test_Widget_Number_Incrementing extends Base_Test_Case {
 		$this->assertArrayHasKey( 'number', $result );
 		$this->assertEquals( $result['number'], $previous_widget_number + 1 );
 	}
-
 }

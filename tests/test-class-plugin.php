@@ -154,5 +154,4 @@ class Test_Plugin extends Base_Test_Case {
 		$this->assertEquals( 3, $parsed['widget_number'] );
 		$this->assertEquals( 'bar', $parsed['id_base'] );
 	}
-
 }

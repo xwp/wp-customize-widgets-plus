@@ -146,5 +146,4 @@ class Widget_Settings extends \ArrayIterator {
 	public function serialize() {
 		return serialize( $this->getArrayCopy() );
 	}
-
 }

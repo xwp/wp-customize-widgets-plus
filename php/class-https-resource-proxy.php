@@ -508,5 +508,4 @@ class HTTPS_Resource_Proxy {
 			'body' => $body,
 		);
 	}
-
 }

@@ -55,7 +55,7 @@ class Test_Non_Autoloaded_Widget_Options extends Base_Test_Case {
 		$this->plugin->non_autoloaded_widget_options = new Non_Autoloaded_Widget_Options( $this->plugin );
 		$this->plugin->non_autoloaded_widget_options->fix_widget_options();
 
-		add_action( 'widgets_init', function () {
+		add_action( 'widgets_init', function() {
 			register_widget( __NAMESPACE__ . '\\Acme_Widget' );
 		} );
 		wp_widgets_init();

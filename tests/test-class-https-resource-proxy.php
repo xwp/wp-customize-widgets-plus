@@ -241,7 +241,7 @@ class Test_HTTPS_Resource_Proxy extends Base_Test_Case {
 			$r
 		);
 		$r['headers']['content-length'] = strlen( $r['body'] );
-		add_filter( 'pre_http_request', function () use ( $r ) {
+		add_filter( 'pre_http_request', function() use ( $r ) {
 			return $r;
 		} );
 	}
@@ -302,7 +302,7 @@ class Test_HTTPS_Resource_Proxy extends Base_Test_Case {
 		$this->assertArrayNotHasKey( 'x-foo', $r1['headers'] );
 
 		remove_all_filters( 'pre_http_request' );
-		add_filter( 'pre_http_request', function () {
+		add_filter( 'pre_http_request', function() {
 			throw new Exception( 'pre_http_request should not have been called due to transient' );
 		} );
 		$r2 = $instance->send_proxy_response( $params );
@@ -318,5 +318,4 @@ class Test_HTTPS_Resource_Proxy extends Base_Test_Case {
 		$r4 = $instance->send_proxy_response( $params );
 		$this->assertEquals( 304, wp_remote_retrieve_response_code( $r4 ) );
 	}
-
 }

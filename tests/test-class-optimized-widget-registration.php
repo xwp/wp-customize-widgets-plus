@@ -20,5 +20,4 @@ class Test_Optimized_Widget_Registration extends Base_Test_Case {
 	function test_construct() {
 		$this->markTestIncomplete( 'Tests needed for methods in Optimized_Widget_Registration' );
 	}
-
 }

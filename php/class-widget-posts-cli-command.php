@@ -100,13 +100,13 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 		$this->inserted_count = 0;
 		$this->failed_count = 0;
 
-		add_action( 'widget_posts_import_skip_existing', function ( $context ) use ( $options ) {
+		add_action( 'widget_posts_import_skip_existing', function( $context ) use ( $options ) {
 			// $context is compact( 'widget_id', 'instance', 'widget_number', 'id_base' )
 			\WP_CLI::line( "Skipping already-imported widget $context[widget_id] (to update, call with --update)." );
 			$this->skipped_count += 1;
 		} );
 
-		add_action( 'widget_posts_import_success', function ( $context ) use ( $options ) {
+		add_action( 'widget_posts_import_success', function( $context ) use ( $options ) {
 			// $context is compact( 'widget_id', 'post', 'instance', 'widget_number', 'id_base', 'update' )
 			if ( $context['update'] ) {
 				$message = "Updated widget $context[widget_id].";
@@ -121,7 +121,7 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 			\WP_CLI::success( $message );
 		} );
 
-		add_action( 'widget_posts_import_failure', function ( $context ) {
+		add_action( 'widget_posts_import_failure', function( $context ) {
 			// $context is compact( 'widget_id', 'exception', 'instance', 'widget_number', 'id_base', 'update' )
 			/** @var Exception $exception */
 			$exception = $context['exception'];

@@ -26,5 +26,4 @@ abstract class Base_Test_Case extends \WP_UnitTestCase {
 		unset( $wp_post_types[ Widget_Posts::INSTANCE_POST_TYPE ] );
 		parent::clean_up_global_scope();
 	}
-
 }

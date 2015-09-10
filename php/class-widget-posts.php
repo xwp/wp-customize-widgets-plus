@@ -86,7 +86,7 @@ class Widget_Posts {
 			Widget_Posts_CLI_Command::$plugin_instance = $this->plugin;
 			\WP_CLI::add_command( 'widget-posts', __NAMESPACE__ . '\\Widget_Posts_CLI_Command' );
 
-			register_shutdown_function( function () {
+			register_shutdown_function( function() {
 				$last_error = error_get_last();
 				if ( ! empty( $last_error ) && in_array( $last_error['type'], array( \E_ERROR, \E_USER_ERROR, \E_RECOVERABLE_ERROR ) ) ) {
 					\WP_CLI::warning( sprintf( '%s (type: %d, line: %d, file: %s)', $last_error['message'], $last_error['type'], $last_error['line'], $last_error['file'] ) );
@@ -1136,5 +1136,4 @@ class Widget_Posts {
 		}
 		wp_cache_delete( $parsed_widget_id['id_base'], 'widget_instance_numbers' );
 	}
-
 }

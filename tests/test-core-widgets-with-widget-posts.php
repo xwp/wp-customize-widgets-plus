@@ -51,7 +51,7 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 			return;
 		}
 
-		add_filter( 'pre_option_widget_search', function ( $value ) {
+		add_filter( 'pre_option_widget_search', function( $value ) {
 			$this->assertNotFalse( $value, 'Expected widget_search option to have been short-circuited.' );
 			return $value;
 		}, 1000 );
@@ -85,7 +85,7 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 		}
 
 		$deleted_widget_id = null;
-		add_action( 'delete_post', function ( $post_id ) use ( &$deleted_widget_id ) {
+		add_action( 'delete_post', function( $post_id ) use ( &$deleted_widget_id ) {
 			$post = get_post( $post_id );
 			$this->assertEquals( Widget_Posts::INSTANCE_POST_TYPE, $post->post_type );
 			$deleted_widget_id = $post->post_name;
@@ -95,5 +95,4 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 
 		$this->assertEquals( 'search-2', $deleted_widget_id );
 	}
-
 }
