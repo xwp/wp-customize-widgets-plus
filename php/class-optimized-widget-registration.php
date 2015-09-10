@@ -267,5 +267,4 @@ class Optimized_Widget_Registration {
 		$widget_obj->_register_one( $parsed_widget_id['widget_number'] );
 		return true;
 	}
-
 }
