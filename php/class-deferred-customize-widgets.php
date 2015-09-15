@@ -55,7 +55,20 @@ class Deferred_Customize_Widgets {
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
 
+		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'defer_serializing_data_to_shutdown' ) );
+
+		// @todo Skip loading any widget settings or controls until after the page loads? This could cause problems.
+		// @todo For each widget control, we can register a wrapper widget control that proxies calls to the underlying one, _except_ for the content method
+	}
+
+	/**
+	 * Enqueue scripts for Customizer controls.
+	 *
+	 * @action customize_controls_enqueue_scripts
+	 */
+	function enqueue_scripts() {
+		wp_enqueue_script( $this->plugin->script_handles['deferred-customize-widgets'] );
 	}
 
 	/**
@@ -97,7 +110,7 @@ class Deferred_Customize_Widgets {
 
 	/**
 	 * Amend the _wpCustomizeSettings JS object with the widget settings and controls
-	 * one-by-one using wp_json_encode() so that peak memory usage is kept low.
+	 * one-by-one in a loop using wp_json_encode() so that peak memory usage is kept low.
 	 */
 	function export_data_to_client() {
 		/** @var \WP_Customize_Manager $wp_customize */

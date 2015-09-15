@@ -209,6 +209,13 @@ class Plugin extends Plugin_Base {
 		$deps = array( 'jquery' );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
+
+		$slug = 'deferred-customize-widgets';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/deferred-customize-widgets.js';
+		$deps = array( 'jquery', 'customize-widgets' );
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
 	}
 
 	/**
