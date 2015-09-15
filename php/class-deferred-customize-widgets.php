@@ -60,7 +60,8 @@ class Deferred_Customize_Widgets {
 
 	/**
 	 * Temporarily remove widget settings and controls from the Manager so that
-	 * they won't be serialized at once in _wpCustomizeSettings
+	 * they won't be serialized at once in _wpCustomizeSettings. This greatly
+	 * reduces the peak memory usage.
 	 */
 	function defer_serializing_data_to_shutdown() {
 		/** @var \WP_Customize_Manager $wp_customize */
@@ -69,16 +70,22 @@ class Deferred_Customize_Widgets {
 		$this->customize_controls = array();
 		$controls = $wp_customize->controls();
 		foreach ( $controls as $control ) {
-			if ( $control instanceof \WP_Widget_Form_Customize_Control ) {
+			if ( $control instanceof \WP_Widget_Form_Customize_Control || $control instanceof \WP_Widget_Area_Customize_Control ) {
 				$this->customize_controls[] = $control;
 				$wp_customize->remove_control( $control->id );
 			}
 		}
+		/*
+		 * Note: There is currently a Core dependency issue where the control for WP_Widget_Area_Customize_Control
+		 * must be processed after the control for WP_Widget_Form_Customize_Control, as otherwise the sidebar
+		 * does not initialize properly (specifically in regards to the reorder-toggle button. So this is why
+		 * we are including the WP_Widget_Area_Customize_Controls among those which are deferred.
+		 */
 
 		$this->customize_settings = array();
 		$settings = $wp_customize->settings();
 		foreach ( $settings as $setting ) {
-			if ( preg_match( '/^widget_.+?\[\d+\]$/', $setting->id ) ) {
+			if ( preg_match( '/^(widget_.+?\[\d+\]|sidebars_widgets\[.+?\])$/', $setting->id ) ) {
 				$this->customize_settings[] = $setting;
 				$wp_customize->remove_setting( $setting->id );
 			}
