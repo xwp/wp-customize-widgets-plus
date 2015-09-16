@@ -84,7 +84,7 @@ class Deferred_Customize_Widgets {
 		$controls = $wp_customize->controls();
 		foreach ( $controls as $control ) {
 			if ( $control instanceof \WP_Widget_Form_Customize_Control || $control instanceof \WP_Widget_Area_Customize_Control ) {
-				$this->customize_controls[] = $control;
+				$this->customize_controls[ $control->id ] = $control;
 				$wp_customize->remove_control( $control->id );
 			}
 		}
@@ -99,7 +99,7 @@ class Deferred_Customize_Widgets {
 		$settings = $wp_customize->settings();
 		foreach ( $settings as $setting ) {
 			if ( preg_match( '/^(widget_.+?\[\d+\]|sidebars_widgets\[.+?\])$/', $setting->id ) ) {
-				$this->customize_settings[] = $setting;
+				$this->customize_settings[ $setting->id ] = $setting;
 				$wp_customize->remove_setting( $setting->id );
 			}
 		}
@@ -158,6 +158,13 @@ class Deferred_Customize_Widgets {
 		}
 		echo "})( _wpCustomizeSettings.controls );\n";
 
+		// Re-handle widget/area control autofocus since they were removed when checked before.
+		if ( isset( $_GET['autofocus']['control'] ) ) {
+			$autofocus_control_id = wp_unslash( $_GET['autofocus']['control'] );
+			if ( isset( $this->customize_controls[ $autofocus_control_id ] ) ) {
+				printf( "_wpCustomizeSettings.autofocus.control = %s;\n", wp_json_encode( $autofocus_control_id ) );
+			}
+		}
 		echo '</script>';
 	}
 }
