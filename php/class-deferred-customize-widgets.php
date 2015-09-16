@@ -149,10 +149,27 @@ class Deferred_Customize_Widgets {
 		echo "(function ( c ){\n";
 		foreach ( $this->customize_controls as $control ) {
 			if ( $control->check_capabilities() ) {
+
+				$params = $control->json();
+
+				if ( $control instanceof \WP_Widget_Form_Customize_Control ) {
+					// Normalize whitespace to cut down on \t\n escapes.
+					$params['content'] = preg_replace( '/\s+/', ' ', $params['content'] );
+
+					// Extract the widget_content for embedding once the widget is expanded.
+					$pattern  = '(?P<before_widget_content>^.+?<div class="widget-content">)';
+					$pattern .= '(?P<widget_content>.+)';
+					$pattern .= '(?P<after_widget_content></div>\s*<input type="hidden" name="widget-id".+?$)';
+					if ( preg_match( '#' . $pattern . '#s', $params['content'], $matches ) ) {
+						$params['content'] = $matches['before_widget_content'] . $matches['after_widget_content'];
+						$params['widget_content'] = trim( $matches['widget_content'] );
+					}
+				}
+
 				printf(
 					"c[%s] = %s;\n",
 					wp_json_encode( $control->id ),
-					wp_json_encode( $control->json() )
+					wp_json_encode( $params )
 				);
 			}
 		}
