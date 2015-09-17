@@ -14,21 +14,29 @@ class Deferred_Customize_Widgets {
 	const MODULE_SLUG = 'deferred_customize_widgets';
 
 	/**
+	 * Plugin instance.
+	 *
 	 * @var Plugin
 	 */
 	public $plugin;
 
 	/**
+	 * Manager instance.
+	 *
 	 * @var \WP_Customize_Manager
 	 */
 	public $manager;
 
 	/**
+	 * Controls deferred for exporting at shutdown.
+	 *
 	 * @var \WP_Customize_Control[]
 	 */
 	public $customize_controls;
 
 	/**
+	 * Settings deferred for exporting at shutdown.
+	 *
 	 * @var \WP_Customize_Setting[]
 	 */
 	public $customize_settings;
@@ -36,7 +44,7 @@ class Deferred_Customize_Widgets {
 	/**
 	 * Return the config entry for the supplied key, or all configs if not supplied.
 	 *
-	 * @param string $key
+	 * @param string $key  Config key.
 	 * @return array|mixed
 	 */
 	function config( $key = null ) {
@@ -50,7 +58,9 @@ class Deferred_Customize_Widgets {
 	}
 
 	/**
-	 * @param Plugin $plugin
+	 * Construct.
+	 *
+	 * @param Plugin $plugin  Instance of plugin.
 	 */
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
@@ -60,6 +70,16 @@ class Deferred_Customize_Widgets {
 
 		// @todo Skip loading any widget settings or controls until after the page loads? This could cause problems.
 		// @todo For each widget control, we can register a wrapper widget control that proxies calls to the underlying one, _except_ for the content method
+	}
+
+	/**
+	 * Get global manager instance.
+	 *
+	 * @return \WP_Customize_Manager
+	 */
+	function get_customize_manager() {
+		global $wp_customize;
+		return $wp_customize;
 	}
 
 	/**
@@ -77,8 +97,7 @@ class Deferred_Customize_Widgets {
 	 * reduces the peak memory usage.
 	 */
 	function defer_serializing_data_to_shutdown() {
-		/** @var \WP_Customize_Manager $wp_customize */
-		global $wp_customize;
+		$wp_customize = $this->get_customize_manager();
 
 		$this->customize_controls = array();
 		$controls = $wp_customize->controls();
@@ -88,6 +107,7 @@ class Deferred_Customize_Widgets {
 				$wp_customize->remove_control( $control->id );
 			}
 		}
+
 		/*
 		 * Note: There is currently a Core dependency issue where the control for WP_Widget_Area_Customize_Control
 		 * must be processed after the control for WP_Widget_Form_Customize_Control, as otherwise the sidebar
@@ -104,6 +124,8 @@ class Deferred_Customize_Widgets {
 			}
 		}
 
+		// @todo Important: We need to change the approach here to supply a wrapper WP_Widget_Form_Customize_Control once this lands: https://core.trac.wordpress.org/ticket/33898
+
 		// We have to use shutdown because no action is triggered after _wpCustomizeSettings is written.
 		add_action( 'shutdown', array( $this, 'export_data_to_client' ) );
 	}
@@ -113,8 +135,7 @@ class Deferred_Customize_Widgets {
 	 * one-by-one in a loop using wp_json_encode() so that peak memory usage is kept low.
 	 */
 	function export_data_to_client() {
-		/** @var \WP_Customize_Manager $wp_customize */
-		global $wp_customize;
+		$wp_customize = $this->get_customize_manager();
 
 		// Re-add the constructs to WP_Customize_manager, in case they need to refer to each other.
 		foreach ( $this->customize_settings as $setting ) {
