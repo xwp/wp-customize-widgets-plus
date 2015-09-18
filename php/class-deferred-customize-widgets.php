@@ -66,7 +66,12 @@ class Deferred_Customize_Widgets {
 		$this->plugin = $plugin;
 
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
-		add_action( 'customize_controls_print_footer_scripts', array( $this, 'defer_serializing_data_to_shutdown' ) );
+
+		if ( method_exists( $this->get_customize_manager(), 'customize_pane_settings' ) ) {
+			add_action( 'customize_controls_print_footer_scripts', array( $this, 'fixup_widget_control_params_for_dom_deferral' ), 1001 );
+		} else {
+			add_action( 'customize_controls_print_footer_scripts', array( $this, 'wp43_defer_serializing_data_to_shutdown' ) );
+		}
 
 		// @todo Skip loading any widget settings or controls until after the page loads? This could cause problems.
 		// @todo For each widget control, we can register a wrapper widget control that proxies calls to the underlying one, _except_ for the content method
@@ -92,11 +97,41 @@ class Deferred_Customize_Widgets {
 	}
 
 	/**
+	 * Break up a widget control's content into its container wrapper, (outer) widget control, and (inner) widget form.
+	 *
+	 * For a Core merge, all of this should be made part of WP_Widget_Form_Customize_Control::json().
+	 */
+	function fixup_widget_control_params_for_dom_deferral() {
+		?>
+		<script>
+			_.each( _wpCustomizeSettings.controls, function( controlParams ) {
+				var matches;
+				if ( 'widget_form' !== controlParams.type || ! controlParams.content ) {
+					return;
+				}
+				matches = controlParams.content.match( /^(\s*<li[^>]+>\s*)((?:.|\s)+?<div class="widget-content">)((?:.|\s)+?)(<\/div>\s*<input type="hidden" name="widget-id"(?:.|\s)+?)<\/li>\s*$/ );
+				if ( ! matches ) {
+					return;
+				}
+				controlParams.widget_form = jQuery.trim( matches[3] );
+				controlParams.widget_control = jQuery.trim( matches[2] + matches[4] );
+				controlParams.content = matches[1] + '</li>';
+			} );
+		</script>
+		<?php
+	}
+
+	/**
 	 * Temporarily remove widget settings and controls from the Manager so that
 	 * they won't be serialized at once in _wpCustomizeSettings. This greatly
 	 * reduces the peak memory usage.
+	 *
+	 * This is only relevant in WordPress versions older than 4.4-alpha-33636-src,
+	 * with the changes introduced in Trac #33898.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/33898
 	 */
-	function defer_serializing_data_to_shutdown() {
+	function wp43_defer_serializing_data_to_shutdown() {
 		$wp_customize = $this->get_customize_manager();
 
 		$this->customize_controls = array();
@@ -124,17 +159,21 @@ class Deferred_Customize_Widgets {
 			}
 		}
 
-		// @todo Important: We need to change the approach here to supply a wrapper WP_Widget_Form_Customize_Control once this lands: https://core.trac.wordpress.org/ticket/33898
-
 		// We have to use shutdown because no action is triggered after _wpCustomizeSettings is written.
-		add_action( 'shutdown', array( $this, 'export_data_to_client' ) );
+		add_action( 'shutdown', array( $this, 'wp43_export_data_to_client' ), 10 );
+		add_action( 'shutdown', array( $this, 'fixup_widget_control_params_for_dom_deferral' ), 11 );
 	}
 
 	/**
 	 * Amend the _wpCustomizeSettings JS object with the widget settings and controls
 	 * one-by-one in a loop using wp_json_encode() so that peak memory usage is kept low.
+	 *
+	 * This is only relevant in WordPress versions older than 4.4-alpha-33636-src,
+	 * with the changes introduced in Trac #33898.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/33898
 	 */
-	function export_data_to_client() {
+	function wp43_export_data_to_client() {
 		$wp_customize = $this->get_customize_manager();
 
 		// Re-add the constructs to WP_Customize_manager, in case they need to refer to each other.
@@ -170,27 +209,10 @@ class Deferred_Customize_Widgets {
 		echo "(function ( c ){\n";
 		foreach ( $this->customize_controls as $control ) {
 			if ( $control->check_capabilities() ) {
-
-				$params = $control->json();
-
-				if ( $control instanceof \WP_Widget_Form_Customize_Control ) {
-					// Normalize whitespace to cut down on \t\n escapes.
-					$params['content'] = preg_replace( '/\s+/', ' ', $params['content'] );
-
-					// Extract the widget_content for embedding once the widget is expanded.
-					$pattern  = '(?P<before_widget_content>^.+?<div class="widget-content">)';
-					$pattern .= '(?P<widget_content>.+)';
-					$pattern .= '(?P<after_widget_content></div>\s*<input type="hidden" name="widget-id".+?$)';
-					if ( preg_match( '#' . $pattern . '#s', $params['content'], $matches ) ) {
-						$params['content'] = $matches['before_widget_content'] . $matches['after_widget_content'];
-						$params['widget_content'] = trim( $matches['widget_content'] );
-					}
-				}
-
 				printf(
 					"c[%s] = %s;\n",
 					wp_json_encode( $control->id ),
-					wp_json_encode( $params )
+					wp_json_encode( $control->json() )
 				);
 			}
 		}

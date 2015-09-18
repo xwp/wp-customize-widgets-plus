@@ -16,33 +16,27 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 	JS-driven widgets would be exempt from all of this since they would not use widget_form types?
 	 */
 
+	/**
+	 * Defer embedding of widget control until the section is expanded. Until
+	 * it is expanded, only the container LI will be embedded.
+	 * When the section is expanded, then the outer widget control will be
+	 * embedded, and in its collapsed state it will not show the inner widget
+	 * form so we will not embed it either. Once the widget control is expanded,
+	 * then we will embed the widget form and fire the widget-added event.
+	 * This allows us to keep the DOM as lightweight as possible. It also allows
+	 * us to (potentially) obtain the widget form control content via Ajax upon
+	 * widget control expansion.
+	 */
 	api.Widgets.WidgetControl.prototype.initialize = function( id, options ) {
 		var control = this;
 
 		/*
-		 * Short-circuit initialize method to call original if no section is
-		 * provided, since we cannot then reliably defer embedding of the widget
-		 * control's content.
+		 * Short-circuit initialize method to call original if we determine we
+		 * cannot then reliably defer embedding of the widget control's content.
 		 */
-		if ( ! options.params.section || ! options.params.widget_content ) {
+		if ( ! options.params.section || ! options.params.widget_form || ! options.params.widget_control ) {
 			return originalMethods.initialize.call( control, id, options );
 		}
-
-		options.params.outerFormContent = options.params.content;
-
-		/*
-		 * Replace the content embedded first with just the wrapper LI.
-		 * This will defer embedding of content until the section is expanded.
-		 * When the section is expanded, we will embed the widget but without the
-		 * content. Once the widget control is expanded, then we will embed the
-		 * form contents and fire the widget-added event. This allows us to keep the
-		 * DOM as lightweight as possible. It also allows us to obtain the widget
-		 * form control content via Ajax upon widget control expansion.
-		 */
-		options.params.content = $( '<li></li>', {
-			id: 'customize-control-' + id.replace( '[', '-' ).replace( ']', '' ),
-			'class': 'customize-control customize-control-' + options.params.type
-		} );
 
 		control.expanded = new api.Value( false );
 		control.expandedArgumentsQueue = [];
@@ -51,6 +45,8 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 			args = $.extend( {}, control.defaultExpandedArguments, args );
 			control.onChangeExpanded( expanded, args );
 		});
+
+		// @todo Add widgetControlEmbedded and widgetFormEmbedded as deferreds
 
 		$.extend( control, overrideMethods );
 
@@ -71,12 +67,12 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 			 * and at this point the widget-added event will be triggered.
 			 */
 			if ( ! control.section() ) {
-				control.embedOuterForm();
+				control.embedWidgetControl();
 			} else {
 				api.section( control.section(), function( section ) {
 					var onExpanded = function( isExpanded ) {
 						if ( isExpanded ) {
-							control.embedOuterForm();
+							control.embedWidgetControl();
 							section.expanded.unbind( onExpanded );
 						}
 					};
@@ -95,9 +91,9 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 		onChangeExpanded: function( expanded, args ) {
 			var control = this;
 
-			control.embedOuterForm(); // Make sure the outer form is embedded so that the expanded state can be set in the UI.
+			control.embedWidgetControl(); // Make sure the outer form is embedded so that the expanded state can be set in the UI.
 			if ( expanded ) {
-				control.embedInnerForm();
+				control.embedWidgetForm();
 			}
 
 			return api.Widgets.WidgetControl.prototype.onChangeExpanded.call( control, expanded, args );
@@ -106,16 +102,16 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 		/**
 		 * Embed the .widget element inside the li container.
 		 */
-		embedOuterForm: function() {
+		embedWidgetControl: function() {
 			var control = this,
-				outerFormContent;
+				widgetControl;
 
-			if ( control.outerFormEmbedded ) {
+			if ( control.widgetControlEmbedded ) {
 				return;
 			}
 
-			outerFormContent = $( control.params.outerFormContent ).find( '> .widget' );
-			control.container.append( outerFormContent );
+			widgetControl = $( control.params.widget_control );
+			control.container.append( widgetControl );
 
 			control._setupModel();
 			control._setupWideWidget();
@@ -133,27 +129,27 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 			 * the widget control is expanded.
 			 */
 
-			control.outerFormEmbedded = true;
+			control.widgetControlEmbedded = true;
 		},
 
 		/**
 		 * Embed the actual widget form inside of .widget-content and finally trigger the widget-added event
 		 */
-		embedInnerForm: function() {
+		embedWidgetForm: function() {
 			var control = this,
-				innerFormContent;
+				widgetForm;
 
-			control.embedOuterForm();
-			if ( control.innerFormEmbedded ) {
+			control.embedWidgetControl();
+			if ( control.widgetFormEmbedded ) {
 				return;
 			}
 
-			innerFormContent = $( control.params.widget_content );
-			control.container.find( '.widget-content:first' ).append( innerFormContent );
+			widgetForm = $( control.params.widget_form );
+			control.container.find( '.widget-content:first' ).append( widgetForm );
 
 			$( document ).trigger( 'widget-added', [ control.container.find( '.widget:first' ) ] );
 
-			control.innerFormEmbedded = true;
+			control.widgetFormEmbedded = true;
 		},
 
 		/**
@@ -164,7 +160,7 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 			var control = this;
 
 			// The updateWidget logic requires that the form fields to be fully present.
-			control.embedInnerForm();
+			control.embedWidgetForm();
 
 			return api.Widgets.WidgetControl.prototype.updateWidget.call( control, arguments );
 		}
