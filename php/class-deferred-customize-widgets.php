@@ -65,16 +65,24 @@ class Deferred_Customize_Widgets {
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
 
+		$wp_customize = $this->get_customize_manager();
+		$has_json_encode_peak_memory_fix = method_exists( $wp_customize, 'customize_pane_settings' );
+		$has_deferred_dom_widgets = method_exists( $wp_customize->widgets, 'get_widget_control_parts' );
+
+		// The fix is already in Core, so no-op.
+		if ( $has_json_encode_peak_memory_fix && $has_deferred_dom_widgets ) {
+			return;
+		}
+
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
-		if ( method_exists( $this->get_customize_manager(), 'customize_pane_settings' ) ) {
-			add_action( 'customize_controls_print_footer_scripts', array( $this, 'fixup_widget_control_params_for_dom_deferral' ), 1001 );
+		if ( ! $has_json_encode_peak_memory_fix ) {
+			add_action( 'customize_controls_print_footer_scripts', array( $this, 'defer_serializing_data_until_shutdown' ) );
 		} else {
-			add_action( 'customize_controls_print_footer_scripts', array( $this, 'wp43_defer_serializing_data_to_shutdown' ) );
+			add_action( 'customize_controls_print_footer_scripts', array( $this, 'fixup_widget_control_params_for_dom_deferral' ), 1001 );
 		}
 
 		// @todo Skip loading any widget settings or controls until after the page loads? This could cause problems.
-		// @todo For each widget control, we can register a wrapper widget control that proxies calls to the underlying one, _except_ for the content method
 	}
 
 	/**
@@ -113,7 +121,7 @@ class Deferred_Customize_Widgets {
 				if ( ! matches ) {
 					return;
 				}
-				controlParams.widget_form = jQuery.trim( matches[3] );
+				controlParams.widget_content = jQuery.trim( matches[3] );
 				controlParams.widget_control = jQuery.trim( matches[2] + matches[4] );
 				controlParams.content = matches[1] + '</li>';
 			} );
@@ -131,7 +139,7 @@ class Deferred_Customize_Widgets {
 	 *
 	 * @link https://core.trac.wordpress.org/ticket/33898
 	 */
-	function wp43_defer_serializing_data_to_shutdown() {
+	function defer_serializing_data_until_shutdown() {
 		$wp_customize = $this->get_customize_manager();
 
 		$this->customize_controls = array();
@@ -160,7 +168,7 @@ class Deferred_Customize_Widgets {
 		}
 
 		// We have to use shutdown because no action is triggered after _wpCustomizeSettings is written.
-		add_action( 'shutdown', array( $this, 'wp43_export_data_to_client' ), 10 );
+		add_action( 'shutdown', array( $this, 'export_data_with_peak_memory_usage_minimized' ), 10 );
 		add_action( 'shutdown', array( $this, 'fixup_widget_control_params_for_dom_deferral' ), 11 );
 	}
 
@@ -173,7 +181,7 @@ class Deferred_Customize_Widgets {
 	 *
 	 * @link https://core.trac.wordpress.org/ticket/33898
 	 */
-	function wp43_export_data_to_client() {
+	function export_data_with_peak_memory_usage_minimized() {
 		$wp_customize = $this->get_customize_manager();
 
 		// Re-add the constructs to WP_Customize_manager, in case they need to refer to each other.

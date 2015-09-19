@@ -34,7 +34,7 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 		 * Short-circuit initialize method to call original if we determine we
 		 * cannot then reliably defer embedding of the widget control's content.
 		 */
-		if ( ! options.params.section || ! options.params.widget_form || ! options.params.widget_control ) {
+		if ( ! options.params.section || ! options.params.widget_control || ! options.params.widget_content ) {
 			return originalMethods.initialize.call( control, id, options );
 		}
 
@@ -45,8 +45,6 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 			args = $.extend( {}, control.defaultExpandedArguments, args );
 			control.onChangeExpanded( expanded, args );
 		});
-
-		// @todo Add widgetControlEmbedded and widgetFormEmbedded as deferreds
 
 		$.extend( control, overrideMethods );
 
@@ -93,7 +91,7 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 
 			control.embedWidgetControl(); // Make sure the outer form is embedded so that the expanded state can be set in the UI.
 			if ( expanded ) {
-				control.embedWidgetForm();
+				control.embedWidgetContent();
 			}
 
 			return api.Widgets.WidgetControl.prototype.onChangeExpanded.call( control, expanded, args );
@@ -135,21 +133,21 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 		/**
 		 * Embed the actual widget form inside of .widget-content and finally trigger the widget-added event
 		 */
-		embedWidgetForm: function() {
+		embedWidgetContent: function() {
 			var control = this,
-				widgetForm;
+				widgetContent;
 
 			control.embedWidgetControl();
-			if ( control.widgetFormEmbedded ) {
+			if ( control.widgetContentEmbedded ) {
 				return;
 			}
 
-			widgetForm = $( control.params.widget_form );
-			control.container.find( '.widget-content:first' ).append( widgetForm );
+			widgetContent = $( control.params.widget_content );
+			control.container.find( '.widget-content:first' ).append( widgetContent );
 
 			$( document ).trigger( 'widget-added', [ control.container.find( '.widget:first' ) ] );
 
-			control.widgetFormEmbedded = true;
+			control.widgetContentEmbedded = true;
 		},
 
 		/**
@@ -160,7 +158,7 @@ var deferredCustomizeWidgets = (function( api, $ ) {
 			var control = this;
 
 			// The updateWidget logic requires that the form fields to be fully present.
-			control.embedWidgetForm();
+			control.embedWidgetContent();
 
 			return api.Widgets.WidgetControl.prototype.updateWidget.call( control, arguments );
 		}
