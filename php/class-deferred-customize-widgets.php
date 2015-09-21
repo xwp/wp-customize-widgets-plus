@@ -3,9 +3,8 @@
 namespace CustomizeWidgetsPlus;
 
 /**
- * Store widgets in posts as opposed to options.
- *
- * This makes non_autoloaded_widget_options obsolete.
+ * Defer embedding of widget controls until the widget section is expanded.
+ * Also defer serializing data of the widget settings and controls until shutdown.
  *
  * @package CustomizeWidgetsPlus
  */
