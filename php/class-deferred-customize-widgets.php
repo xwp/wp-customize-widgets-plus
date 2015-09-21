@@ -63,10 +63,18 @@ class Deferred_Customize_Widgets {
 	 */
 	function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
+		add_action( 'customize_register', array( $this, 'init' ) );
+	}
 
-		$wp_customize = $this->get_customize_manager();
-		$has_json_encode_peak_memory_fix = method_exists( $wp_customize, 'customize_pane_settings' );
-		$has_deferred_dom_widgets = method_exists( $wp_customize->widgets, 'get_widget_control_parts' );
+	/**
+	 * Initialize plugin Customizer functionality.
+	 *
+	 * @param \WP_Customize_Manager $manager
+	 */
+	function init( \WP_Customize_Manager $manager ) {
+		$this->manager = $manager;
+		$has_json_encode_peak_memory_fix = method_exists( $this->manager, 'customize_pane_settings' );
+		$has_deferred_dom_widgets = method_exists( $this->manager->widgets, 'get_widget_control_parts' );
 
 		// The fix is already in Core, so no-op.
 		if ( $has_json_encode_peak_memory_fix && $has_deferred_dom_widgets ) {
@@ -82,16 +90,6 @@ class Deferred_Customize_Widgets {
 		}
 
 		// @todo Skip loading any widget settings or controls until after the page loads? This could cause problems.
-	}
-
-	/**
-	 * Get global manager instance.
-	 *
-	 * @return \WP_Customize_Manager
-	 */
-	function get_customize_manager() {
-		global $wp_customize;
-		return $wp_customize;
 	}
 
 	/**
@@ -139,14 +137,12 @@ class Deferred_Customize_Widgets {
 	 * @link https://core.trac.wordpress.org/ticket/33898
 	 */
 	function defer_serializing_data_until_shutdown() {
-		$wp_customize = $this->get_customize_manager();
-
 		$this->customize_controls = array();
-		$controls = $wp_customize->controls();
+		$controls = $this->manager->controls();
 		foreach ( $controls as $control ) {
 			if ( $control instanceof \WP_Widget_Form_Customize_Control || $control instanceof \WP_Widget_Area_Customize_Control ) {
 				$this->customize_controls[ $control->id ] = $control;
-				$wp_customize->remove_control( $control->id );
+				$this->manager->remove_control( $control->id );
 			}
 		}
 
@@ -158,11 +154,11 @@ class Deferred_Customize_Widgets {
 		 */
 
 		$this->customize_settings = array();
-		$settings = $wp_customize->settings();
+		$settings = $this->manager->settings();
 		foreach ( $settings as $setting ) {
 			if ( preg_match( '/^(widget_.+?\[\d+\]|sidebars_widgets\[.+?\])$/', $setting->id ) ) {
 				$this->customize_settings[ $setting->id ] = $setting;
-				$wp_customize->remove_setting( $setting->id );
+				$this->manager->remove_setting( $setting->id );
 			}
 		}
 
@@ -181,14 +177,12 @@ class Deferred_Customize_Widgets {
 	 * @link https://core.trac.wordpress.org/ticket/33898
 	 */
 	function export_data_with_peak_memory_usage_minimized() {
-		$wp_customize = $this->get_customize_manager();
-
 		// Re-add the constructs to WP_Customize_manager, in case they need to refer to each other.
 		foreach ( $this->customize_settings as $setting ) {
-			$wp_customize->add_setting( $setting );
+			$this->manager->add_setting( $setting );
 		}
 		foreach ( $this->customize_controls as $control ) {
-			$wp_customize->add_control( $control );
+			$this->manager->add_control( $control );
 		}
 
 		echo '<script type="text/javascript">';
