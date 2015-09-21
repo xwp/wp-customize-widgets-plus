@@ -14,10 +14,31 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 	 */
 	public $plugin;
 
+	/**
+	 * @var int
+	 */
+	protected $css_concat_init_priority;
+
+	/**
+	 * @var int
+	 */
+	protected $js_concat_init_priority;
+
 	function setUp() {
 		global $wp_widget_factory;
 
+		// For why these hooks have to be removed, see https://github.com/Automattic/nginx-http-concat/issues/5
+		$this->css_concat_init_priority = has_action( 'init', 'css_concat_init' );
+		if ( $this->css_concat_init_priority ) {
+			remove_action( 'init', 'css_concat_init', $this->css_concat_init_priority );
+		}
+		$this->js_concat_init_priority = has_action( 'init', 'js_concat_init' );
+		if ( $this->js_concat_init_priority ) {
+			remove_action( 'init', 'js_concat_init', $this->js_concat_init_priority );
+		}
+
 		parent::setUp();
+
 		$this->plugin = new Plugin();
 		$this->plugin->widget_factory = $wp_widget_factory;
 		$this->plugin->widget_number_incrementing = new Widget_Number_Incrementing( $this->plugin );
@@ -49,5 +70,15 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		$this->assertEquals( 'widget', $this->manager->get_setting( 'widget_categories[2]' )->type );
 
 		$this->assertInstanceOf( __NAMESPACE__ . '\\Widget_Settings', get_option( 'widget_categories' ) );
+	}
+
+	function tearDown() {
+		parent::tearDown();
+		if ( $this->css_concat_init_priority ) {
+			add_action( 'init', 'css_concat_init', $this->css_concat_init_priority );
+		}
+		if ( $this->js_concat_init_priority ) {
+			add_action( 'init', 'js_concat_init', $this->js_concat_init_priority );
+		}
 	}
 }
