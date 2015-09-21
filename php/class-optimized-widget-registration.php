@@ -86,14 +86,14 @@ class Optimized_Widget_Registration {
 		if ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX || ! isset( $_POST['action'] ) ) { // WPCS: input var ok.
 			return false;
 		}
-		$is_ajax_widget_action = ( 'save-widget' === $_POST['action'] || 'update-widget' === $_POST['action'] ); // WPCS: input var ok.
+		$is_ajax_widget_action = ( 'save-widget' === $_POST['action'] || 'update-widget' === $_POST['action'] ); // WPCS: input var ok, sanitization ok.
 		if ( ! $is_ajax_widget_action ) {
 			return false;
 		}
 		if ( ! isset( $_POST['widget-id'] ) ) { // WPCS: input var ok.
 			return false;
 		}
-		$widget_id = sanitize_key( wp_unslash( $_POST['widget-id'] ) ); // WPCS: input var ok.
+		$widget_id = sanitize_key( wp_unslash( $_POST['widget-id'] ) ); // WPCS: input var ok, [not needed after WPCS upgrade:] sanitization ok.
 		return $this->register_single_widget( $widget_id );
 	}
 

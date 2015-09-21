@@ -152,7 +152,7 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 			&&
 			isset( $_REQUEST['widget-id'] ) // WPCS: input var okay.
 			&&
-			( $this->id === $this->manager->widgets->get_setting_id( sanitize_text_field( wp_unslash( $_REQUEST['widget-id'] ) ) ) ) // WPCS: input var okay.
+			( $this->id === $this->manager->widgets->get_setting_id( sanitize_text_field( wp_unslash( $_REQUEST['widget-id'] ) ) ) ) // WPCS: input var okay, [not needed after WPCS upgrade:] sanitization ok.
 		);
 		if ( $is_null_because_previewing_new_widget ) {
 			$value = array();
