@@ -52,6 +52,11 @@ class Plugin extends Plugin_Base {
 	public $optimized_widget_registration;
 
 	/**
+	 * @var Deferred_Customize_Widgets
+	 */
+	public $deferred_customize_widgets;
+
+	/**
 	 * @var \WP_Widget_Factory
 	 */
 	public $widget_factory;
@@ -86,6 +91,7 @@ class Plugin extends Plugin_Base {
 				'widget_posts' => true,
 				'efficient_multidimensional_setting_sanitizing' => true,
 				'optimized_widget_registration' => false,
+				'deferred_customize_widgets' => true,
 			),
 			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 			'widget_posts' => Widget_Posts::default_config(),
@@ -164,6 +170,9 @@ class Plugin extends Plugin_Base {
 		if ( $this->is_module_active( 'optimized_widget_registration' ) ) {
 			$this->optimized_widget_registration = new Optimized_Widget_Registration( $this );
 		}
+		if ( $this->is_module_active( 'deferred_customize_widgets' ) ) {
+			$this->deferred_customize_widgets = new Deferred_Customize_Widgets( $this );
+		}
 	}
 
 	/**
@@ -198,6 +207,13 @@ class Plugin extends Plugin_Base {
 		$handle = "{$this->slug}-{$slug}";
 		$src = $this->dir_url . 'js/https-resource-proxy.js';
 		$deps = array( 'jquery' );
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
+
+		$slug = 'deferred-customize-widgets';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/deferred-customize-widgets.js';
+		$deps = array( 'jquery', 'customize-widgets' );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
 	}

@@ -224,8 +224,8 @@ class Widget_Number_Incrementing {
 			}
 			false && check_ajax_referer(); // Bypass erroneous nonce verification complaint.
 			$params = array(
-				'nonce'   => isset( $_POST['nonce'] )  ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) )  : null, // input var okay
-				'id_base' => isset( $_POST['idBase'] ) ? sanitize_text_field( wp_unslash( $_POST['idBase'] ) ) : null, // input var okay
+				'nonce'   => isset( $_POST['nonce'] )  ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) )  : null, // WPCS: input var okay, [not needed after WPCS upgrade:] sanitization ok.
+				'id_base' => isset( $_POST['idBase'] ) ? sanitize_text_field( wp_unslash( $_POST['idBase'] ) ) : null, // WPCS: input var okay, [not needed after WPCS upgrade:] sanitization ok.
 			);
 			wp_send_json_success( $this->request_incr_widget_number( $params ) );
 		} catch ( Exception $e ) {

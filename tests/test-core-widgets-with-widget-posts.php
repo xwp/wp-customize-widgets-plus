@@ -14,8 +14,28 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 	 */
 	public $plugin;
 
+	/**
+	 * @var int
+	 */
+	protected $css_concat_init_priority;
+
+	/**
+	 * @var int
+	 */
+	protected $js_concat_init_priority;
+
 	function setUp() {
 		global $wp_widget_factory;
+
+		// For why these hooks have to be removed, see https://github.com/Automattic/nginx-http-concat/issues/5
+		$this->css_concat_init_priority = has_action( 'init', 'css_concat_init' );
+		if ( $this->css_concat_init_priority ) {
+			remove_action( 'init', 'css_concat_init', $this->css_concat_init_priority );
+		}
+		$this->js_concat_init_priority = has_action( 'init', 'js_concat_init' );
+		if ( $this->js_concat_init_priority ) {
+			remove_action( 'init', 'js_concat_init', $this->js_concat_init_priority );
+		}
 
 		parent::setUp();
 
@@ -94,5 +114,15 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 		parent::test_wp_widget_save_settings_delete();
 
 		$this->assertEquals( 'search-2', $deleted_widget_id );
+	}
+
+	function tearDown() {
+		parent::tearDown();
+		if ( $this->css_concat_init_priority ) {
+			add_action( 'init', 'css_concat_init', $this->css_concat_init_priority );
+		}
+		if ( $this->js_concat_init_priority ) {
+			add_action( 'init', 'js_concat_init', $this->js_concat_init_priority );
+		}
 	}
 }
