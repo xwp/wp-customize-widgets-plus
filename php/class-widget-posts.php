@@ -17,6 +17,8 @@ class Widget_Posts {
 
 	const ENABLED_FLAG_OPTION_NAME = 'enabled_widget_posts';
 
+	const WIDGET_SETTING_ID_PATTERN = '/^(?P<customize_id_base>widget_(?P<widget_id_base>.+?))\[(?P<widget_number>\d+)\]$/';
+
 	/**
 	 * @var Plugin
 	 */
@@ -31,6 +33,28 @@ class Widget_Posts {
 	 * @var \WP_Widget[]
 	 */
 	public $widget_objs;
+
+	/**
+	 * All current instance data for registered widgets.
+	 *
+	 * @see WP_Customize_Widget_Setting::__construct()
+	 * @see WP_Customize_Widget_Setting::value()
+	 * @see WP_Customize_Widget_Setting::preview()
+	 * @see WP_Customize_Widget_Setting::update()
+	 * @see WP_Customize_Widget_Setting::filter_pre_option_widget_settings()
+	 *
+	 * @var array
+	 */
+	public $current_widget_type_values = array();
+
+	/**
+	 * Whether or not all of the filter_pre_option_widget_settings handlers should no-op.
+	 *
+	 * This is set to true at customize_save action, and returned to false at customize_save_after.
+	 *
+	 * @var bool
+	 */
+	public $disabled_filtering_pre_option_widget_settings = false;
 
 	/**
 	 * Blog ID for which the functionality is active.
@@ -160,7 +184,7 @@ class Widget_Posts {
 	 * Add the hooks for the primary functionality.
 	 */
 	function init() {
-		add_action( 'widgets_init', array( $this, 'prepare_widget_data' ), 91 );
+		add_action( 'widgets_init', array( $this, 'prepare_widget_data' ), 91 ); // runs before Widget_Posts::capture_widget_settings_for_customizer()
 		add_action( 'init', array( $this, 'register_instance_post_type' ) );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_filter( sprintf( 'bulk_actions-edit-%s', static::INSTANCE_POST_TYPE ), array( $this, 'filter_bulk_actions' ) );
@@ -168,6 +192,8 @@ class Widget_Posts {
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
 		add_action( 'admin_menu', array( $this, 'remove_add_new_submenu' ) );
+
+		$this->add_customize_hooks();
 	}
 
 	/**
@@ -435,7 +461,7 @@ class Widget_Posts {
 	function filter_wp_import_post_data_processed( $postdata ) {
 		if ( static::INSTANCE_POST_TYPE === $postdata['post_type'] ) {
 			$postdata['post_content_filtered'] = $postdata['post_content'];
-			$instance = Widget_Posts::parse_post_content_filtered( $postdata['post_content'] );
+			$instance = static::parse_post_content_filtered( $postdata['post_content'] );
 			$postdata['post_content'] = $postdata['post_content'] = wp_json_encode( $instance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
 		}
 		return $postdata;
@@ -539,11 +565,12 @@ class Widget_Posts {
 	}
 
 	/**
-	 * This happens before Efficient_Multidimensional_Setting_Sanitizing::capture_widget_instance_data()
-	 * so that we have a chance to inject Widget_Settings ArrayIterators populated with data
-	 * from the widget_instance post type.
+	 * Inject Widget_Settings ArrayIterators populated with data from the widget_instance post type.
 	 *
-	 * @see Efficient_Multidimensional_Setting_Sanitizing::capture_widget_instance_data()
+	 * This happens before Widget_posts::capture_widget_settings_for_customizer() so that we have a chance to
+	 * inject Widget_Settings ArrayIterators populated with data from the widget_instance post type.
+	 *
+	 * @see Widget_Posts::capture_widget_settings_for_customizer()
 	 * @action widgets_init, 91
 	 */
 	function prepare_widget_data() {
@@ -554,14 +581,14 @@ class Widget_Posts {
 	}
 
 	/**
-	 * Return the Widget_Settings ArrayObject on the pre_option filter for the widget option.
+	 * Return the Widget_Settings ArrayIterator on the pre_option filter for the widget option.
 	 *
 	 * @param null|array $pre
 	 *
 	 * Note that this is after 10 so it is compatible with WP_Customize_Widgets::capture_filter_pre_get_option()
 	 *
 	 * @see WP_Customize_Widgets::capture_filter_pre_get_option()
-	 * @see Efficient_Multidimensional_Setting_Sanitizing::capture_widget_instance_data()
+	 * @see Widget_Posts::capture_widget_settings_for_customizer()
 	 * @filter pre_option_{WP_Widget::$option_name}, 20
 	 *
 	 * @return Widget_Settings|mixed
@@ -622,7 +649,7 @@ class Widget_Posts {
 			$wp_customize instanceof \WP_Customize_Manager
 			&&
 			// Because we do not have access to $wp_customize->widgets->_is_capturing_option_updates.
-			has_filter( 'pre_update_option', array( $wp_customize->widgets, 'capture_filter_pre_update_option' ), 10, 3 )
+			has_filter( 'pre_update_option', array( $wp_customize->widgets, 'capture_filter_pre_update_option' ) )
 		);
 		if ( $is_widget_customizer_short_circuiting ) {
 			return $value;
@@ -640,18 +667,14 @@ class Widget_Posts {
 			&&
 			( $value_array !== $old_value_array )
 			&&
-			( $value instanceof Widget_Settings )
-			&&
 			preg_match( '/pre_update_option_widget_(.+)/', current_filter(), $matches )
 		);
 		if ( ! $should_filter ) {
 			return $value;
 		}
 		$id_base = $matches[1];
-		$widget_settings = $value;
 
-		$instances = $widget_settings->getArrayCopy();
-		foreach ( $instances as $widget_number => $instance ) {
+		foreach ( $value_array as $widget_number => $instance ) {
 			$widget_number = intval( $widget_number );
 			if ( ! $widget_number || $widget_number < 2 || ! is_array( $instance ) ) { // Note that non-arrays are most likely widget_instance post IDs.
 				continue;
@@ -669,15 +692,17 @@ class Widget_Posts {
 			}
 		}
 
-		foreach ( $widget_settings->unset_widget_numbers as $widget_number ) {
-			$widget_id = "$id_base-$widget_number";
-			$post = $this->get_widget_post( $widget_id );
-			if ( $post ) {
-				// @todo eventually we should allow trashing
-				wp_delete_post( $post->ID, true );
+		if ( $value instanceof Widget_Settings ) {
+			foreach ( $value->unset_widget_numbers as $widget_number ) {
+				$widget_id = "$id_base-$widget_number";
+				$post = $this->get_widget_post( $widget_id );
+				if ( $post ) {
+					// @todo eventually we should allow trashing
+					wp_delete_post( $post->ID, true );
+				}
 			}
+			$value->unset_widget_numbers = array();
 		}
-		$widget_settings->unset_widget_numbers = array();
 
 		/*
 		 * We return the old value so that update_option() short circuits,
@@ -1135,5 +1160,224 @@ class Widget_Posts {
 			return;
 		}
 		wp_cache_delete( $parsed_widget_id['id_base'], 'widget_instance_numbers' );
+	}
+
+	/*
+	 * Begin Customizer-specific code.
+	 *
+	 * The code here was originally contained in a module called
+	 * Efficient_Multidimensional_Setting_Sanitizing, but with the work done in
+	 * WordPress Trac #32103, Customizer settings are now efficiently saved by
+	 * default. So what is needed primarily here is an integration for Widget
+	 * Posts to prevent Widget_Settings instances from being manipulated by
+	 * WP_Customize_Setting::multidimensional_replace() which has the effect of
+	 * dropping all widget instances that are not part of the replacement.
+	 *
+	 * See https://core.trac.wordpress.org/ticket/32103
+	 */
+
+	/**
+	 * Whether or not add_customize_hooks() has completed; prevents duplicate hooks.
+	 *
+	 * @var bool
+	 */
+	protected $customize_hooks_added = false;
+
+	/**
+	 * Set up hooks for Customizer integration.
+	 *
+	 * @return bool
+	 */
+	function add_customize_hooks() {
+		global $wp_customize;
+		if ( empty( $wp_customize ) || $this->customize_hooks_added ) {
+			return false;
+		}
+		$this->customize_hooks_added = true;
+		$this->manager = $wp_customize;
+
+		add_filter( 'customize_dynamic_setting_class', array( $this, 'filter_dynamic_setting_class' ), 10, 2 );
+		add_filter( 'widget_customizer_setting_args', array( $this, 'filter_widget_customizer_setting_args' ) );
+		add_action( 'widgets_init', array( $this, 'capture_widget_settings_for_customizer' ), 92 ); // runs after Widget_Posts::prepare_widget_data()
+
+		// Note that customize_register happens at wp_loaded, so we register the settings just before
+		$priority = has_action( 'wp_loaded', array( $this->manager, 'wp_loaded' ) );
+		$priority -= 1;
+		add_action( 'wp_loaded', array( $this, 'register_widget_instance_settings_early' ), $priority );
+
+		add_action( 'customize_save', array( $this, 'disable_filtering_pre_option_widget_settings' ) );
+		add_action( 'customize_save_after', array( $this, 'enable_filtering_pre_option_widget_settings' ) );
+		return true;
+	}
+
+	/**
+	 * This must happen immediately before \WP_Customize_Widgets::customize_register(),
+	 * in whatever scenario it gets called per \WP_Customize_Widgets::schedule_customize_register()
+	 *
+	 * @action wp_loaded
+	 * @see \WP_Customize_Widgets::schedule_customize_register()
+	 * @see \WP_Customize_Manager::customize_register()
+	 */
+	function register_widget_instance_settings_early() {
+		// Register any widgets that have been registered thus far
+		$this->register_widget_settings();
+
+		// Register any remaining widgets that are registered after WP is initialized
+		$priority = 9; // Before \WP_Customize_Manager::customize_register() is called
+		add_action( 'wp', array( $this, 'register_widget_settings' ), $priority );
+	}
+
+	/**
+	 * Register widget settings just in time.
+	 *
+	 * This is called right before customize_widgets action, so we be first in
+	 * line to register the widget settings, so we can use WP_Customize_Widget_Setting()
+	 * as opposed to the default setting. Core needs a way to filter the setting
+	 * class used when settings are created, as has been done for customize_dynamic_setting_class.
+	 *
+	 * @todo Propose that WP_Customize_Manager::add_setting( $id, $args ) allow the setting class 'WP_Customize_Setting' to be filtered.
+	 *
+	 * @action wp_loaded
+	 * @see \WP_Customize_Widgets::customize_register()
+	 */
+	function register_widget_settings() {
+		global $wp_registered_widgets;
+		if ( empty( $wp_registered_widgets ) ) {
+			$this->plugin->trigger_warning( '$wp_registered_widgets is empty.' );
+			return;
+		}
+
+		/*
+		 * Register a setting for all widgets, including those which are active,
+		 * inactive, and orphaned since a widget may get suppressed from a sidebar
+		 * via a plugin (like Widget Visibility).
+		 */
+		foreach ( $wp_registered_widgets as $widget_id => $registered_widget ) {
+			$setting_id = $this->manager->widgets->get_setting_id( $widget_id );
+			if ( ! $this->manager->get_setting( $setting_id ) ) {
+				$setting_args = $this->manager->widgets->get_setting_args( $setting_id );
+				$setting = new WP_Customize_Widget_Setting( $this->manager, $setting_id, $setting_args );
+				$this->manager->add_setting( $setting );
+			}
+		}
+	}
+
+	/**
+	 * Capture widget settings for Customizer.
+	 *
+	 * Since at widgets_init,100 the single instances of widgets get copied out
+	 * to the many instances in $wp_registered_widgets, we capture all of the
+	 * registered widgets up front so we don't have to search through the big
+	 * list later. At this time we also add the pre_option filter to use the
+	 * settings as retrieved once from the database, and then manipulated in a
+	 * pre-unserialized data structure ready to be re-serialized once when the
+	 * Customizer setting is saved.
+	 *
+	 * @see WP_Customize_Widget_Setting::__construct()
+	 * @see Widget_Posts::filter_pre_option_widget_settings()
+	 * @see Widget_Posts::filter_pre_option_widget_settings_for_customizer()
+	 * @see Widget_Posts::prepare_widget_data()
+	 * @action widgets_init, 92
+	 */
+	function capture_widget_settings_for_customizer() {
+		foreach ( $this->widget_objs as $id_base => $widget_obj ) {
+
+			/*
+			 * Get widget settings once, after Widget_Posts::prepare_widget_data()
+			 * has run, so we can get Widget_Settings ArrayIterators.
+			 */
+			$settings = $widget_obj->get_settings();
+
+			// Sanity check.
+			if ( $this->plugin->is_normal_multi_widget( $widget_obj ) && ! ( $settings instanceof Widget_Settings ) ) {
+				print_r($settings);
+				throw new Exception( "Expected settings for $widget_obj->id_base to be a Widget_Settings instance." );
+			}
+
+			/*
+			 * Restore _multiwidget array key since it gets stripped by WP_Widget::get_settings()
+			 * and we're going to use this $settings data in a pre_option filter,
+			 * and we want to ensure that wp_convert_widget_settings() will not be
+			 * called later when WP_Widget::get_settings() is again called
+			 * and does get_option( "widget_{$id_base}" ). Note that if this is
+			 * a Widget_Settings instance, it wil do a no-op and offsetExists()
+			 * will always return true for the '_multiwidget' key.
+			 */
+			$settings['_multiwidget'] = 1;
+
+			/*
+			 * Store the settings to be used by WP_Customize_Widget_Setting::value(),
+			 * and in pre_option_{$id_base} filter.
+			 */
+			$this->current_widget_type_values[ $widget_obj->id_base ] = $settings;
+
+			// Note that this happens _before_ Widget_Posts::filter_pre_option_widget_settings().
+			add_filter( "pre_option_widget_{$widget_obj->id_base}", function( $pre_value ) use ( $widget_obj ) {
+				return $this->filter_pre_option_widget_settings_for_customizer( $pre_value, $widget_obj );
+			} );
+		}
+	}
+
+	/**
+	 * Pre-option filter which intercepts the expensive WP_Customize_Setting::_preview_filter().
+	 *
+	 * @see WP_Customize_Setting::_preview_filter()
+	 * @param null|array $pre_value Value that, if set, short-circuits the normal get_option() return value.
+	 * @param \WP_Widget $widget_obj
+	 * @return array
+	 * @throws Exception
+	 */
+	function filter_pre_option_widget_settings_for_customizer( $pre_value, $widget_obj ) {
+		if ( ! $this->disabled_filtering_pre_option_widget_settings ) {
+			if ( ! isset( $this->current_widget_type_values[ $widget_obj->id_base ] ) ) {
+				throw new Exception( "current_widget_type_values not set yet for $widget_obj->id_base" );
+			}
+			$pre_value = $this->current_widget_type_values[ $widget_obj->id_base ];
+		}
+		return $pre_value;
+	}
+
+	/**
+	 * Ensure that dynamic settings for widgets use the proper class.
+	 *
+	 * @see WP_Customize_Widget_Setting
+	 * @param string $setting_class WP_Customize_Setting or a subclass.
+	 * @param string $setting_id    ID for dynamic setting, usually coming from `$_POST['customized']`.
+	 * @return string
+	 */
+	function filter_dynamic_setting_class( $setting_class, $setting_id ) {
+		if ( preg_match( self::WIDGET_SETTING_ID_PATTERN, $setting_id ) ) {
+			$setting_class = '\\' . __NAMESPACE__ . '\\WP_Customize_Widget_Setting';
+		}
+		return $setting_class;
+	}
+
+	/**
+	 * Ensure that widget_posts is included in a WP_Customize_Widget_Setting arguments.
+	 *
+	 * @see WP_Customize_Widget_Setting
+	 *
+	 * @param array $setting_args Array of Customizer setting arguments.
+	 * @return array Args.
+	 */
+	function filter_widget_customizer_setting_args( $setting_args ) {
+		$setting_args['widget_posts'] = $this;
+		return $setting_args;
+	}
+
+	/**
+	 * @see WP_Customize_Widget_Setting::filter_pre_option_widget_settings()
+	 * @action customize_save
+	 */
+	function disable_filtering_pre_option_widget_settings() {
+		$this->disabled_filtering_pre_option_widget_settings = true;
+	}
+
+	/**
+	 * @see WP_Customize_Widget_Setting::filter_pre_option_widget_settings()
+	 * @action customize_save_after
+	 */
+	function enable_filtering_pre_option_widget_settings() {
+		$this->disabled_filtering_pre_option_widget_settings = false;
 	}
 }

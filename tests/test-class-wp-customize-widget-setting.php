@@ -7,22 +7,37 @@ class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 	/**
 	 * @var \WP_Customize_Manager
 	 */
-	public $wp_customize_manager;
+	public $customize_manager;
 
 	/**
-	 * @var Efficient_Multidimensional_Setting_Sanitizing
+	 * @var Widget_Posts
 	 */
-	public $efficient_multidimensional_setting_sanitizing;
+	public $widget_posts;
 
+	/**
+	 * Set up.
+	 */
 	function setUp() {
+		global $wp_customize;
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
 		parent::setUp();
-	}
 
-	function init_customizer() {
+		$this->widget_posts = new Widget_Posts( $this->plugin );
+		$this->plugin->widget_number_incrementing = new Widget_Number_Incrementing( $this->plugin );
+		$this->widget_posts->init();
+		wp_widgets_init();
+		$this->widget_posts->register_instance_post_type();
+		$this->widget_posts->migrate_widgets_from_options();
+
 		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
-		$this->wp_customize_manager = new \WP_Customize_Manager();
-		$this->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this->plugin, $this->wp_customize_manager );
+		$wp_customize = $this->customize_manager = new \WP_Customize_Manager();
+		$this->widget_posts->add_customize_hooks(); // This did nothing in init since Customizer was not loaded.
+
+		// Make sure the widgets get re-registered now using the new settings source.
+		global $wp_registered_widgets;
+		$wp_registered_widgets = array();
+		wp_widgets_init();
+		do_action( 'wp_loaded' );
 	}
 
 	/**
@@ -43,12 +58,10 @@ class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 	 * @see WP_Customize_Widget_Setting::__construct()
 	 */
 	function test_construct() {
-		$this->init_customizer();
-		wp_widgets_init();
-
 		$id_base = 'categories';
 		$sample_data = $this->get_sample_widget_instance_data( $id_base );
-		$new_setting = new WP_Customize_Widget_Setting( $this->wp_customize_manager, $sample_data['setting_id'] );
+		$args = $this->customize_manager->widgets->get_setting_args( $sample_data['setting_id'] );
+		$new_setting = new WP_Customize_Widget_Setting( $this->customize_manager, $sample_data['setting_id'], $args );
 		$this->assertEquals( 'widget', $new_setting->type );
 		$this->assertEquals( $id_base, $new_setting->widget_id_base );
 		$this->assertEquals( $sample_data['number'], $new_setting->widget_number );
@@ -58,15 +71,13 @@ class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 	 * @see WP_Customize_Widget_Setting::value()
 	 */
 	function test_value() {
-		$this->init_customizer();
-		wp_widgets_init();
-
 		$id_base = 'categories';
 		$sample_data = $this->get_sample_widget_instance_data( $id_base );
-		$old_setting = new \WP_Customize_Setting( $this->wp_customize_manager, $sample_data['setting_id'], array(
+		$old_setting = new \WP_Customize_Setting( $this->customize_manager, $sample_data['setting_id'], array(
 			'type' => 'option',
 		) );
-		$new_setting = new WP_Customize_Widget_Setting( $this->wp_customize_manager, $sample_data['setting_id'] );
+		$args = $this->customize_manager->widgets->get_setting_args( $sample_data['setting_id'] );
+		$new_setting = new WP_Customize_Widget_Setting( $this->customize_manager, $sample_data['setting_id'], $args );
 
 		$this->assertEquals( $sample_data['instance'], $old_setting->value() );
 		$this->assertEquals( $old_setting->value(), $new_setting->value() );
@@ -76,17 +87,16 @@ class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 	 * @see WP_Customize_Widget_Setting::preview()
 	 */
 	function test_preview() {
-		$this->init_customizer();
-		wp_widgets_init();
 		$widget_data = $this->get_sample_widget_instance_data( 'archives' );
 
-		$setting = new WP_Customize_Widget_Setting( $this->wp_customize_manager, $widget_data['setting_id'] );
+		$args = $this->customize_manager->widgets->get_setting_args( $widget_data['setting_id'] );
+		$setting = new WP_Customize_Widget_Setting( $this->customize_manager, $widget_data['setting_id'], $args );
 		$value = $setting->value();
 		$override_title = 'BAR PREVIEWED VALUE';
 		$this->assertNotEquals( $value['title'], $override_title );
 
 		$value['title'] = $override_title;
-		$this->wp_customize_manager->set_post_value( $setting->id, $value );
+		$this->customize_manager->set_post_value( $setting->id, $value );
 		$setting->preview();
 		$this->assertEquals( $value['title'], $override_title );
 	}
@@ -95,18 +105,17 @@ class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 	 * @see WP_Customize_Widget_Setting::update()
 	 */
 	function test_save() {
-		$this->init_customizer();
-		wp_widgets_init();
 		$widget_data = $this->get_sample_widget_instance_data( 'archives' );
 
-		$setting = new WP_Customize_Widget_Setting( $this->wp_customize_manager, $widget_data['setting_id'] );
+		$args = $this->customize_manager->widgets->get_setting_args( $widget_data['setting_id'] );
+		$setting = new WP_Customize_Widget_Setting( $this->customize_manager, $widget_data['setting_id'], $args );
 		$value = $setting->value();
 		$override_title = 'BAR UPDATED VALUE';
 		$this->assertNotEquals( $value['title'], $override_title );
 
 		$value['title'] = $override_title;
-		$this->wp_customize_manager->set_post_value( $setting->id, $value );
-		$setting->save( $value );
+		$this->customize_manager->set_post_value( $setting->id, $this->customize_manager->widgets->sanitize_widget_js_instance( $value ) );
+		$setting->save();
 		$saved_value = $setting->value();
 
 		$this->assertEquals( $override_title, $saved_value['title'] );

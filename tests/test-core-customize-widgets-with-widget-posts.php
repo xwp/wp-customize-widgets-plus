@@ -24,6 +24,9 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 	 */
 	protected $js_concat_init_priority;
 
+	/**
+	 * Set up.
+	 */
 	function setUp() {
 		global $wp_widget_factory;
 
@@ -43,7 +46,6 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		$this->plugin->widget_factory = $wp_widget_factory;
 		$this->plugin->widget_number_incrementing = new Widget_Number_Incrementing( $this->plugin );
 		$this->plugin->widget_posts = new Widget_Posts( $this->plugin );
-		$this->plugin->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this->plugin, $this->manager );
 
 		$widgets_init_hook = 'widgets_init';
 		$callable = array( $wp_widget_factory, '_register_widgets' );
@@ -61,6 +63,7 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		$this->plugin->widget_posts->init();
 		$this->plugin->widget_posts->prepare_widget_data(); // Has to be called here because of wp_widgets_init() footwork done above.
 		$this->plugin->widget_posts->register_instance_post_type(); // Normally called at init action.
+		$this->plugin->widget_posts->capture_widget_settings_for_customizer(); // Normally called in widgets_init
 	}
 
 	function test_register_settings() {
