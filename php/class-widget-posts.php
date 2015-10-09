@@ -1290,7 +1290,6 @@ class Widget_Posts {
 
 			// Sanity check.
 			if ( $this->plugin->is_normal_multi_widget( $widget_obj ) && ! ( $settings instanceof Widget_Settings ) ) {
-				print_r($settings);
 				throw new Exception( "Expected settings for $widget_obj->id_base to be a Widget_Settings instance." );
 			}
 
