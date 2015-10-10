@@ -150,6 +150,8 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		}
 		$value = $this->post_value();
 		$is_null_because_previewing_new_widget = (
+			! isset( $this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] )
+			&&
 			is_null( $value )
 			&&
 			$this->manager->doing_ajax( 'update-widget' )

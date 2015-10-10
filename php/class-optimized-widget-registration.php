@@ -40,7 +40,7 @@ class Optimized_Widget_Registration {
 			}
 		}
 
-		add_action( 'customize_register', array( $this, 'capture_customize_manager' ) );
+		add_action( 'customize_register', array( $this, 'capture_customize_manager' ), 1 );
 
 		/**
 		 * Note that this is at wp:9 so that it happens before WP_Customize_Widgets::customize_register()
@@ -184,7 +184,7 @@ class Optimized_Widget_Registration {
 		$sidebars_widgets = wp_get_sidebars_widgets();
 
 		foreach ( $register_widget_ids as $widget_id ) {
-			$setting_id   = $this->manager->widgets->get_setting_id( $widget_id );
+			$setting_id = $this->manager->widgets->get_setting_id( $widget_id );
 			if ( ! $this->manager->get_setting( $setting_id ) ) {
 				$setting_args = $this->manager->widgets->get_setting_args( $setting_id );
 				$setting = new WP_Customize_Widget_Setting( $this->manager, $setting_id, $setting_args );
