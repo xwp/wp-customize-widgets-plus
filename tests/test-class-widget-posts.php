@@ -5,25 +5,13 @@ namespace CustomizeWidgetsPlus;
 class Test_Widget_Posts extends Base_Test_Case {
 
 	/**
-	 * @var \WP_Customize_Manager
-	 */
-	public $wp_customize_manager;
-
-	/**
 	 * @var Widget_Posts
 	 */
 	public $module;
 
 	function setUp() {
-		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
 		parent::setUp();
-
 		$this->plugin->widget_number_incrementing = new Widget_Number_Incrementing( $this->plugin );
-	}
-
-	function init_customizer() {
-		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
-		$this->wp_customize_manager = new \WP_Customize_Manager();
 	}
 
 	function init_and_migrate() {
@@ -32,6 +20,11 @@ class Test_Widget_Posts extends Base_Test_Case {
 		wp_widgets_init();
 		$this->module->register_instance_post_type();
 		$this->module->migrate_widgets_from_options();
+
+		// Make sure the widgets get re-registered now using the new settings source.
+		global $wp_registered_widgets;
+		$wp_registered_widgets = array();
+		wp_widgets_init();
 	}
 
 	/**

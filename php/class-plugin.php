@@ -42,11 +42,6 @@ class Plugin extends Plugin_Base {
 	public $widget_posts;
 
 	/**
-	 * @var Efficient_Multidimensional_Setting_Sanitizing
-	 */
-	public $efficient_multidimensional_setting_sanitizing;
-
-	/**
 	 * @var Optimized_Widget_Registration
 	 */
 	public $optimized_widget_registration;
@@ -89,7 +84,6 @@ class Plugin extends Plugin_Base {
 				'widget_number_incrementing' => true,
 				'https_resource_proxy' => true,
 				'widget_posts' => true,
-				'efficient_multidimensional_setting_sanitizing' => true,
 				'optimized_widget_registration' => false,
 				'deferred_customize_widgets' => true,
 			),
@@ -121,14 +115,13 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme
 	 */
 	function init() {
-		global $wp_customize, $wp_widget_factory;
+		global $wp_widget_factory;
 		$this->widget_factory = $wp_widget_factory;
 		$this->config = apply_filters( 'customize_widgets_plus_plugin_config', $this->config, $this );
 
 		// Handle conflicting modules and dependencies.
 		if ( $this->config['active_modules']['optimized_widget_registration'] ) {
 			$this->config['active_modules']['widget_posts'] = true;
-			$this->config['active_modules']['efficient_multidimensional_setting_sanitizing'] = true;
 		}
 		if ( $this->config['active_modules']['widget_posts'] ) {
 			$this->config['active_modules']['non_autoloaded_widget_options'] = false; // The widget_posts module makes this obsolete.
@@ -163,9 +156,6 @@ class Plugin extends Plugin_Base {
 		}
 		if ( $this->is_module_active( 'widget_posts' ) ) {
 			$this->widget_posts = new Widget_Posts( $this );
-		}
-		if ( $this->is_module_active( 'efficient_multidimensional_setting_sanitizing' ) && ! empty( $wp_customize ) ) {
-			$this->efficient_multidimensional_setting_sanitizing = new Efficient_Multidimensional_Setting_Sanitizing( $this, $wp_customize );
 		}
 		if ( $this->is_module_active( 'optimized_widget_registration' ) ) {
 			$this->optimized_widget_registration = new Optimized_Widget_Registration( $this );

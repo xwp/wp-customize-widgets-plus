@@ -49,11 +49,11 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	public $is_previewed = false;
 
 	/**
-	 * Plugin's instance of Efficient_Multidimensional_Setting_Sanitizing.
+	 * Widget Posts.
 	 *
-	 * @var Efficient_Multidimensional_Setting_Sanitizing
+	 * @var Widget_Posts
 	 */
-	public $efficient_multidimensional_setting_sanitizing;
+	public $widget_posts;
 
 	/**
 	 * Constructor.
@@ -69,11 +69,6 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	public function __construct( \WP_Customize_Manager $manager, $id, array $args = array() ) {
 		unset( $args['type'] );
 
-		if ( empty( $manager->efficient_multidimensional_setting_sanitizing ) ) {
-			throw new Exception( 'Expected WP_Customize_Manager::$efficient_multidimensional_setting_sanitizing to be set.' );
-		}
-		$this->efficient_multidimensional_setting_sanitizing = $manager->efficient_multidimensional_setting_sanitizing;
-
 		if ( ! preg_match( static::WIDGET_SETTING_ID_PATTERN, $id, $matches ) ) {
 			throw new Exception( "Illegal widget setting ID: $id" );
 		}
@@ -84,6 +79,10 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		}
 
 		parent::__construct( $manager, $id, $args );
+
+		if ( empty( $this->widget_posts ) ) {
+			throw new Exception( 'Missing argument: widget_posts' );
+		}
 	}
 
 	/**
@@ -94,12 +93,12 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	 */
 	public function value() {
 		$value = $this->default;
-		$sanitizing = $this->efficient_multidimensional_setting_sanitizing;
-		if ( ! isset( $sanitizing->current_widget_type_values[ $this->widget_id_base ] ) ) {
+
+		if ( ! isset( $this->widget_posts->current_widget_type_values[ $this->widget_id_base ] ) ) {
 			throw new Exception( "current_widget_type_values not set yet for $this->widget_id_base. Current action: " . current_action() );
 		}
-		if ( isset( $sanitizing->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] ) ) {
-			$value = $sanitizing->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ];
+		if ( isset( $this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] ) ) {
+			$value = $this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ];
 		}
 		return $value;
 	}
@@ -112,6 +111,7 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	 * the preview logic is deferred to the widgets_init action.
 	 *
 	 * @see WP_Customize_Widget_Setting::apply_preview()
+	 * @throws Exception
 	 *
 	 * @return void
 	 */
@@ -124,7 +124,11 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		if ( did_action( 'widgets_init' ) ) {
 			$this->apply_preview();
 		} else {
-			$priority = 93; // Because Efficient_Multidimensional_Setting_Sanitizing::capture_widget_instance_data() happens at 92.
+			$priority = has_action( 'widgets_init', array( $this->widget_posts, 'capture_widget_settings_for_customizer' ) );
+			if ( empty( $priority ) ) {
+				throw new Exception( 'Expected widgets_init action to do Widget_Posts::capture_widget_settings_for_customizer()' );
+			}
+			$priority += 1;
 			add_action( 'widgets_init', array( $this, 'apply_preview' ), $priority );
 		}
 	}
@@ -146,6 +150,8 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		}
 		$value = $this->post_value();
 		$is_null_because_previewing_new_widget = (
+			! isset( $this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] )
+			&&
 			is_null( $value )
 			&&
 			$this->manager->doing_ajax( 'update-widget' )
@@ -157,9 +163,8 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		if ( $is_null_because_previewing_new_widget ) {
 			$value = array();
 		}
-		$sanitizing = $this->efficient_multidimensional_setting_sanitizing;
 		if ( ! is_null( $value ) ) {
-			$sanitizing->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
+			$this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
 		}
 	}
 
@@ -170,8 +175,6 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	 * @return void
 	 */
 	protected function update( $value ) {
-		$sanitizing = $this->efficient_multidimensional_setting_sanitizing;
-
 		// @todo Maybe more elegant to do $sanitizing->widget_objs[ $this->widget_id_base ]->get_settings() or $sanitizing->current_widget_type_values[ $this->widget_id_base ]
 		$option_name = "widget_{$this->widget_id_base}";
 		$option_value = get_option( $option_name, array() );
@@ -180,7 +183,7 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		update_option( $option_name, $option_value );
 
 		if ( ! $this->is_previewed ) {
-			$sanitizing->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
+			$this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
 		}
 	}
 }
