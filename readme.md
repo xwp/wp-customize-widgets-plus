@@ -37,8 +37,8 @@ When `FORCE_SSL_ADMIN` is enabled (such as on WordPress.com), the Customizer wil
 Store widget instances in posts instead of options. Requires trunk due to patch committed in [#32474](https://core.trac.wordpress.org/ticket/32474). More details forthcoming...
 
 ### Deferred Widget Embedding ###
+Backports [#33898](https://core.trac.wordpress.org/ticket/33898) and [#33901](https://core.trac.wordpress.org/ticket/33901) which are now in `trunk` for WordPress 4.4.
 
-Backports [#33898](https://core.trac.wordpress.org/ticket/33898) and [#33901](https://core.trac.wordpress.org/ticket/33901) which are now in `turnk` for WordPress 4.4.
 
 ## Changelog ##
 
