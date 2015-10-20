@@ -52,6 +52,11 @@ class Plugin extends Plugin_Base {
 	public $deferred_customize_widgets;
 
 	/**
+	 * @var Customize_Settings_Snapshot
+	 */
+	public $customize_settings_snapshot;
+
+	/**
 	 * @var \WP_Widget_Factory
 	 */
 	public $widget_factory;
@@ -86,6 +91,7 @@ class Plugin extends Plugin_Base {
 				'widget_posts' => true,
 				'optimized_widget_registration' => false,
 				'deferred_customize_widgets' => true,
+				'customize_settings_snapshot' => true,
 			),
 			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 			'widget_posts' => Widget_Posts::default_config(),
@@ -163,6 +169,9 @@ class Plugin extends Plugin_Base {
 		if ( $this->is_module_active( 'deferred_customize_widgets' ) ) {
 			$this->deferred_customize_widgets = new Deferred_Customize_Widgets( $this );
 		}
+		if ( $this->is_module_active( 'customize_settings_snapshot' ) ) {
+			$this->customize_settings_snapshot = new Customize_Settings_Snapshot( $this );
+		}
 	}
 
 	/**
@@ -206,6 +215,13 @@ class Plugin extends Plugin_Base {
 		$deps = array( 'jquery', 'customize-widgets' );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
+
+		$slug = 'customize-settings-snapshot';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/customize-settings-snapshot.js';
+		$deps = array( 'jquery', 'underscore' );
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
 	}
 
 	/**
@@ -225,6 +241,12 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'css/post-edit.css';
 		$wp_styles->add( $handle, $src );
 		$this->style_handles['post_edit'] = $handle;
+
+		$slug = 'customize-settings-snapshot';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'css/customize-settings-snapshot.css';
+		$wp_styles->add( $handle, $src );
+		$this->style_handles[ $slug ] = $handle;
 	}
 
 	/**

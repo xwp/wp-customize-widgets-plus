@@ -1,0 +1,32 @@
+#customizer-settings-snapshot {
+	background: none;
+	border: none;
+	border-right: 1px solid #ddd;
+	box-shadow: none;
+	color: #444;
+	cursor: pointer;
+	height: 45px;
+	line-height: 45px;
+	padding: 0 12px;
+	position: absolute;
+	left: 48px;
+	top: 0px;
+	width: 48px;
+	transition: color 0.1s ease-in-out 0s, background 0.1s ease-in-out 0s;
+	z-index: 10;
+}
+
+#customizer-settings-snapshot:focus,
+#customizer-settings-snapshot:hover {
+	background: #ddd;
+	border-color: #ccc;
+	box-shadow: none;
+	color: #000;
+	outline: none;
+}
+
+@media screen and (max-width: 640px) {
+	.snapshots .customize-controls-preview-toggle {
+		left: 96px;
+	}
+}
