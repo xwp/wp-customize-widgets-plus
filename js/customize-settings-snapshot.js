@@ -1,4 +1,4 @@
-/* global jQuery, _customizeWidgetsPlusCustomizeSettingsSnapshot */
+/* global jQuery, _customizeWidgetsPlusCustomizeSettingsSnapshot, JSON, alert */
 /* exported customizeSettingsSnapshot */
 var customizeSettingsSnapshot = ( function( exports, $ ) {
 
