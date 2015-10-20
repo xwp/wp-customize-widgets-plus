@@ -82,7 +82,7 @@ class Customize_Settings_Snapshot {
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'customize_controls_enqueue_scripts' ) );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
 	}
-	
+
 	/**
 	 * Decode and store any initial $_POST['customized'] data.
 	 *
@@ -252,7 +252,7 @@ class Customize_Settings_Snapshot {
 	 * @access public
 	 */
 	public function create_post_type() {
-		register_post_type( self::POST_TYPE, array(
+		$args = array(
 			'labels' => array(
 				'name' => __( 'Customize Snapshots', 'customize-widgets-plus' ),
 				'singular_name' => __( 'Customize Snapshot', 'customize-widgets-plus' ),
@@ -264,7 +264,9 @@ class Customize_Settings_Snapshot {
 			'rewrite' => false,
 			'delete_with_user' => false,
 			'supports' => array( 'author', 'revisions' ),
-		) );
+		);
+
+		register_post_type( self::POST_TYPE, $args );
 	}
 
 	/**
