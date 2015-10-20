@@ -8,7 +8,7 @@ var customizeSettingsSnapshot = ( function( exports, $ ) {
 	 * Inject the functionality.
 	 */
 	self.init = function() {
-		api.bind( 'ready', function(){
+		api.bind( 'ready', function() {
 			self.addButton();
 
 			$( '#customizer-settings-snapshot' ).on( 'click', function( event ) {
@@ -31,7 +31,7 @@ var customizeSettingsSnapshot = ( function( exports, $ ) {
 		var request, customized;
 
 		customized = {};
-		api.each( function ( value, key ) {
+		api.each( function( value, key ) {
 			customized[ key ] = value();
 		} );
 
