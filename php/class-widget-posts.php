@@ -1280,6 +1280,7 @@ class Widget_Posts {
 	 * @action widgets_init, 92
 	 */
 	function capture_widget_settings_for_customizer() {
+		$self = $this; // For PHP 5.3.
 		foreach ( $this->widget_objs as $id_base => $widget_obj ) {
 
 			/*
@@ -1311,8 +1312,11 @@ class Widget_Posts {
 			$this->current_widget_type_values[ $widget_obj->id_base ] = $settings;
 
 			// Note that this happens _before_ Widget_Posts::filter_pre_option_widget_settings().
-			add_filter( "pre_option_widget_{$widget_obj->id_base}", function( $pre_value ) use ( $widget_obj ) {
-				return $this->filter_pre_option_widget_settings_for_customizer( $pre_value, $widget_obj );
+			add_filter( "pre_option_widget_{$widget_obj->id_base}", function( $pre_value ) use ( $widget_obj, $self ) {
+				if ( get_current_blog_id() === $self->active_blog_id ) {
+					$pre_value = $this->filter_pre_option_widget_settings_for_customizer( $pre_value, $widget_obj );
+				}
+				return $pre_value;
 			} );
 		}
 	}
