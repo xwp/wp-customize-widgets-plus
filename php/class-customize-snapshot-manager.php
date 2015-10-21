@@ -147,7 +147,7 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Creates a snapshot with AJAX.
+	 * Update snapshots via AJAX.
 	 */
 	public function update_snapshot() {
 		if ( ! check_ajax_referer( self::AJAX_ACTION, 'nonce', false ) ) {
