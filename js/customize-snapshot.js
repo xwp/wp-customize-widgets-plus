@@ -1,6 +1,6 @@
-/* global jQuery, _customizeWidgetsPlusCustomizeSettingsSnapshot, JSON, alert */
-/* exported customizeSettingsSnapshot */
-var customizeSettingsSnapshot = ( function( exports, $ ) {
+/* global jQuery, _customizeWidgetsPlusCustomizeSnapshot, JSON, alert */
+/* exported customizeSnapshot */
+var customizeSnapshot = ( function( exports, $ ) {
 
 	var self = {}, api = wp.customize;
 
@@ -11,7 +11,7 @@ var customizeSettingsSnapshot = ( function( exports, $ ) {
 		api.bind( 'ready', function() {
 			self.addButton();
 
-			$( '#customizer-settings-snapshot' ).on( 'click', function( event ) {
+			$( '#customize-snapshot' ).on( 'click', function( event ) {
 				event.preventDefault();
 				self.doAjax();
 			} );
@@ -20,10 +20,10 @@ var customizeSettingsSnapshot = ( function( exports, $ ) {
 
 	self.addButton = function() {
 		var $header = $( '#customize-header-actions' ),
-			$button = '<button id="customizer-settings-snapshot" class="dashicons dashicons-share"><span class="screen-reader-text">' + _customizeWidgetsPlusCustomizeSettingsSnapshot.i18n.buttonText + '</span></button>';
+			$button = '<button id="customize-snapshot" class="dashicons dashicons-share"><span class="screen-reader-text">' + _customizeWidgetsPlusCustomizeSnapshot.i18n.buttonText + '</span></button>';
 
 		if ( $header.length ) {
-			$header.addClass( 'snapshots' ).append( $button );
+			$header.addClass( 'customize-snapshots' ).append( $button );
 		}
 	};
 
@@ -36,10 +36,10 @@ var customizeSettingsSnapshot = ( function( exports, $ ) {
 		} );
 
 		request = wp.ajax.post( 'customize_update_snapshot', {
-			nonce: _customizeWidgetsPlusCustomizeSettingsSnapshot.nonce,
+			nonce: _customizeWidgetsPlusCustomizeSnapshot.nonce,
 			wp_customize: 'on',
 			customized: JSON.stringify( customized ),
-			customize_settings_snapshot: _customizeWidgetsPlusCustomizeSettingsSnapshot.uuid
+			customize_snapshot_uuid: _customizeWidgetsPlusCustomizeSnapshot.uuid
 		} );
 
 		request.done( function( response ) {

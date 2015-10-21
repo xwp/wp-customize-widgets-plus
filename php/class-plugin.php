@@ -52,9 +52,9 @@ class Plugin extends Plugin_Base {
 	public $deferred_customize_widgets;
 
 	/**
-	 * @var Customize_Settings_Snapshot
+	 * @var Customize_Snapshot_Manager
 	 */
-	public $customize_settings_snapshot;
+	public $customize_snapshot_manager;
 
 	/**
 	 * @var \WP_Widget_Factory
@@ -91,7 +91,7 @@ class Plugin extends Plugin_Base {
 				'widget_posts' => true,
 				'optimized_widget_registration' => false,
 				'deferred_customize_widgets' => true,
-				'customize_settings_snapshot' => true,
+				'customize_snapshot_manager' => true,
 			),
 			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 			'widget_posts' => Widget_Posts::default_config(),
@@ -169,8 +169,8 @@ class Plugin extends Plugin_Base {
 		if ( $this->is_module_active( 'deferred_customize_widgets' ) ) {
 			$this->deferred_customize_widgets = new Deferred_Customize_Widgets( $this );
 		}
-		if ( $this->is_module_active( 'customize_settings_snapshot' ) ) {
-			$this->customize_settings_snapshot = new Customize_Settings_Snapshot( $this );
+		if ( $this->is_module_active( 'customize_snapshot_manager' ) ) {
+			$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
 		}
 	}
 
@@ -216,9 +216,9 @@ class Plugin extends Plugin_Base {
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
 
-		$slug = 'customize-settings-snapshot';
+		$slug = 'customize-snapshot';
 		$handle = "{$this->slug}-{$slug}";
-		$src = $this->dir_url . 'js/customize-settings-snapshot.js';
+		$src = $this->dir_url . 'js/customize-snapshot.js';
 		$deps = array( 'jquery', 'underscore' );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
@@ -242,9 +242,9 @@ class Plugin extends Plugin_Base {
 		$wp_styles->add( $handle, $src );
 		$this->style_handles['post_edit'] = $handle;
 
-		$slug = 'customize-settings-snapshot';
+		$slug = 'customize-snapshot';
 		$handle = "{$this->slug}-{$slug}";
-		$src = $this->dir_url . 'css/customize-settings-snapshot.css';
+		$src = $this->dir_url . 'css/customize-snapshot.css';
 		$wp_styles->add( $handle, $src );
 		$this->style_handles[ $slug ] = $handle;
 	}

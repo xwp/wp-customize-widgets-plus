@@ -1,4 +1,4 @@
-#customizer-settings-snapshot {
+#customize-snapshot {
 	background: none;
 	border: none;
 	border-right: 1px solid #ddd;
@@ -16,8 +16,8 @@
 	z-index: 10;
 }
 
-#customizer-settings-snapshot:focus,
-#customizer-settings-snapshot:hover {
+#customize-snapshot:focus,
+#customize-snapshot:hover {
 	background: #ddd;
 	border-color: #ccc;
 	box-shadow: none;
@@ -26,7 +26,7 @@
 }
 
 @media screen and (max-width: 640px) {
-	.snapshots .customize-controls-preview-toggle {
+	.customize-snapshots .customize-controls-preview-toggle {
 		left: 96px;
 	}
 }

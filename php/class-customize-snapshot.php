@@ -3,21 +3,13 @@
 namespace CustomizeWidgetsPlus;
 
 /**
- * Customize Settings Snapshot Class
+ * Customize Snapshot Class
  *
  * Implements snapshots for Customizer settings
  *
  * @package CustomizeWidgetsPlus
  */
-class Customize_Settings_Snapshot {
-
-	const POST_TYPE = 'customize_snapshot';
-	const AJAX_ACTION = 'customize_update_snapshot';
-
-	/**
-	 * @var Plugin
-	 */
-	public $plugin;
+class Customize_Snapshot {
 
 	/**
 	 * WP_Customize_Manager instance.
@@ -36,23 +28,6 @@ class Customize_Settings_Snapshot {
 	protected $uuid;
 
 	/**
-	 * Post object for the current snapshot.
-	 *
-	 * @access protected
-	 * @var WP_Post|null
-	 */
-	protected $post = null;
-
-	/**
-	 * JSON-decoded value $_POST['customized'] if present in request.
-	 *
-	 * Used by Customize_Settings_Snapshot::update_snapshot().
-	 *
-	 * @var array|null
-	 */
-	public $post_data;
-
-	/**
 	 * Store the snapshot data.
 	 *
 	 * @access protected
@@ -61,69 +36,28 @@ class Customize_Settings_Snapshot {
 	protected $data = array();
 
 	/**
-	 * Constructor.
+	 * Post object for the current snapshot.
 	 *
-	 * @access public
-	 *
-	 * @param Plugin $plugin
+	 * @access protected
+	 * @var WP_Post|null
 	 */
-	public function __construct( Plugin $plugin ) {
-		$this->plugin = $plugin;
-		$this->init();
-
-		if ( ! did_action( 'setup_theme' ) ) {
-			// Note that Customize_Settings_Snapshot::populate_customized_post_var() happens next at priority 1.
-			add_action( 'setup_theme', array( $this, 'store_post_data' ), 0 );
-		} else {
-			$this->store_post_data();
-		}
-
-		add_action( 'init', array( $this, 'create_post_type' ), 0 );
-		add_action( 'customize_controls_enqueue_scripts', array( $this, 'customize_controls_enqueue_scripts' ) );
-		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
-	}
-
-	/**
-	 * Decode and store any initial $_POST['customized'] data.
-	 *
-	 * The value is used by Customize_Settings_Snapshot::update_snapshot().
-	 */
-	public function store_post_data() {
-		if ( isset( $_POST['customized'] ) ) {
-			$this->post_data = json_decode( wp_unslash( $_POST['customized'] ), true );
-		}
-	}
+	protected $post = null;
 
 	/**
 	 * Initial loader.
 	 *
 	 * @access public
 	 *
-	 * @param Plugin $plugin
+	 * @param \WP_Customize_Manager $manager
 	 */
-	public function init() {
-		$uuid = isset( $_GET['customize_settings_snapshot'] ) ? $_GET['customize_settings_snapshot'] : false;
+	public function __construct( \WP_Customize_Manager $manager, $uuid ) {		
+		$this->manager = $manager;
 
 		if ( $uuid && self::is_valid_uuid( $uuid ) ) {
 			$this->uuid = $uuid;
 		} else {
 			$this->uuid = self::generate_uuid();
 		}
-
-		/**
-		 * @var WP_Customize_Manager $wp_customize
-		 */
-		global $wp_customize;
-
-		// Bootstrap the Customizer.
-		if ( empty( $wp_customize ) && $uuid && self::is_valid_uuid( $uuid ) ) {
-			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-			// @todo This has to be more involved for the front-end. I don't see this just working without any user authentication.
-			$wp_customize = new WP_Customize_Manager();
-		}
-
-		// Customize manager bootstrap instance.
-		$this->manager = $wp_customize;
 
 		$post = $this->post();
 		if ( ! $post ) {
@@ -140,7 +74,7 @@ class Customize_Settings_Snapshot {
 					 * can be set beforehand, and wp_magic_quotes() would not have
 					 * been called yet, resulting in a $_POST['customized'] that is
 					 * double-escaped. Note that this happens at priority 1, which
-					 * is immediately after WP_Customize_Manager::store_customized_post_data
+					 * is immediately after Customize_Snapshot_Manager::store_customized_post_data
 					 * which happens at setup_theme priority 0, so that the initial
 					 * POST data can be preserved.
 					 */
@@ -150,123 +84,6 @@ class Customize_Settings_Snapshot {
 				}
 			}
 		}
-	}
-
-	/**
-	 * Export data to JS.
-	 */
-	public function export_script_data() {
-		$exports = array(
-			'nonce' => wp_create_nonce( self::AJAX_ACTION ),
-			'action' => self::AJAX_ACTION,
-			'uuid' => $this->uuid,
-			'i18n' => array(
-				'buttonText' => __( 'Share URL to preview', 'customize-widgets-plus' ),
-			),
-		);
-
-		wp_scripts()->add_data(
-			$this->plugin->script_handles['customize-settings-snapshot'],
-			'data',
-			sprintf( 'var _customizeWidgetsPlusCustomizeSettingsSnapshot = %s;', wp_json_encode( $exports ) )
-		);
-	}
-
-	/**
-	 * Enqueue scripts for Customizer controls.
-	 *
-	 * @action customize_controls_enqueue_scripts
-	 */
-	public function customize_controls_enqueue_scripts() {
-		$handle = 'customize-settings-snapshot';
-		wp_enqueue_style( $this->plugin->style_handles[ $handle ] );
-		wp_enqueue_script( $this->plugin->script_handles[ $handle ] );
-		$this->export_script_data();
-	}
-
-	/**
-	 * Creates a snapshot with AJAX.
-	 */
-	public function update_snapshot() {
-		if ( ! check_ajax_referer( self::AJAX_ACTION, 'nonce', false ) ) {
-			status_header( 400 );
-			wp_send_json_error( 'bad_nonce' );
-		}
-		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
-			status_header( 405 );
-			wp_send_json_error( 'bad_method' );
-		}
-		if ( ! current_user_can( 'customize' ) ) {
-			status_header( 403 );
-			wp_send_json_error( 'customize_not_allowed' );
-		}
-		if ( empty( $_REQUEST['customize_settings_snapshot'] ) ) {
-			status_header( 400 );
-			wp_send_json_error( 'invalid_customize_settings_snapshot' );
-		}
-		if ( empty( $this->post_data ) ) {
-			status_header( 400 );
-			wp_send_json_error( 'missing_customized_json' );
-		}
-
-		$post = $this->post();
-		$post_type = get_post_type_object( Customize_Settings_Snapshot::POST_TYPE );
-		$authorized = ( $post ?
-			current_user_can( $post_type->cap->edit_post, $post->ID )
-			:
-			current_user_can( $post_type->cap->create_posts )
-		);
-		if ( ! $authorized ) {
-			status_header( 403 );
-			wp_send_json_error( 'unauthorized' );
-		}
-
-		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $this->manager->settings() ) );
-		$this->manager->add_dynamic_settings( wp_array_slice_assoc( $this->post_data, $new_setting_ids ) );
-
-		foreach ( $this->manager->settings() as $setting ) {
-			// @todo delete settings that were deleted dynamically on the client (not just those which the user hasn't the cap to change)
-			if ( $setting->check_capabilities() && array_key_exists( $setting->id, $this->post_data ) ) {
-				$value = $this->post_data[ $setting->id ];
-				$this->set( $setting, $value );
-			}
-		}
-
-		$r = $this->save();
-		if ( is_wp_error( $r ) ) {
-			status_header( 500 );
-			wp_send_json_error( $r->get_error_message() );
-		}
-
-		$response = array(
-			'snapshot_uuid' => $this->uuid,
-			'snapshot_settings' => $this->data(), // send back sanitized settings so that the UI can be updated to reflect the PHP-sanitized values
-		);
-
-		wp_send_json_success( $response );
-	}
-
-	/**
-	 * Create the post type.
-	 *
-	 * @access public
-	 */
-	public function create_post_type() {
-		$args = array(
-			'labels' => array(
-				'name' => __( 'Customize Snapshots', 'customize-widgets-plus' ),
-				'singular_name' => __( 'Customize Snapshot', 'customize-widgets-plus' ),
-			),
-			'public' => false,
-			'capability_type' => 'post',
-			'map_meta_cap' => true,
-			'hierarchical' => false,
-			'rewrite' => false,
-			'delete_with_user' => false,
-			'supports' => array( 'author', 'revisions' ),
-		);
-
-		register_post_type( self::POST_TYPE, $args );
 	}
 
 	/**
@@ -312,9 +129,16 @@ class Customize_Settings_Snapshot {
 	}
 
 	/**
+	 * Get the \WP_Customize_Manager instance.
+	 */
+	public function manager() {
+		return $this->manager;
+	}
+
+	/**
 	 * Get the snapshot uuid.
 	 */
-	public function get_uuid() {
+	public function uuid() {
 		return $this->uuid;
 	}
 
@@ -335,9 +159,9 @@ class Customize_Settings_Snapshot {
 
 		add_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
 		$posts = get_posts( array(
-			'name' => $this->uuid,
+			'post_title' => $this->uuid,
 			'posts_per_page' => 1,
-			'post_type' => self::POST_TYPE,
+			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
 			'post_status' => $post_stati,
 		) );
 		remove_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
@@ -480,8 +304,8 @@ class Customize_Settings_Snapshot {
 
 		if ( ! $this->post ) {
 			$postarr = array(
-				'post_type' => self::POST_TYPE,
-				'post_name' => $this->uuid,
+				'post_type' => Customize_Snapshot_Manager::POST_TYPE,
+				'post_title' => $this->uuid,
 				'post_status' => $status,
 				'post_author' => get_current_user_id(),
 				'post_content_filtered' => $post_content,
