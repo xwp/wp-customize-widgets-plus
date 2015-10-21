@@ -83,7 +83,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Decode and store any initial $_POST['customized'] data.
 	 *
-	 * The value is used by Customize_Settings_Snapshot::update_snapshot().
+	 * The value is used by Customize_Snapshot_Manager::update_snapshot().
 	 */
 	public function store_post_data() {
 		if ( isset( $_POST['customized'] ) ) {

@@ -48,7 +48,8 @@ class Customize_Snapshot {
 	 *
 	 * @access public
 	 *
-	 * @param \WP_Customize_Manager $manager
+	 * @param \WP_Customize_Manager $manager Customize manager bootstrap instance.
+	 * @param string|null $uuid Snapshot unique identifier.
 	 */
 	public function __construct( \WP_Customize_Manager $manager, $uuid ) {
 		$this->manager = $manager;
@@ -63,7 +64,7 @@ class Customize_Snapshot {
 		if ( ! $post ) {
 			$this->data = array();
 		} else {
-			// For reason why base64 encoding is used, see Customize_Settings_Snapshot::save().
+			// For reason why base64 encoding is used, see Customize_Snapshot::save().
 			$this->data = json_decode( $post->post_content_filtered, true );
 
 			if ( ! empty( $this->data ) ) {
