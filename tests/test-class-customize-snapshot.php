@@ -5,6 +5,50 @@ namespace CustomizeWidgetsPlus;
 class Test_Customize_Snapshot extends Base_Test_Case {
 
 	/**
+	 * A valid UUID.
+	 * @type string
+	 */
+	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
+
+	/**
+	 * Post type.
+	 * @type string
+	 */
+	const POST_TYPE = 'customize_snapshot';
+
+	/**
+	 * @var \WP_Customize_Manager
+	 */
+	protected static $manager;
+
+	/**
+	 * Boostrap the customizer.
+	 */
+	public static function setUpBeforeClass() {
+		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
+		self::$manager = new \WP_Customize_Manager();
+
+		$args = array(
+			'labels' => array(
+				'name' => __( 'Customize Snapshots', 'customize-widgets-plus' ),
+				'singular_name' => __( 'Customize Snapshot', 'customize-widgets-plus' ),
+			),
+			'public' => false,
+			'capability_type' => 'post',
+			'map_meta_cap' => true,
+			'hierarchical' => false,
+			'rewrite' => false,
+			'delete_with_user' => false,
+			'supports' => array( 'title', 'author', 'revisions' ),
+		);
+		register_post_type( self::POST_TYPE, $args );
+	}
+
+	public static function tearDownAfterClass() {
+		_unregister_post_type( self::POST_TYPE );
+	}
+
+	/**
 	 * @see Customize_Snapshot::__construct()
 	 */
 	function test_construct() {
@@ -22,35 +66,63 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::generate_uuid()
 	 */
 	function test_generate_uuid() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
+		$snapshot = new Customize_Snapshot( self::$manager, null );
+		$this->assertInternalType( 'string', $snapshot->generate_uuid() );
 	}
 
 	/**
 	 * @see Customize_Snapshot::is_valid_uuid()
 	 */
 	function test_is_valid_uuid() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
+		$snapshot = new Customize_Snapshot( self::$manager, null );
+		$this->assertTrue( $snapshot->is_valid_uuid( self::UUID ) );
 	}
 
 	/**
 	 * @see Customize_Snapshot::uuid()
 	 */
 	function test_uuid() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
+		$snapshot = new Customize_Snapshot( self::$manager, self::UUID );
+		$this->assertEquals( self::UUID, $snapshot->uuid() );
+	}
+
+	/**
+	 * @see Customize_Snapshot::uuid()
+	 */
+	function test_uuid_throws_exception() {
+		try {
+			new Customize_Snapshot( self::$manager, '1234-invalid-UUID' );
+		} catch ( \Exception $e ) {
+			$this->assertContains( 'You\'ve entered an invalid snapshot UUID.', $e->getMessage() );
+			return;
+		}
+
+		$this->fail( 'An expected exception has not been raised.' );
 	}
 
 	/**
 	 * @see Customize_Snapshot::manager()
 	 */
 	function test_manager() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
+		$snapshot = new Customize_Snapshot( self::$manager, null );
+		$this->assertEquals( self::$manager, $snapshot->manager() );
+		$this->assertInstanceOf( 'WP_Customize_Manager', $snapshot->manager() );
 	}
 
 	/**
 	 * @see Customize_Snapshot::is_preview()
 	 */
 	function test_is_preview() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
+		$snapshot = new Customize_Snapshot( self::$manager, self::UUID );
+		$this->assertTrue( $snapshot->is_preview() );
+	}
+
+	/**
+	 * @see Customize_Snapshot::is_preview()
+	 */
+	function test_is_preview_returns_false() {
+		$snapshot = new Customize_Snapshot( self::$manager, null );
+		$this->assertFalse( $snapshot->is_preview() );
 	}
 
 	/**
@@ -103,18 +175,14 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	}
 
 	/**
-	 * @see Customize_Snapshot::saved()
-	 */
-	function test_saved() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
-	}
-
-	/**
 	 * @see Customize_Snapshot::save()
 	 */
 	function test_save() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
+		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
+		$snapshot = new Customize_Snapshot( self::$manager, null );
+		$this->assertFalse( $snapshot->saved() );
+		$snapshot->save();
+		$this->assertTrue( $snapshot->saved() );
 	}
-
 
 }

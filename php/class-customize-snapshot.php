@@ -67,7 +67,7 @@ class Customize_Snapshot {
 				$this->uuid = $uuid;
 				$this->is_preview = true;
 			} else {
-				wp_die( __( 'You\'ve entered an invalid snapshot UUID.', 'customize-widgets-plus' ) );
+				throw new Exception( __( 'You\'ve entered an invalid snapshot UUID.', 'customize-widgets-plus' ) );
 			}
 		} else {
 			$this->uuid = self::generate_uuid();
@@ -313,6 +313,8 @@ class Customize_Snapshot {
 	 * @return null|WP_Error
 	 */
 	public function save( $status = 'draft' ) {
+
+		// @todo Add a check for user permissions.
 
 		$options = 0;
 		if ( defined( 'JSON_UNESCAPED_SLASHES' ) ) {
