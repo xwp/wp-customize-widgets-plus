@@ -130,17 +130,21 @@ class Customize_Snapshot {
 	}
 
 	/**
-	 * Get the \WP_Customize_Manager instance.
-	 */
-	public function manager() {
-		return $this->manager;
-	}
-
-	/**
 	 * Get the snapshot uuid.
+	 *
+	 * @return string
 	 */
 	public function uuid() {
 		return $this->uuid;
+	}
+
+	/**
+	 * Get the Customize manager bootstrap instance.
+	 *
+	 * @return \WP_Customize_Manager
+	 */
+	public function manager() {
+		return $this->manager;
 	}
 
 	/**

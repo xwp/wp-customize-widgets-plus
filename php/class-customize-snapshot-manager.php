@@ -11,7 +11,16 @@ namespace CustomizeWidgetsPlus;
  */
 class Customize_Snapshot_Manager {
 
+	/**
+	 * Post type.
+	 * @type string
+	 */
 	const POST_TYPE = 'customize_snapshot';
+
+	/**
+	 * Action nonce.
+	 * @type string
+	 */
 	const AJAX_ACTION = 'customize_update_snapshot';
 
 	/**
@@ -24,9 +33,10 @@ class Customize_Snapshot_Manager {
 	 *
 	 * Used by Customize_Snapshot_Manager::update_snapshot().
 	 *
+	 * @access protected
 	 * @var array|null
 	 */
-	public $post_data;
+	protected $post_data;
 
 	/**
 	 * Customize_Snapshot instance.
