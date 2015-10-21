@@ -44,6 +44,14 @@ class Customize_Snapshot {
 	protected $post = null;
 
 	/**
+	 * Snapshot preview.
+	 *
+	 * @access protected
+	 * @var bool
+	 */
+	protected $is_preview = false;
+
+	/**
 	 * Initial loader.
 	 *
 	 * @access public
@@ -54,8 +62,13 @@ class Customize_Snapshot {
 	public function __construct( \WP_Customize_Manager $manager, $uuid ) {
 		$this->manager = $manager;
 
-		if ( $uuid && self::is_valid_uuid( $uuid ) ) {
-			$this->uuid = $uuid;
+		if ( $uuid ) {
+			if ( self::is_valid_uuid( $uuid ) ) {
+				$this->uuid = $uuid;
+				$this->is_preview = true;
+			} else {
+				wp_die( __( 'You\'ve entered an invalid snapshot UUID.', 'customize-widgets-plus' ) );
+			}
 		} else {
 			$this->uuid = self::generate_uuid();
 		}
@@ -148,6 +161,15 @@ class Customize_Snapshot {
 	}
 
 	/**
+	 * Check for Snapshot preview.
+	 *
+	 * @return bool
+	 */
+	public function is_preview() {
+		return $this->is_preview;
+	}
+
+	/**
 	 * Get the snapshot post associated with the provided UUID, or null if it does not exist.
 	 *
 	 * @return WP_Post|null
@@ -157,17 +179,12 @@ class Customize_Snapshot {
 			return $this->post;
 		}
 
-		$post_stati = array_merge(
-			array( 'any' ),
-			array_values( get_post_stati( array( 'exclude_from_search' => true ) ) )
-		);
-
 		add_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
 		$posts = get_posts( array(
-			'post_title' => $this->uuid,
+			'name' => $this->uuid,
 			'posts_per_page' => 1,
 			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
-			'post_status' => $post_stati,
+			'post_status' => array( 'draft', 'publish' ),
 		) );
 		remove_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
 
@@ -310,6 +327,7 @@ class Customize_Snapshot {
 		if ( ! $this->post ) {
 			$postarr = array(
 				'post_type' => Customize_Snapshot_Manager::POST_TYPE,
+				'post_name' => $this->uuid,
 				'post_title' => $this->uuid,
 				'post_status' => $status,
 				'post_author' => get_current_user_id(),
@@ -323,8 +341,8 @@ class Customize_Snapshot {
 		} else {
 			$postarr = array(
 				'ID' => $this->post->ID,
-				'post_content_filtered' => wp_slash( $post_content ),
 				'post_status' => $status,
+				'post_content_filtered' => wp_slash( $post_content ),
 			);
 			$r = wp_update_post( $postarr, true );
 			if ( is_wp_error( $r ) ) {

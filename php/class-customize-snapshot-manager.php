@@ -71,23 +71,21 @@ class Customize_Snapshot_Manager {
 			$this->store_post_data();
 		}
 
-		/**
-		 * @var \WP_Customize_Manager $wp_customize
-		 */
-		global $wp_customize;
-
 		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? $_REQUEST['customize_snapshot_uuid'] : null;
 
 		// Bootstrap the Customizer.
-		if ( empty( $wp_customize ) && $uuid ) {
+		if ( empty( $GLOBALS['wp_customize'] ) && $uuid ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-			$wp_customize = new \WP_Customize_Manager();
+			$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
 		}
-		$this->snapshot = new Customize_Snapshot( $wp_customize, $uuid );
+
+		$this->snapshot = new Customize_Snapshot( $GLOBALS['wp_customize'], $uuid );
 
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
+
+		$this->preview();
 	}
 
 	/**
@@ -217,5 +215,14 @@ class Customize_Snapshot_Manager {
 		);
 
 		wp_send_json_success( $response );
+	}
+
+	/**
+	 * Preview a snapshot.
+	 */
+	public function preview() {
+		if ( true === $this->snapshot->is_preview() ) {
+			// @todo Preview a UUID by playing the saved data on top of the current settings.
+		}
 	}
 }
