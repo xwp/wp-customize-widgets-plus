@@ -1,6 +1,6 @@
 /* global jQuery, _customizeWidgetsPlusCustomizeSnapshot, JSON, alert */
 /* exported customizeSnapshot */
-var customizeSnapshot = ( function( exports, $ ) {
+var customizeSnapshot = ( function( $ ) {
 
 	var self = {}, api = wp.customize;
 
@@ -49,5 +49,5 @@ var customizeSnapshot = ( function( exports, $ ) {
 
 	self.init();
 	return self;
-}( wp, jQuery ) );
+}( jQuery ) );
 
