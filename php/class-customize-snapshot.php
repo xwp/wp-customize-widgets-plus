@@ -50,7 +50,7 @@ class Customize_Snapshot {
 	 *
 	 * @param \WP_Customize_Manager $manager
 	 */
-	public function __construct( \WP_Customize_Manager $manager, $uuid ) {		
+	public function __construct( \WP_Customize_Manager $manager, $uuid ) {
 		$this->manager = $manager;
 
 		if ( $uuid && self::is_valid_uuid( $uuid ) ) {
