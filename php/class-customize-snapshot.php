@@ -52,15 +52,25 @@ class Customize_Snapshot {
 	protected $is_preview = false;
 
 	/**
+	 * Store dirty data only.
+	 *
+	 * @access protected
+	 * @var bool
+	 */
+	protected $apply_dirty;
+
+	/**
 	 * Initial loader.
 	 *
 	 * @access public
 	 *
 	 * @param \WP_Customize_Manager $manager Customize manager bootstrap instance.
 	 * @param string|null $uuid Snapshot unique identifier.
+	 * @param bool $apply_dirty Apply only dirty settings from snapshot to Customizer post data. Default is `true`.
 	 */
-	public function __construct( \WP_Customize_Manager $manager, $uuid ) {
+	public function __construct( \WP_Customize_Manager $manager, $uuid, $apply_dirty = true ) {
 		$this->manager = $manager;
+		$this->apply_dirty = $apply_dirty;
 
 		if ( $uuid ) {
 			if ( self::is_valid_uuid( $uuid ) ) {
@@ -112,7 +122,7 @@ class Customize_Snapshot {
 	 * magic quotes may end up getting added twice.
 	 */
 	public function populate_customized_post_var() {
-		$_POST['customized'] = add_magic_quotes( wp_json_encode( $this->data ) );
+		$_POST['customized'] = add_magic_quotes( wp_json_encode( $this->values() ) );
 		$_REQUEST['customized'] = $_POST['customized'];
 	}
 
@@ -250,12 +260,12 @@ class Customize_Snapshot {
 	 *
 	 * @return array
 	 */
-	public function data() {
-		// @todo just return $this->data; ?
-		$values = array();
-		foreach ( array_keys( $this->data ) as $setting_id ) {
-			$values[ $setting_id ] = $this->get( $setting_id );
-		}
+	public function values() {
+		$apply_dirty = $this->apply_dirty;
+		$values = array_filter( $this->data, function( $setting ) use ( $apply_dirty ) {
+			return $setting['dirty'] === $apply_dirty;
+		} );
+		$values = wp_list_pluck( $values, 'value' );
 		return $values;
 	}
 
@@ -291,9 +301,12 @@ class Customize_Snapshot {
 	 * @param mixed $value Must be JSON-serializable
 	 */
 	public function set( \WP_Customize_Setting $setting, $value ) {
-		$value = wp_slash( $value ); // WP_Customize_Setting::sanitize() erroneously does wp_unslash again
-		$value = $setting->sanitize( $value );
-		$this->data[ $setting->id ] = $value;
+		$sanitizedValue = wp_slash( $value['value'] ); // WP_Customize_Setting::sanitize() erroneously does wp_unslash again
+		$sanitizedValue = $setting->sanitize( $sanitizedValue );
+		$this->data[ $setting->id ] = array(
+			'value' => $sanitizedValue,
+			'dirty' => $value['dirty'],
+		);
 	}
 
 	/**

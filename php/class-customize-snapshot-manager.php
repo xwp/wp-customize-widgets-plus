@@ -72,6 +72,8 @@ class Customize_Snapshot_Manager {
 		}
 
 		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? $_REQUEST['customize_snapshot_uuid'] : null;
+		$scope = isset( $_REQUEST['scope'] ) ? $_REQUEST['scope'] : 'dirty';
+		$apply_dirty = ( 'dirty' === $scope );
 
 		// Bootstrap the Customizer.
 		if ( empty( $GLOBALS['wp_customize'] ) && $uuid ) {
@@ -79,7 +81,7 @@ class Customize_Snapshot_Manager {
 			$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
 		}
 
-		$this->snapshot = new Customize_Snapshot( $GLOBALS['wp_customize'], $uuid );
+		$this->snapshot = new Customize_Snapshot( $GLOBALS['wp_customize'], $uuid, $apply_dirty );
 
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
@@ -94,8 +96,8 @@ class Customize_Snapshot_Manager {
 	 * The value is used by Customize_Snapshot_Manager::update_snapshot().
 	 */
 	public function store_post_data() {
-		if ( isset( $_POST['customized'] ) ) {
-			$this->post_data = json_decode( wp_unslash( $_POST['customized'] ), true );
+		if ( isset( $_POST['customized_json'] ) ) {
+			$this->post_data = json_decode( wp_unslash( $_POST['customized_json'] ), true );
 		}
 	}
 
@@ -143,6 +145,7 @@ class Customize_Snapshot_Manager {
 			'uuid' => $this->snapshot->uuid(),
 			'i18n' => array(
 				'buttonText' => __( 'Share URL to preview', 'customize-widgets-plus' ),
+				'errorText' => __( 'The snapshot could not be saved.', 'customize-widgets-plus' ),
 			),
 		);
 
@@ -210,8 +213,8 @@ class Customize_Snapshot_Manager {
 		}
 
 		$response = array(
-			'snapshot_uuid' => $this->snapshot->uuid(),
-			'snapshot_settings' => $this->snapshot->data(), // send back sanitized settings so that the UI can be updated to reflect the PHP-sanitized values
+			'customize_snapshot_uuid' => $this->snapshot->uuid(),
+			'customize_snapshot_settings' => $this->snapshot->values(), // send back sanitized settings so that the UI can be updated to reflect the PHP-sanitized values
 		);
 
 		wp_send_json_success( $response );

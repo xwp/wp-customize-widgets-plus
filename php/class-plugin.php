@@ -219,7 +219,7 @@ class Plugin extends Plugin_Base {
 		$slug = 'customize-snapshot';
 		$handle = "{$this->slug}-{$slug}";
 		$src = $this->dir_url . 'js/customize-snapshot.js';
-		$deps = array( 'jquery', 'underscore' );
+		$deps = array( 'jquery', 'jquery-ui-dialog' );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
 	}
@@ -245,7 +245,8 @@ class Plugin extends Plugin_Base {
 		$slug = 'customize-snapshot';
 		$handle = "{$this->slug}-{$slug}";
 		$src = $this->dir_url . 'css/customize-snapshot.css';
-		$wp_styles->add( $handle, $src );
+		$deps = array( 'wp-jquery-ui-dialog' );
+		$wp_styles->add( $handle, $src, $deps );
 		$this->style_handles[ $slug ] = $handle;
 	}
 

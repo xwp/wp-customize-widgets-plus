@@ -30,3 +30,11 @@
 		left: 96px;
 	}
 }
+
+.wp-customizer.js .ui-dialog {
+	z-index: 999999;
+}
+
+#snapshot-dialog-share {
+	word-wrap: break-word;
+}
