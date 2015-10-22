@@ -2,7 +2,7 @@
 /* exported customizeSnapshot */
 var customizeSnapshot = ( function( $ ) {
 
-	var self = {}, 
+	var self = {},
 		api = wp.customize,
 		dialog, form;
 
