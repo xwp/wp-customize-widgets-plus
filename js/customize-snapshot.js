@@ -104,8 +104,8 @@ var customizeSnapshot = ( function( $ ) {
 
 		request.done( function( response ) {
 			var url = wp.customize.previewer.previewUrl(),
-				regex = new RegExp( "([?&])customize_snapshot_uuid=.*?(&|$)", "i" ),
-				separator = url.indexOf( '?' ) !== -1 ? "&" : "?";
+				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
+				separator = url.indexOf( '?' ) !== -1 ? '&' : '?';
 
 			if ( url.match( regex ) ) {
 				url = url.replace( regex, '$1' + 'customize_snapshot_uuid=' + response.customize_snapshot_uuid + '$2' );
@@ -120,7 +120,7 @@ var customizeSnapshot = ( function( $ ) {
 			} );
 		} );
 
-		request.fail( function( response ) {
+		request.fail( function() {
 			spinner.removeClass( 'is-active' );
 			$( '#snapshot-dialog-share' ).html( '<p>' + _customizeWidgetsPlusCustomizeSnapshot.i18n.errorText + '</p>' ).dialog( {
 				autoOpen: true,
