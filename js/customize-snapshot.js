@@ -60,8 +60,8 @@ var customizeSnapshot = ( function( $ ) {
 		var html = '<div id="snapshot-dialog-form" title="Snapshot">' +
 			'<form>' +
 				'<fieldset>' +
-					'<input id="type-0" type="radio" checked="checked" value="diff" name="type"><label for="type-0">Diff</label><br>' +
-					'<input id="type-1" type="radio" value="full" name="type"><label for="type-1">Full</label><br>' +
+					'<input id="type-0" type="radio" checked="checked" value="dirty" name="scope"><label for="type-0">Diff</label><br>' +
+					'<input id="type-1" type="radio" value="full" name="scope"><label for="type-1">Full</label><br>' +
 					'<input type="submit" tabindex="-1" style="position:absolute; top:-5000px">' +
 				'</fieldset>' +
 			'</form>' +
@@ -99,7 +99,8 @@ var customizeSnapshot = ( function( $ ) {
 			nonce: _customizeWidgetsPlusCustomizeSnapshot.nonce,
 			wp_customize: 'on',
 			customized_json: JSON.stringify( customized ),
-			customize_snapshot_uuid: _customizeWidgetsPlusCustomizeSnapshot.uuid
+			customize_snapshot_uuid: _customizeWidgetsPlusCustomizeSnapshot.uuid,
+			scope: dialog.find( 'form input[name="scope"]:checked' ).val()
 		} );
 
 		request.done( function( response ) {

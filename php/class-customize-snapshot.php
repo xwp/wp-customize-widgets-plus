@@ -52,12 +52,12 @@ class Customize_Snapshot {
 	protected $is_preview = false;
 
 	/**
-	 * Store dirty data only.
+	 * Preview dirty values only.
 	 *
-	 * @access protected
+	 * @access public
 	 * @var bool
 	 */
-	protected $apply_dirty;
+	public $apply_dirty;
 
 	/**
 	 * Initial loader.

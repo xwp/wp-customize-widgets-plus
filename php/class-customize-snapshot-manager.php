@@ -177,6 +177,10 @@ class Customize_Snapshot_Manager {
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_uuid' );
 		}
+		if ( empty( $_REQUEST['scope'] ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'invalid_customize_snapshot_scope' );
+		}
 		if ( empty( $this->post_data ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_customized_json' );
@@ -194,6 +198,7 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'unauthorized' );
 		}
 
+		$this->snapshot->apply_dirty = ( 'dirty' === $_REQUEST['scope'] );
 		$manager = $this->snapshot->manager();
 		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
 		$manager->add_dynamic_settings( wp_array_slice_assoc( $this->post_data, $new_setting_ids ) );
