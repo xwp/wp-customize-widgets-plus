@@ -158,6 +158,15 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Get the Customize_Snapshot instance.
+	 *
+	 * @return Customize_Snapshot
+	 */
+	public function snapshot() {
+		return $this->snapshot;
+	}
+
+	/**
 	 * Update snapshots via AJAX.
 	 */
 	public function update_snapshot() {
