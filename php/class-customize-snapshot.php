@@ -33,7 +33,7 @@ class Customize_Snapshot {
 	 * @access protected
 	 * @var array
 	 */
-	protected $data = array();
+	public $data = array();
 
 	/**
 	 * Post object for the current snapshot.
@@ -363,6 +363,7 @@ class Customize_Snapshot {
 			if ( is_wp_error( $r ) ) {
 				return $r;
 			}
+			$this->post = get_post( $r );
 		}
 
 		return null;
