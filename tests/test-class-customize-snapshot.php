@@ -114,6 +114,26 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	}
 
 	/**
+	 * @see Customize_Snapshot::set_uuid()
+	 */
+	function test_set_uuid() {
+		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$this->assertNotEquals( self::UUID, $snapshot->uuid() );
+		$snapshot->set_uuid( self::UUID );
+		$this->assertEquals( self::UUID, $snapshot->uuid() );
+	}
+
+	/**
+	 * @see Customize_Snapshot::reset_uuid()
+	 */
+	function test_reset_uuid() {
+		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$uuid = $snapshot->uuid();
+		$snapshot->reset_uuid();
+		$this->assertNotEquals( $uuid, $snapshot->uuid() );
+	}
+
+	/**
 	 * @see Customize_Snapshot::manager()
 	 */
 	function test_manager() {

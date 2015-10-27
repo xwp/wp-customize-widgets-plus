@@ -8,7 +8,8 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	 * @see Customize_Snapshot_Manager::__construct()
 	 */
 	function test_construct() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertInstanceOf( 'CustomizeWidgetsPlus\Customize_Snapshot_Manager', $manager );
 	}
 
 	/**
