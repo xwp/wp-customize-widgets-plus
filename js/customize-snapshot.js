@@ -146,10 +146,11 @@ var customizeSnapshot = ( function( $ ) {
 			}
 
 			spinner.removeClass( 'is-active' );
-			$( '#snapshot-dialog-share' ).html( '<p>' + url + '</p>' ).dialog( {
+			$( '#snapshot-dialog-share' ).html( '<a href="' + url + '" target="_blank">' + url + '</a>' ).dialog( {
 				autoOpen: true,
 				modal: true
 			} );
+			$( '#snapshot-dialog-share' ).find( 'a' ).blur();
 		} );
 
 		request.fail( function() {

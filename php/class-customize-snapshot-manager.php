@@ -157,8 +157,8 @@ class Customize_Snapshot_Manager {
 					:
 					__( 'Snapshot Scope', 'customize-widgets-plus' )
 				),
-				'dirtyLabel' => __( 'Diff snapshots preview dirty settings.', 'customize-widgets-plus' ),
-				'fullLabel' => __( 'Full snapshots preview all settings.', 'customize-widgets-plus' ),
+				'dirtyLabel' => __( 'Diff Snapshot (preview dirty settings)', 'customize-widgets-plus' ),
+				'fullLabel' => __( 'Full Snapshot (preview all settings)', 'customize-widgets-plus' ),
 			),
 		);
 
