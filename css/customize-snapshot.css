@@ -35,6 +35,14 @@
 	z-index: 999999;
 }
 
+#snapshot-dialog-form label {
+	padding-bottom: 1em;
+}
+
 #snapshot-dialog-share {
 	word-wrap: break-word;
+}
+
+#snapshot-dialog-share p {
+	margin-top: 0;
 }

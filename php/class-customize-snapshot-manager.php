@@ -71,8 +71,8 @@ class Customize_Snapshot_Manager {
 			$this->store_post_data();
 		}
 
-		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? $_REQUEST['customize_snapshot_uuid'] : null;
-		$scope = isset( $_REQUEST['scope'] ) ? $_REQUEST['scope'] : 'dirty';
+		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? $_GET['customize_snapshot_uuid'] : null;
+		$scope = isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty';
 		$apply_dirty = ( 'dirty' === $scope );
 
 		// Bootstrap the Customizer.
@@ -143,9 +143,22 @@ class Customize_Snapshot_Manager {
 			'nonce' => wp_create_nonce( self::AJAX_ACTION ),
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot->uuid(),
+			'is_preview' => $this->snapshot->is_preview(),
+			'scope' => ( isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty' ),
 			'i18n' => array(
-				'buttonText' => __( 'Share URL to preview', 'customize-widgets-plus' ),
-				'errorText' => __( 'The snapshot could not be saved.', 'customize-widgets-plus' ),
+				'saveButton' => __( 'Save', 'customize-widgets-plus' ),
+				'cancelButton' => __( 'Cancel', 'customize-widgets-plus' ),
+				'shareButton' => __( 'Share URL to preview', 'customize-widgets-plus' ),
+				'updateMsg' => __( 'Clicking "Save" will update the current snapshot.', 'customize-widgets-plus' ),
+				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-widgets-plus' ),
+				'previewTitle' => __( 'Preview URL', 'customize-widgets-plus' ),
+				'formTitle' => ( $this->snapshot->is_preview() ?
+					__( 'Update Snapshot', 'customize-widgets-plus' )
+					:
+					__( 'Snapshot Scope', 'customize-widgets-plus' )
+				),
+				'dirtyLabel' => __( 'Diff snapshots preview dirty settings.', 'customize-widgets-plus' ),
+				'fullLabel' => __( 'Full snapshots preview all settings.', 'customize-widgets-plus' ),
 			),
 		);
 
@@ -194,6 +207,14 @@ class Customize_Snapshot_Manager {
 			status_header( 400 );
 			wp_send_json_error( 'missing_customized_json' );
 		}
+		if ( empty( $_REQUEST['is_preview'] ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'missing_is_preview' );
+		}
+
+		// Set the snapshot UUID.
+		$this->snapshot->set_uuid( $_REQUEST['customize_snapshot_uuid'] );
+		$uuid = $this->snapshot->uuid();
 
 		$post = $this->snapshot->post();
 		$post_type = get_post_type_object( self::POST_TYPE );
@@ -226,9 +247,15 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( $r->get_error_message() );
 		}
 
+		// Set a new UUID every time Share is clicked, when the user is not previewing a snapshot.
+		if ( true !== $_REQUEST['is_preview'] ) {
+			$this->snapshot->reset_uuid();
+		}
+
 		$response = array(
-			'customize_snapshot_uuid' => $this->snapshot->uuid(),
-			'customize_snapshot_settings' => $this->snapshot->values(), // send back sanitized settings so that the UI can be updated to reflect the PHP-sanitized values
+			'customize_snapshot_uuid' => $uuid, // Current UUID.
+			'customize_snapshot_next_uuid' => $this->snapshot->uuid(), // Next UUID if not previewing, else current UUID.
+			'customize_snapshot_settings' => $this->snapshot->values(), // Send back sanitized settings values.
 		);
 
 		wp_send_json_success( $response );

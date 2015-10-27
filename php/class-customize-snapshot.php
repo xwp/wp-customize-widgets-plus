@@ -162,6 +162,22 @@ class Customize_Snapshot {
 	}
 
 	/**
+	 * Set the snapshot uuid.
+	 */
+	public function set_uuid( $uuid ) {
+		if ( self::is_valid_uuid( $uuid ) ) {
+			$this->uuid = $uuid;
+		}
+	}
+
+	/**
+	 * Reset the snapshot uuid.
+	 */
+	public function reset_uuid() {
+		$this->uuid = self::generate_uuid();
+	}
+
+	/**
 	 * Get the Customize manager bootstrap instance.
 	 *
 	 * @return \WP_Customize_Manager

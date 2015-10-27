@@ -4,6 +4,8 @@ var customizeSnapshot = ( function( $ ) {
 
 	var self = {},
 		api = wp.customize,
+		uuid = _customizeWidgetsPlusCustomizeSnapshot.uuid,
+		is_preview = _customizeWidgetsPlusCustomizeSnapshot.is_preview,
 		dialog, form;
 
 	/**
@@ -19,9 +21,15 @@ var customizeSnapshot = ( function( $ ) {
 				autoOpen: false,
 				modal: true,
 				buttons: {
-					'Save': self.doAjax,
-					Cancel: function() {
-						dialog.dialog( 'close' );
+					Save: {
+						text: _customizeWidgetsPlusCustomizeSnapshot.i18n.saveButton,
+						click: self.doAjax
+					},
+					Cancel: {
+						text: _customizeWidgetsPlusCustomizeSnapshot.i18n.cancelButton,
+						click: function() {
+							dialog.dialog( 'close' );
+						}
 					}
 				},
 				close: function() {
@@ -37,6 +45,8 @@ var customizeSnapshot = ( function( $ ) {
 			$( '#customize-snapshot' ).on( 'click', function( event ) {
 				event.preventDefault();
 				dialog.dialog( 'open' );
+				dialog.find( 'form input[name=scope]' ).blur();
+				dialog.next( '.ui-dialog-buttonpane' ).find( 'button' ).blur();
 			} );
 		} );
 	};
@@ -46,7 +56,7 @@ var customizeSnapshot = ( function( $ ) {
 	 */
 	self.addButton = function() {
 		var $header = $( '#customize-header-actions' ),
-			$button = '<button id="customize-snapshot" class="dashicons dashicons-share"><span class="screen-reader-text">' + _customizeWidgetsPlusCustomizeSnapshot.i18n.buttonText + '</span></button>';
+			$button = '<button id="customize-snapshot" class="dashicons dashicons-share"><span class="screen-reader-text">' + _customizeWidgetsPlusCustomizeSnapshot.i18n.shareButton + '</span></button>';
 
 		if ( $header.length ) {
 			$header.addClass( 'customize-snapshots' ).append( $button );
@@ -57,12 +67,17 @@ var customizeSnapshot = ( function( $ ) {
 	 * Create the dialog form.
 	 */
 	self.addFormDialog = function() {
-		var html = '<div id="snapshot-dialog-form" title="Snapshot">' +
+		var html = '<div id="snapshot-dialog-form" title="' + _customizeWidgetsPlusCustomizeSnapshot.i18n.formTitle + '">' +
 			'<form>' +
-				'<fieldset>' +
-					'<input id="type-0" type="radio" checked="checked" value="dirty" name="scope"><label for="type-0">Diff</label><br>' +
-					'<input id="type-1" type="radio" value="full" name="scope"><label for="type-1">Full</label><br>' +
-					'<input type="submit" tabindex="-1" style="position:absolute; top:-5000px">' +
+				'<fieldset>';
+				if ( is_preview ) {
+					html += '<p>' + _customizeWidgetsPlusCustomizeSnapshot.i18n.updateMsg + '</p>' +
+					'<input type="hidden" value="' + _customizeWidgetsPlusCustomizeSnapshot.scope + '" name="scope"></label>';
+				} else {
+					html += '<label for="type-0"><input id="type-0" type="radio" checked="checked" value="dirty" name="scope">' + _customizeWidgetsPlusCustomizeSnapshot.i18n.dirtyLabel + '</label><br>' +
+					'<label for="type-1"><input id="type-1" type="radio" value="full" name="scope">' + _customizeWidgetsPlusCustomizeSnapshot.i18n.fullLabel + '</label><br>';
+				}
+				html += '<input type="submit" tabindex="-1" style="position:absolute; top:-5000px">' +
 				'</fieldset>' +
 			'</form>' +
 		'</div>';
@@ -73,7 +88,7 @@ var customizeSnapshot = ( function( $ ) {
 	 * Create the share dialog.
 	 */
 	self.addShareDialog = function() {
-		var html = '<div id="snapshot-dialog-share"></div>';
+		var html = '<div id="snapshot-dialog-share" title="' + _customizeWidgetsPlusCustomizeSnapshot.i18n.previewTitle + '"></div>';
 		$( html ).appendTo( 'body' );
 	};
 
@@ -82,7 +97,12 @@ var customizeSnapshot = ( function( $ ) {
 	 */
 	self.doAjax = function() {
 		var spinner = $( '#customize-header-actions .spinner' ),
+			scope = dialog.find( 'form input[name="scope"]:checked' ).val(),
 			request, customized;
+
+		if ( ! scope ) {
+			scope = dialog.find( 'form input[type="hidden"]' ).val();
+		}
 
 		dialog.dialog( 'close' );
 		spinner.addClass( 'is-active' );
@@ -99,8 +119,9 @@ var customizeSnapshot = ( function( $ ) {
 			nonce: _customizeWidgetsPlusCustomizeSnapshot.nonce,
 			wp_customize: 'on',
 			customized_json: JSON.stringify( customized ),
-			customize_snapshot_uuid: _customizeWidgetsPlusCustomizeSnapshot.uuid,
-			scope: dialog.find( 'form input[name="scope"]:checked' ).val()
+			customize_snapshot_uuid: uuid,
+			scope: scope,
+			is_preview: is_preview
 		} );
 
 		request.done( function( response ) {
@@ -114,6 +135,16 @@ var customizeSnapshot = ( function( $ ) {
 				url = url + separator + 'customize_snapshot_uuid=' + response.customize_snapshot_uuid;
 			}
 
+			if ( 'dirty' !== scope ) {
+				scope = 'full';
+			}
+			url += '&scope=' + scope;
+
+			// Write over the UUID
+			if ( true !== is_preview ) {
+				uuid = response.customize_snapshot_next_uuid;
+			}
+
 			spinner.removeClass( 'is-active' );
 			$( '#snapshot-dialog-share' ).html( '<p>' + url + '</p>' ).dialog( {
 				autoOpen: true,
@@ -123,7 +154,7 @@ var customizeSnapshot = ( function( $ ) {
 
 		request.fail( function() {
 			spinner.removeClass( 'is-active' );
-			$( '#snapshot-dialog-share' ).html( '<p>' + _customizeWidgetsPlusCustomizeSnapshot.i18n.errorText + '</p>' ).dialog( {
+			$( '#snapshot-dialog-share' ).html( '<p>' + _customizeWidgetsPlusCustomizeSnapshot.i18n.errorMsg + '</p>' ).dialog( {
 				autoOpen: true,
 				modal: true
 			} );
@@ -132,4 +163,3 @@ var customizeSnapshot = ( function( $ ) {
 
 	self.init();
 }( jQuery ) );
-
