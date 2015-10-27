@@ -33,7 +33,7 @@ class Customize_Snapshot {
 	 * @access protected
 	 * @var array
 	 */
-	public $data = array();
+	protected $data = array();
 
 	/**
 	 * Post object for the current snapshot.
