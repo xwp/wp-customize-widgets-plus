@@ -17,9 +17,11 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	const POST_TYPE = 'customize_snapshot';
 	
 	/**
+	 * Instance of WP_Customize_Manager which is reset for each test.
+	 *
 	 * @var \WP_Customize_Manager
 	 */
-	protected $manager;
+	protected $wp_customize;
 
 	/**
 	 * @var \WP_Customize_Setting
@@ -59,17 +61,16 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 		parent::setUp();
 		require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 		$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
-		$this->manager = $GLOBALS['wp_customize'];
-		$user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $user_id );
-		$this->manager->add_setting( 'foo', array( 'default' => 'foo_default' ) );
-		$this->manager->add_setting( 'bar', array( 'default' => 'bar_default' ) );
-		$this->foo = $this->manager->get_setting( 'foo' );
-		$this->bar = $this->manager->get_setting( 'bar' );
+		$this->wp_customize = $GLOBALS['wp_customize'];
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
+		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
+		$this->foo = $this->wp_customize->get_setting( 'foo' );
+		$this->bar = $this->wp_customize->get_setting( 'bar' );
 	}
 
 	function tearDown() {
-		$this->manager = null;
+		$this->wp_customize = null;
 		unset( $GLOBALS['wp_customize'] );
 		unset( $GLOBALS['wp_scripts'] );
 		parent::tearDown();
@@ -79,7 +80,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::generate_uuid()
 	 */
 	function test_generate_uuid() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 		$this->assertInternalType( 'string', $snapshot->generate_uuid() );
 	}
 
@@ -87,7 +88,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::is_valid_uuid()
 	 */
 	function test_is_valid_uuid() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 		$this->assertTrue( $snapshot->is_valid_uuid( self::UUID ) );
 	}
 
@@ -95,7 +96,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::uuid()
 	 */
 	function test_uuid() {
-		$snapshot = new Customize_Snapshot( $this->manager, self::UUID );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, self::UUID );
 		$this->assertEquals( self::UUID, $snapshot->uuid() );
 	}
 
@@ -104,7 +105,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 */
 	function test_uuid_throws_exception() {
 		try {
-			new Customize_Snapshot( $this->manager, '1234-invalid-UUID' );
+			new Customize_Snapshot( $this->wp_customize, '1234-invalid-UUID' );
 		} catch ( \Exception $e ) {
 			$this->assertContains( 'You\'ve entered an invalid snapshot UUID.', $e->getMessage() );
 			return;
@@ -117,7 +118,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::set_uuid()
 	 */
 	function test_set_uuid() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 		$this->assertNotEquals( self::UUID, $snapshot->uuid() );
 		$snapshot->set_uuid( self::UUID );
 		$this->assertEquals( self::UUID, $snapshot->uuid() );
@@ -127,18 +128,19 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::reset_uuid()
 	 */
 	function test_reset_uuid() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 		$uuid = $snapshot->uuid();
-		$snapshot->reset_uuid();
-		$this->assertNotEquals( $uuid, $snapshot->uuid() );
+		$new_uuid = $snapshot->reset_uuid();
+		$this->assertNotEquals( $uuid, $new_uuid );
+		$this->assertEquals( $new_uuid, $snapshot->uuid() );
 	}
 
 	/**
 	 * @see Customize_Snapshot::manager()
 	 */
 	function test_manager() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
-		$this->assertEquals( $this->manager, $snapshot->manager() );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
+		$this->assertEquals( $this->wp_customize, $snapshot->manager() );
 		$this->assertInstanceOf( 'WP_Customize_Manager', $snapshot->manager() );
 	}
 
@@ -146,7 +148,8 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::is_preview()
 	 */
 	function test_is_preview() {
-		$snapshot = new Customize_Snapshot( $this->manager, self::UUID );
+		$_GET['customize_snapshot_uuid'] = self::UUID;
+		$snapshot = new Customize_Snapshot( $this->wp_customize, self::UUID );
 		$this->assertTrue( $snapshot->is_preview() );
 	}
 
@@ -154,7 +157,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::is_preview()
 	 */
 	function test_is_preview_returns_false() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 		$this->assertFalse( $snapshot->is_preview() );
 	}
 
@@ -162,10 +165,10 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::post()
 	 */
 	function test_post() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 		$this->assertNull( $snapshot->post() );
 		$snapshot->save();
-		$snapshot = new Customize_Snapshot( $this->manager, $snapshot->uuid() );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, $snapshot->uuid() );
 		$this->assertNotNull( $snapshot->post() );
 	}
 
@@ -174,7 +177,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 */
 	function test_values() {
 		// Has no values when '$apply_dirty' is set to 'true'
-		$snapshot = new Customize_Snapshot( $this->manager, null, true );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null, true );
 		$snapshot->set( $this->foo, array(
 			'value' => 'foo_default',
 			'dirty' => false,
@@ -189,11 +192,11 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 		$uuid = $snapshot->uuid();
 
 		// Has values when '$apply_dirty' is set to 'false'
-		$snapshot = new Customize_Snapshot( $this->manager, $uuid, false );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, $uuid, false );
 		$this->assertNotEmpty( $snapshot->values() );
 
 		// Has dirty values
-		$snapshot = new Customize_Snapshot( $this->manager, $uuid, true );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, $uuid, true );
 		$snapshot->set( $this->bar, array(
 			'value' => 'bar_custom',
 			'dirty' => true,
@@ -205,7 +208,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::settings()
 	 */
 	function test_settings() {
-		$snapshot = new Customize_Snapshot( $this->manager, null, true );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null, true );
 		$this->assertEmpty( $snapshot->settings() );
 		$snapshot->set( $this->foo, array(
 			'value' => 'foo_default',
@@ -224,7 +227,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::get()
 	 */
 	function test_set_and_get() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 
 		$this->assertEmpty( $snapshot->get( $this->foo ) );
 		$snapshot->set( $this->foo, array(
@@ -242,7 +245,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::save()
 	 */
 	function test_save() {
-		$snapshot = new Customize_Snapshot( $this->manager, null );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 
 		$snapshot->set( $this->foo, array(
 			'value' => 'foo_default',
@@ -264,7 +267,7 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 		$this->assertEquals( $decoded['bar'], $snapshot->get( $this->bar ) );
 
 		// Update the Snapshot content
-		$snapshot = new Customize_Snapshot( $this->manager, $snapshot->uuid() );
+		$snapshot = new Customize_Snapshot( $this->wp_customize, $snapshot->uuid() );
 		$snapshot->set( $this->bar, array(
 			'value' => 'bar_custom',
 			'dirty' => true,

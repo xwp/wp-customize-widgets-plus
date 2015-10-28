@@ -28,9 +28,8 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	function setUp() {
 		parent::setUp();
 		require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-		global $wp_customize;
-		$this->wp_customize = new \WP_Customize_Manager();
-		$wp_customize = $this->wp_customize;
+		$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
+		$this->wp_customize = $GLOBALS['wp_customize'];
 
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
@@ -46,8 +45,8 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 		$this->manager = null;
 		unset( $GLOBALS['wp_customize'] );
 		unset( $GLOBALS['wp_scripts'] );
-		unset( $_GET['customize_snapshot_uuid'] );
-		unset( $_GET['scope'] );
+		unset( $_REQUEST['customize_snapshot_uuid'] );
+		unset( $_REQUEST['scope'] );
 		parent::tearDown();
 	}
 

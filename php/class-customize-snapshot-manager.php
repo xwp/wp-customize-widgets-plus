@@ -57,7 +57,7 @@ class Customize_Snapshot_Manager {
 		// Bail if our conditions are not met.
 		if ( ! ( ( isset( $_REQUEST['wp_customize'] ) && 'on' == $_REQUEST['wp_customize'] )
 			|| ( is_admin() && 'customize.php' == basename( $_SERVER['PHP_SELF'] ) )
-			|| ( isset( $_GET['customize_snapshot_uuid'] ) )
+			|| ( isset( $_REQUEST['customize_snapshot_uuid'] ) )
 		) ) {
 			return;
 		}
@@ -71,12 +71,12 @@ class Customize_Snapshot_Manager {
 			$this->store_post_data();
 		}
 
-		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? $_GET['customize_snapshot_uuid'] : null;
-		$scope = isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty';
+		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? $_REQUEST['customize_snapshot_uuid'] : null;
+		$scope = isset( $_REQUEST['scope'] ) ? $_REQUEST['scope'] : 'dirty';
 		$apply_dirty = ( 'dirty' === $scope );
 
 		// Bootstrap the Customizer.
-		if ( empty( $GLOBALS['wp_customize'] ) && $uuid ) {
+		if ( $uuid && ( empty( $GLOBALS['wp_customize'] ) || ! ( $GLOBALS['wp_customize'] instanceof \WP_Customize_Manager ) ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
 		}
@@ -212,14 +212,15 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'missing_customized_json' );
 		}
 
-		if ( ! isset( $_POST['is_preview'] ) ) {
+		if ( empty( $_POST['preview'] ) ) {
 			status_header( 400 );
-			wp_send_json_error( 'missing_is_preview' );
+			wp_send_json_error( 'missing_preview' );
 		}
 
 		// Set the snapshot UUID.
 		$this->snapshot->set_uuid( $_POST['customize_snapshot_uuid'] );
 		$uuid = $this->snapshot->uuid();
+		$next_uuid = $uuid;
 
 		$post = $this->snapshot->post();
 		$post_type = get_post_type_object( self::POST_TYPE );
@@ -252,13 +253,13 @@ class Customize_Snapshot_Manager {
 		}
 
 		// Set a new UUID every time Share is clicked, when the user is not previewing a snapshot.
-		if ( ! (bool) $_POST['is_preview'] ) {
-			$this->snapshot->reset_uuid();
+		if ( 'on' !== $_POST['preview'] ) {
+			$next_uuid = $this->snapshot->reset_uuid();
 		}
 
 		$response = array(
 			'customize_snapshot_uuid' => $uuid, // Current UUID.
-			'customize_snapshot_next_uuid' => $this->snapshot->uuid(), // Next UUID if not previewing, else current UUID.
+			'customize_snapshot_next_uuid' => $next_uuid, // Next UUID if not previewing, else current UUID.
 			'customize_snapshot_settings' => $this->snapshot->values(), // Send back sanitized settings values.
 		);
 

@@ -121,7 +121,7 @@ var customizeSnapshot = ( function( $ ) {
 			customized_json: JSON.stringify( customized ),
 			customize_snapshot_uuid: uuid,
 			scope: scope,
-			is_preview: is_preview
+			preview: ( is_preview ? 'on' : 'off' )
 		} );
 
 		request.done( function( response ) {
@@ -141,7 +141,7 @@ var customizeSnapshot = ( function( $ ) {
 			url += '&scope=' + scope;
 
 			// Write over the UUID
-			if ( true !== is_preview ) {
+			if ( ! is_preview ) {
 				uuid = response.customize_snapshot_next_uuid;
 			}
 

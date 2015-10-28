@@ -28,9 +28,8 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 	public function setUp() {
 		parent::setUp();
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
-		global $wp_customize;
-		$this->wp_customize = new \WP_Customize_Manager();
-		$wp_customize = $this->wp_customize;
+		$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
+		$this->wp_customize = $GLOBALS['wp_customize'];
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_REQUEST['wp_customize'] = 'on';
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
@@ -44,6 +43,9 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 		unset( $GLOBALS['wp_scripts'] );
 		unset( $_SERVER['REQUEST_METHOD'] );
 		unset( $_REQUEST['wp_customize'] );
+		unset( $_REQUEST['customize_snapshot_uuid'] );
+		unset( $_REQUEST['scope'] );
+		unset( $_REQUEST['preview'] );
 		parent::tearDown();
 	}
 
@@ -228,9 +230,9 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 	}
 
 	/**
-	 * Testing is_preview for the update_snapshot method
+	 * Testing preview for the update_snapshot method
 	 */
-	function test_ajax_update_snapshot_is_preview_check() {
+	function test_ajax_update_snapshot_preview_check() {
 		$_POST = array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
@@ -246,7 +248,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 		$response = json_decode( $this->_last_response, true );
 		$expected_results = array(
 			'success' => false,
-			'data'    => 'missing_is_preview',
+			'data'    => 'missing_preview',
 		);
 
 		$this->assertSame( $expected_results, $response );
@@ -262,7 +264,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 			'customize_snapshot_uuid' => self::UUID,
 			'scope' => 'full',
 			'customized_json' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
-			'is_preview' => false,
+			'preview' => 'off',
 		);
 
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
@@ -293,7 +295,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 			'customize_snapshot_uuid' => self::UUID,
 			'scope' => 'dirty',
 			'customized_json' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
-			'is_preview' => true,
+			'preview' => 'on',
 		);
 
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );

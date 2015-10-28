@@ -174,9 +174,12 @@ class Customize_Snapshot {
 
 	/**
 	 * Reset the snapshot uuid.
+	 *
+	 * @return string
 	 */
 	public function reset_uuid() {
 		$this->uuid = self::generate_uuid();
+		return $this->uuid;
 	}
 
 	/**
