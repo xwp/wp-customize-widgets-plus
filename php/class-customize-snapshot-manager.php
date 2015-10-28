@@ -57,7 +57,7 @@ class Customize_Snapshot_Manager {
 		// Bail if our conditions are not met.
 		if ( ! ( ( isset( $_REQUEST['wp_customize'] ) && 'on' == $_REQUEST['wp_customize'] )
 			|| ( is_admin() && 'customize.php' == basename( $_SERVER['PHP_SELF'] ) )
-			|| ( isset( $_REQUEST['customize_snapshot_uuid'] ) )
+			|| ( isset( $_GET['customize_snapshot_uuid'] ) )
 		) ) {
 			return;
 		}
@@ -153,8 +153,7 @@ class Customize_Snapshot_Manager {
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-widgets-plus' ),
 				'previewTitle' => __( 'Preview URL', 'customize-widgets-plus' ),
 				'formTitle' => ( $this->snapshot->is_preview() ?
-					__( 'Update Snapshot', 'customize-widgets-plus' )
-					:
+					__( 'Update Snapshot', 'customize-widgets-plus' ) :
 					__( 'Snapshot Scope', 'customize-widgets-plus' )
 				),
 				'dirtyLabel' => __( 'Diff Snapshot (preview dirty settings)', 'customize-widgets-plus' ),
@@ -187,40 +186,45 @@ class Customize_Snapshot_Manager {
 			status_header( 400 );
 			wp_send_json_error( 'bad_nonce' );
 		}
-		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
-			status_header( 405 );
-			wp_send_json_error( 'bad_method' );
-		}
+
 		if ( ! current_user_can( 'customize' ) ) {
 			status_header( 403 );
 			wp_send_json_error( 'customize_not_allowed' );
 		}
-		if ( empty( $_REQUEST['customize_snapshot_uuid'] ) ) {
+
+		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+			status_header( 405 );
+			wp_send_json_error( 'bad_method' );
+		}
+
+		if ( empty( $_POST['customize_snapshot_uuid'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_uuid' );
 		}
-		if ( empty( $_REQUEST['scope'] ) ) {
+
+		if ( empty( $_POST['scope'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_scope' );
 		}
+
 		if ( empty( $this->post_data ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_customized_json' );
 		}
-		if ( empty( $_REQUEST['is_preview'] ) ) {
+
+		if ( ! isset( $_POST['is_preview'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_is_preview' );
 		}
 
 		// Set the snapshot UUID.
-		$this->snapshot->set_uuid( $_REQUEST['customize_snapshot_uuid'] );
+		$this->snapshot->set_uuid( $_POST['customize_snapshot_uuid'] );
 		$uuid = $this->snapshot->uuid();
 
 		$post = $this->snapshot->post();
 		$post_type = get_post_type_object( self::POST_TYPE );
 		$authorized = ( $post ?
-			current_user_can( $post_type->cap->edit_post, $post->ID )
-			:
+			current_user_can( $post_type->cap->edit_post, $post->ID ) :
 			current_user_can( $post_type->cap->create_posts )
 		);
 		if ( ! $authorized ) {
@@ -228,7 +232,7 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'unauthorized' );
 		}
 
-		$this->snapshot->apply_dirty = ( 'dirty' === $_REQUEST['scope'] );
+		$this->snapshot->apply_dirty = ( 'dirty' === $_POST['scope'] );
 		$manager = $this->snapshot->manager();
 		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
 		$manager->add_dynamic_settings( wp_array_slice_assoc( $this->post_data, $new_setting_ids ) );
@@ -248,7 +252,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		// Set a new UUID every time Share is clicked, when the user is not previewing a snapshot.
-		if ( true !== $_REQUEST['is_preview'] ) {
+		if ( ! (bool) $_POST['is_preview'] ) {
 			$this->snapshot->reset_uuid();
 		}
 

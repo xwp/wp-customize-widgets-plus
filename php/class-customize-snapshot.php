@@ -163,6 +163,8 @@ class Customize_Snapshot {
 
 	/**
 	 * Set the snapshot uuid.
+	 *
+	 * @param string $uuid
 	 */
 	public function set_uuid( $uuid ) {
 		if ( self::is_valid_uuid( $uuid ) ) {
