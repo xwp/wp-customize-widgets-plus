@@ -76,7 +76,7 @@ class Customize_Snapshot_Manager {
 		$apply_dirty = ( 'dirty' === $scope );
 
 		// Bootstrap the Customizer.
-		if ( $uuid && ( empty( $GLOBALS['wp_customize'] ) || ! ( $GLOBALS['wp_customize'] instanceof \WP_Customize_Manager ) ) ) {
+		if ( empty( $GLOBALS['wp_customize'] ) || ! ( $GLOBALS['wp_customize'] instanceof \WP_Customize_Manager ) && $uuid ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
 		}
