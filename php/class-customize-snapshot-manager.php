@@ -180,7 +180,7 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Save a snapshot. 
+	 * Save a snapshot.
 	 *
 	 * @param WP_Customize_Manager $manager WP_Customize_Manager instance.
 	 * @param string $status The post status.
@@ -207,7 +207,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Save snapshots via AJAX.
 	 *
-	 * Fires at `customize_save_after` to update and publish the snapshot. 
+	 * Fires at `customize_save_after` to update and publish the snapshot.
 	 *
 	 * @param WP_Customize_Manager $manager WP_Customize_Manager instance.
 	 */
