@@ -216,22 +216,19 @@ class Customize_Snapshot_Manager {
 		if ( ! current_user_can( 'customize' ) ) {
 			status_header( 403 );
 			wp_send_json_error( 'customize_not_allowed' );
-		}
-
-		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+		} else if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 			status_header( 405 );
 			wp_send_json_error( 'bad_method' );
 		}
 
 		$uuid = null;
 		if ( ! empty( $_POST['snapshot_uuid'] ) ) {
-
 			if ( empty( $this->post_data ) ) {
 				status_header( 400 );
 				wp_send_json_error( 'missing_snapshot_customized' );
+			} else {
+				$uuid = $_POST['snapshot_uuid'];
 			}
-
-			$uuid = $_POST['snapshot_uuid'];
 		}
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
@@ -247,34 +244,22 @@ class Customize_Snapshot_Manager {
 		if ( ! check_ajax_referer( self::AJAX_ACTION, 'nonce', false ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'bad_nonce' );
-		}
-
-		if ( ! current_user_can( 'customize' ) ) {
+		} else if ( ! current_user_can( 'customize' ) ) {
 			status_header( 403 );
 			wp_send_json_error( 'customize_not_allowed' );
-		}
-
-		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
+		} else if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 			status_header( 405 );
 			wp_send_json_error( 'bad_method' );
-		}
-
-		if ( empty( $_POST['customize_snapshot_uuid'] ) ) {
+		} else if ( empty( $_POST['customize_snapshot_uuid'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_uuid' );
-		}
-
-		if ( empty( $_POST['scope'] ) ) {
+		} else if ( empty( $_POST['scope'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_scope' );
-		}
-
-		if ( empty( $this->post_data ) ) {
+		} else if ( empty( $this->post_data ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_snapshot_customized' );
-		}
-
-		if ( empty( $_POST['preview'] ) ) {
+		} else if ( empty( $_POST['preview'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_preview' );
 		}

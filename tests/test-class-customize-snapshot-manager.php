@@ -104,13 +104,6 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	}
 
 	/**
-	 * @see Customize_Snapshot_Manager::store_post_data()
-	 */
-	function test_store_post_data() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
-	}
-
-	/**
 	 * @see Customize_Snapshot_Manager::create_post_type()
 	 */
 	function test_create_post_type() {
