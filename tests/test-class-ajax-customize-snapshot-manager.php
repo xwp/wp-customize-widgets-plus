@@ -314,6 +314,8 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 
 	/**
 	 * Helper function to make the Ajax call directy to `Customize_Snapshot_Manager::save_snapshot`.
+	 *
+	 * @see Customize_Snapshot_Manager::save_snapshot()
 	 */
 	function make_save_snapshot_ajax_call() {
 		try {
@@ -331,7 +333,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 	}
 
 	/**
-	 * @see Customize_Snapshot_Manager::save_snapshot()
+	 * Testing capabilities check for the save_snapshot method
 	 */
 	function test_ajax_save_snapshot_cap_check() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
