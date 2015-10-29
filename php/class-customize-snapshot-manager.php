@@ -87,6 +87,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
+		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 
 		$this->preview();
 	}
@@ -308,5 +309,46 @@ class Customize_Snapshot_Manager {
 		if ( true === $this->snapshot->is_preview() ) {
 			// @todo Preview a UUID by playing the saved data on top of the current settings.
 		}
+	}
+
+	/**
+	 * Replaces the "Customize" link in the Toolbar.
+	 *
+	 * @param WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function customize_menu( $wp_admin_bar ) {
+		// Don't show for users who can't access the customizer or when in the admin.
+		if ( ! current_user_can( 'customize' ) || is_admin() ) {
+			return;
+		}
+
+		$current_url = ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+		parse_str( parse_url( $current_url, PHP_URL_QUERY ), $query_vars );
+
+		//$current_url = remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $current_url );
+
+		$args = array();
+		$uuid = isset( $query_vars['customize_snapshot_uuid'] ) ? $query_vars['customize_snapshot_uuid'] : null;
+		$scope = isset( $query_vars['scope'] ) ? $query_vars['scope'] : 'dirty';
+
+		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
+			$args['customize_snapshot_uuid'] = $uuid;
+			$args['scope'] = $scope;
+		}
+
+		$args['url'] = urlencode( $current_url );
+		$customize_url = add_query_arg( $args, wp_customize_url() );
+
+		$wp_admin_bar->add_menu(
+			array(
+				'id'     => 'customize',
+				'title'  => __( 'Customize' ),
+				'href'   => $customize_url,
+				'meta'   => array(
+					'class' => 'hide-if-no-customize',
+				),
+			)
+		);
+		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
 	}
 }
