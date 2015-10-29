@@ -335,7 +335,6 @@ class Customize_Snapshot_Manager {
 
 		$current_url = ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 		parse_str( parse_url( $current_url, PHP_URL_QUERY ), $query_vars );
-		//$current_url = remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $current_url );
 
 		$args = array();
 		$uuid = isset( $query_vars['customize_snapshot_uuid'] ) ? $query_vars['customize_snapshot_uuid'] : null;

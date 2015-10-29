@@ -168,4 +168,21 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 		$this->markTestIncomplete( 'This test has not been implemented.' );
 	}
 
+	/**
+	 * @see Customize_Snapshot_Manager::customize_menu()
+	 */
+	public function test_customize_menu() {
+		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty&url=http%3A%2F%2Fexample.org%2F%3Fcustomize_snapshot_uuid%3D' . self::UUID . '%26scope%3Ddirty';
+
+		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
+		$wp_admin_bar = new \WP_Admin_Bar;
+		$this->assertInstanceOf( 'WP_Admin_Bar', $wp_admin_bar );
+
+		wp_set_current_user( $this->user_id );
+		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty' ) );
+
+		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
+		$this->assertEquals( $customize_url, $wp_admin_bar->get_node( 'customize' )->href );
+	}
+
 }
