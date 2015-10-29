@@ -312,4 +312,54 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 		$this->assertEmpty( $response['data']['customize_snapshot_settings'] );
 	}
 
+	/**
+	 * Helper function to make the Ajax call directy to `Customize_Snapshot_Manager::save_snapshot`.
+	 */
+	function make_save_snapshot_ajax_call() {
+		try {
+			ini_set( 'implicit_flush', false );
+			ob_start();
+			$manager = new Customize_Snapshot_Manager( $this->plugin );
+			$manager->save_snapshot( $this->wp_customize );
+			$buffer = ob_get_clean();
+			if ( ! empty( $buffer ) ) {
+				$this->_last_response = $buffer;
+			}
+		} catch ( \WPAjaxDieContinueException $e ) {
+			unset( $e );
+		}
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::save_snapshot()
+	 */
+	function test_ajax_save_snapshot_cap_check() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$this->make_save_snapshot_ajax_call();
+		$response = json_decode( $this->_last_response, true );
+		$this->assertContains( 'customize_not_allowed', $response );
+	}
+
+	/**
+	 * Testing REQUEST_METHOD for the update_snapshot method
+	 */
+	function test_ajax_save_snapshot_post_check() {
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$this->make_save_snapshot_ajax_call();
+		$response = json_decode( $this->_last_response, true );
+		$this->assertContains( 'bad_method', $response );
+	}
+
+	/**
+	 * Testing post_data for the save_snapshot method
+	 */
+	function test_ajax_save_snapshot_post_data_check() {
+		$_POST = array(
+			'snapshot_uuid' => self::UUID,
+		);
+		$this->make_save_snapshot_ajax_call();
+		$response = json_decode( $this->_last_response, true );
+		$this->assertContains( 'missing_snapshot_customized', $response );
+	}
+
 }
