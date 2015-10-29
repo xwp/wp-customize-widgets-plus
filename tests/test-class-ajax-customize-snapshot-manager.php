@@ -223,7 +223,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 		$response = json_decode( $this->_last_response, true );
 		$expected_results = array(
 			'success' => false,
-			'data'    => 'missing_customized_json',
+			'data'    => 'missing_snapshot_customized',
 		);
 
 		$this->assertSame( $expected_results, $response );
@@ -238,7 +238,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
 			'scope' => 'dirty',
-			'customized_json' => '{"header_background_color":{"value":"#ffffff","dirty":false}}',
+			'snapshot_customized' => '{"header_background_color":{"value":"#ffffff","dirty":false}}',
 		);
 
 		$this->manager->store_post_data();
@@ -263,7 +263,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
 			'scope' => 'full',
-			'customized_json' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
+			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
 			'preview' => 'off',
 		);
 
@@ -294,7 +294,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
 			'scope' => 'dirty',
-			'customized_json' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
+			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
 			'preview' => 'on',
 		);
 

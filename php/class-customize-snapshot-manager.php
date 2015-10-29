@@ -86,18 +86,19 @@ class Customize_Snapshot_Manager {
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
+		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 
 		$this->preview();
 	}
 
 	/**
-	 * Decode and store any initial $_POST['customized'] data.
+	 * Decode and store any $_POST['snapshot_customized'] data.
 	 *
 	 * The value is used by Customize_Snapshot_Manager::update_snapshot().
 	 */
 	public function store_post_data() {
-		if ( isset( $_POST['customized_json'] ) ) {
-			$this->post_data = json_decode( wp_unslash( $_POST['customized_json'] ), true );
+		if ( isset( $_POST['snapshot_customized'] ) ) {
+			$this->post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
 		}
 	}
 
@@ -179,6 +180,55 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Save a snapshot. 
+	 *
+	 * @param WP_Customize_Manager $manager WP_Customize_Manager instance.
+	 * @param string $status The post status.
+	 * @return null|WP_Error
+	 */
+	public function save( \WP_Customize_Manager $manager, $status = 'draft' ) {
+		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
+		$manager->add_dynamic_settings( wp_array_slice_assoc( $this->post_data, $new_setting_ids ) );
+
+		foreach ( $manager->settings() as $setting ) {
+			if ( $setting->check_capabilities() && array_key_exists( $setting->id, $this->post_data ) ) {
+				$value = $this->post_data[ $setting->id ];
+				$this->snapshot->set( $setting, $value );
+			}
+		}
+
+		$r = $this->snapshot->save( $status );
+		if ( is_wp_error( $r ) ) {
+			status_header( 500 );
+			wp_send_json_error( $r->get_error_message() );
+		}
+	}
+
+	/**
+	 * Save snapshots via AJAX.
+	 *
+	 * Fires at `customize_save_after` to update and publish the snapshot. 
+	 *
+	 * @param WP_Customize_Manager $manager WP_Customize_Manager instance.
+	 */
+	public function save_snapshot( \WP_Customize_Manager $manager ) {
+		if ( ! current_user_can( 'customize' ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'customize_not_allowed' );
+		}
+
+		$uuid = null;
+		if ( ! empty( $_POST['snapshot_uuid'] ) ) {
+			$uuid = $_POST['snapshot_uuid'];
+		}
+
+		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
+			$this->snapshot->set_uuid( $uuid );
+			$this->save( $manager, 'publish' );
+		}
+	}
+
+	/**
 	 * Update snapshots via AJAX.
 	 */
 	public function update_snapshot() {
@@ -209,7 +259,7 @@ class Customize_Snapshot_Manager {
 
 		if ( empty( $this->post_data ) ) {
 			status_header( 400 );
-			wp_send_json_error( 'missing_customized_json' );
+			wp_send_json_error( 'missing_snapshot_customized' );
 		}
 
 		if ( empty( $_POST['preview'] ) ) {
@@ -235,22 +285,7 @@ class Customize_Snapshot_Manager {
 
 		$this->snapshot->apply_dirty = ( 'dirty' === $_POST['scope'] );
 		$manager = $this->snapshot->manager();
-		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
-		$manager->add_dynamic_settings( wp_array_slice_assoc( $this->post_data, $new_setting_ids ) );
-
-		foreach ( $manager->settings() as $setting ) {
-			// @todo delete settings that were deleted dynamically on the client (not just those which the user hasn't the cap to change)
-			if ( $setting->check_capabilities() && array_key_exists( $setting->id, $this->post_data ) ) {
-				$value = $this->post_data[ $setting->id ];
-				$this->snapshot->set( $setting, $value );
-			}
-		}
-
-		$r = $this->snapshot->save();
-		if ( is_wp_error( $r ) ) {
-			status_header( 500 );
-			wp_send_json_error( $r->get_error_message() );
-		}
+		$this->save( $manager, 'draft' );
 
 		// Set a new UUID every time Share is clicked, when the user is not previewing a snapshot.
 		if ( 'on' !== $_POST['preview'] ) {

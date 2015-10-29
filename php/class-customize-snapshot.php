@@ -162,13 +162,14 @@ class Customize_Snapshot {
 	}
 
 	/**
-	 * Set the snapshot uuid.
+	 * Set the snapshot uuid and regenerate the post object.
 	 *
 	 * @param string $uuid
 	 */
 	public function set_uuid( $uuid ) {
 		if ( self::is_valid_uuid( $uuid ) ) {
 			$this->uuid = $uuid;
+			self::post( true );
 		}
 	}
 
@@ -203,10 +204,11 @@ class Customize_Snapshot {
 	/**
 	 * Get the snapshot post associated with the provided UUID, or null if it does not exist.
 	 *
+	 * @param bool $refresh Whether or not to refresh the post object.
 	 * @return WP_Post|null
 	 */
-	public function post() {
-		if ( $this->post ) {
+	public function post( $refresh = false ) {
+		if ( ! $refresh && $this->post ) {
 			return $this->post;
 		}
 

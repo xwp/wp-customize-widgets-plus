@@ -145,6 +145,23 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::save_snapshot()
+	 */
+	function test_save_snapshot() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertEmpty( $manager->snapshot()->post() );
+		$manager->save_snapshot( $this->wp_customize );
+		$this->assertNotEmpty( $manager->snapshot()->post() );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::preview()
 	 */
 	function test_preview() {

@@ -13,6 +13,7 @@ var customizeSnapshot = ( function( $ ) {
 	 */
 	self.init = function() {
 		api.bind( 'ready', function() {
+			self.previewerQuery();
 			self.addButton();
 			self.addFormDialog();
 			self.addShareDialog();
@@ -49,6 +50,34 @@ var customizeSnapshot = ( function( $ ) {
 				dialog.next( '.ui-dialog-buttonpane' ).find( 'button' ).blur();
 			} );
 		} );
+	};
+
+	/**
+	 * Amend the preview query so we can update the snapshot during `customize_save`.
+	 */
+	self.previewerQuery = function() {
+		var originalQuery = api.previewer.query;
+
+		api.previewer.query = function() {
+			var previewer = this,
+				allCustomized = {},
+				retval;
+
+			retval = originalQuery.apply( previewer, arguments );
+
+			if ( is_preview ) {
+				api.each( function( value, key ) {
+					allCustomized[ key ] = {
+						'value': value(),
+						'dirty': false
+					};
+				} );
+				retval.snapshot_customized = JSON.stringify( allCustomized );
+				retval.snapshot_uuid = uuid;
+			}
+
+			return retval;
+		};
 	};
 
 	/**
@@ -118,7 +147,7 @@ var customizeSnapshot = ( function( $ ) {
 		request = wp.ajax.post( 'customize_update_snapshot', {
 			nonce: _customizeWidgetsPlusCustomizeSnapshot.nonce,
 			wp_customize: 'on',
-			customized_json: JSON.stringify( customized ),
+			snapshot_customized: JSON.stringify( customized ),
 			customize_snapshot_uuid: uuid,
 			scope: scope,
 			preview: ( is_preview ? 'on' : 'off' )
