@@ -90,8 +90,8 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 
 		// Preview a Snapshot
-		add_action( 'after_setup_theme', array( $this , 'set_post_values' ), 1 );
-		add_action( 'customize_controls_print_footer_scripts', array( $this , 'preview' ), 999 );
+		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
+		add_action( 'customize_controls_print_footer_scripts', array( $this, 'preview' ), 999 );
 	}
 
 	/**
