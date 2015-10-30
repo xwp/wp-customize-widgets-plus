@@ -89,7 +89,9 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 
-		$this->preview();
+		// Preview a Snapshot
+		add_action( 'after_setup_theme', array( $this , 'set_post_values' ), 1 );
+		add_action( 'customize_controls_print_footer_scripts', array( $this , 'preview' ), 999 );
 	}
 
 	/**
@@ -299,15 +301,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Preview a snapshot.
-	 */
-	public function preview() {
-		if ( true === $this->snapshot->is_preview() ) {
-			// @todo Preview a UUID by playing the saved data on top of the current settings.
-		}
-	}
-
-	/**
 	 * Replaces the "Customize" link in the Toolbar.
 	 *
 	 * @param WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
@@ -344,5 +337,67 @@ class Customize_Snapshot_Manager {
 			)
 		);
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+	}
+
+	/**
+	 * Check if the setting can be previewed.
+	 *
+	 * @param WP_Customize_Setting $setting A WP_Customize_Setting derived object
+	 * @param array All settings' values in the snapshot.
+	 * @return bool
+	 */
+	public function can_preview( $setting, $values ) {
+		if ( ! ( $setting instanceof \WP_Customize_Setting ) && ! is_subclass_of( $setting, 'WP_Customize_Setting' ) ) {
+			return false;
+		}
+		if ( ! $setting->check_capabilities() ) {
+			return false;
+		}
+		if ( ! array_key_exists( $setting->id, $values ) ) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Set the snapshot settings post value.
+	 */
+	public function set_post_values() {
+		if ( true === $this->snapshot->is_preview() ) {
+			$values = $this->snapshot->values();
+			$manger = $this->snapshot->manager();
+
+			foreach ( $this->snapshot->settings() as $setting ) {
+				if ( $this->can_preview( $setting, $values ) ) {
+					$manger->set_post_value( $setting->id, $values[ $setting->id ] );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Preview the snapshot settings.
+	 */
+	public function preview() {
+		if ( true === $this->snapshot->is_preview() ) {
+			/*
+			 * Note that we need to preview the settings outside the Customizer preview
+			 * and in the Customizer pane itself so we can load a previous snapshot
+			 * into the Customizer. We have to prevent the previews from being added
+			 * in the case of a customize_save action because then update_option()
+			 * may short-circuit because it will detect that there are no changes to
+			 * make.
+			 */
+			if ( ! $this->snapshot->manager()->doing_ajax( 'customize_save' ) ) {
+				$values = $this->snapshot->values();
+
+				foreach ( $this->snapshot->settings() as $setting ) {
+					if ( $this->can_preview( $setting, $values ) ) {
+						$setting->preview();
+						$setting->dirty = true;
+					}
+				}
+			}
+		}
 	}
 }

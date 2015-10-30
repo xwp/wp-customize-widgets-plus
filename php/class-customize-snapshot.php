@@ -46,10 +46,10 @@ class Customize_Snapshot {
 	/**
 	 * Snapshot preview.
 	 *
-	 * @access protected
+	 * @access public
 	 * @var bool
 	 */
-	protected $is_preview = false;
+	public $is_preview = false;
 
 	/**
 	 * Preview dirty values only.
@@ -284,10 +284,16 @@ class Customize_Snapshot {
 	 * @return array
 	 */
 	public function values() {
-		$apply_dirty = $this->apply_dirty;
-		$values = array_filter( $this->data, function( $setting ) use ( $apply_dirty ) {
-			return $setting['dirty'] === $apply_dirty;
-		} );
+		$values = $this->data;
+		$dirty = $this->apply_dirty;
+
+		// Filter when the scope is dirty.
+		if ( $dirty ) {
+			$values = array_filter( $values, function( $setting ) use ( $dirty ) {
+				return $setting['dirty'] === $dirty;
+			} );
+		}
+
 		$values = wp_list_pluck( $values, 'value' );
 		return $values;
 	}

@@ -155,13 +155,6 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	}
 
 	/**
-	 * @see Customize_Snapshot_Manager::preview()
-	 */
-	function test_preview() {
-		$this->markTestIncomplete( 'This test has not been implemented.' );
-	}
-
-	/**
 	 * @see Customize_Snapshot_Manager::customize_menu()
 	 */
 	public function test_customize_menu() {
@@ -176,6 +169,98 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 
 		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
 		$this->assertEquals( $customize_url, $wp_admin_bar->get_node( 'customize' )->href );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::can_preview()
+	 */
+	public function test_can_preview() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"foo":{"value":"foo_custom","dirty":true},"bar":{"value":"bar_default","dirty":false}}',
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->save_snapshot( $this->wp_customize );
+		
+		$foo = $this->wp_customize->get_setting( 'foo' );
+		$this->assertEquals( 'foo_default', $foo->value() );
+		
+		$this->assertTrue( $manager->can_preview( $foo, $manager->snapshot()->values() ) );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::can_preview()
+	 */
+	public function test_can_preview_instanceof() {
+		$this->assertFalse( $this->manager->can_preview( 'foo', array() ) );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::can_preview()
+	 */
+	public function test_can_preview_cap_check() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$foo = $this->wp_customize->get_setting( 'foo' );
+		$this->assertEquals( 'foo_default', $foo->value() );
+		
+		$this->assertFalse( $this->manager->can_preview( $foo, $this->manager->snapshot()->values() ) );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::can_preview()
+	 */
+	public function test_can_preview_array_key_exists() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"bar":{"value":"bar_default","dirty":false}}',
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->save_snapshot( $this->wp_customize );
+		
+		$foo = $this->wp_customize->get_setting( 'foo' );
+		$this->assertEquals( 'foo_default', $foo->value() );
+		
+		$this->assertFalse( $manager->can_preview( $foo, $manager->snapshot()->values() ) );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::set_post_values()
+	 */
+	public function test_set_post_values() {
+		wp_set_current_user( $this->user_id );
+		$foo = $this->manager->snapshot()->manager()->get_setting( 'foo' );
+		$this->manager->snapshot()->set( $foo, array(
+			'value' => 'foo_custom',
+			'dirty' => true,
+		) );
+		$this->manager->snapshot()->save();
+		$this->manager->snapshot()->is_preview = true;
+		$this->manager->set_post_values();
+		$this->assertEquals( array( 'foo' => 'foo_custom' ), $this->manager->snapshot()->manager()->unsanitized_post_values() );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::preview()
+	 */
+	public function test_preview() {
+		wp_set_current_user( $this->user_id );
+		$foo = $this->manager->snapshot()->manager()->get_setting( 'foo' );
+		$this->manager->snapshot()->set( $foo, array(
+			'value' => 'foo_custom',
+			'dirty' => true,
+		) );
+		$this->assertFalse( $foo->dirty );
+		$this->manager->snapshot()->save();
+		$this->manager->snapshot()->is_preview = true;
+		$this->manager->preview();
+		$this->assertTrue( $foo->dirty );
 	}
 
 }

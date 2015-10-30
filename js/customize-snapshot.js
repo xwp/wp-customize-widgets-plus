@@ -17,38 +17,10 @@ var customizeSnapshot = ( function( $ ) {
 			self.addButton();
 			self.addFormDialog();
 			self.addShareDialog();
-
-			dialog = $( '#snapshot-dialog-form' ).dialog( {
-				autoOpen: false,
-				modal: true,
-				buttons: {
-					Save: {
-						text: _customizeWidgetsPlusCustomizeSnapshot.i18n.saveButton,
-						click: self.doAjax
-					},
-					Cancel: {
-						text: _customizeWidgetsPlusCustomizeSnapshot.i18n.cancelButton,
-						click: function() {
-							dialog.dialog( 'close' );
-						}
-					}
-				},
-				close: function() {
-					form[ 0 ].reset();
-				}
-			} );
-
-			form = dialog.find( 'form' ).on( 'submit', function( event ) {
-				event.preventDefault();
-				self.doAjax();
-			} );
-
-			$( '#customize-snapshot' ).on( 'click', function( event ) {
-				event.preventDefault();
-				dialog.dialog( 'open' );
-				dialog.find( 'form input[name=scope]' ).blur();
-				dialog.next( '.ui-dialog-buttonpane' ).find( 'button' ).blur();
-			} );
+			self.dialogEvents();
+			if ( is_preview ) {
+				api.state( 'saved' ).set( false );
+			}
 		} );
 	};
 
@@ -119,6 +91,43 @@ var customizeSnapshot = ( function( $ ) {
 	self.addShareDialog = function() {
 		var html = '<div id="snapshot-dialog-share" title="' + _customizeWidgetsPlusCustomizeSnapshot.i18n.previewTitle + '"></div>';
 		$( html ).appendTo( 'body' );
+	};
+
+	/**
+	 * Create the dialog events.
+	 */
+	self.dialogEvents = function() {
+		dialog = $( '#snapshot-dialog-form' ).dialog( {
+			autoOpen: false,
+			modal: true,
+			buttons: {
+				Save: {
+					text: _customizeWidgetsPlusCustomizeSnapshot.i18n.saveButton,
+					click: self.doAjax
+				},
+				Cancel: {
+					text: _customizeWidgetsPlusCustomizeSnapshot.i18n.cancelButton,
+					click: function() {
+						dialog.dialog( 'close' );
+					}
+				}
+			},
+			close: function() {
+				form[ 0 ].reset();
+			}
+		} );
+
+		form = dialog.find( 'form' ).on( 'submit', function( event ) {
+			event.preventDefault();
+			self.doAjax();
+		} );
+
+		$( '#customize-snapshot' ).on( 'click', function( event ) {
+			event.preventDefault();
+			dialog.dialog( 'open' );
+			dialog.find( 'form input[name=scope]' ).blur();
+			dialog.next( '.ui-dialog-buttonpane' ).find( 'button' ).blur();
+		} );
 	};
 
 	/**
