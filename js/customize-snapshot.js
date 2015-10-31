@@ -57,7 +57,7 @@ var customizeSnapshot = ( function( $ ) {
 	self.addButton = function() {
 		var header = $( '#customize-header-actions' ),
 			snapshotButton, data;
- 
+
 		if ( header.length ) {
 			snapshotButton = wp.template( 'snapshot-button' );
 			data = {
@@ -75,7 +75,7 @@ var customizeSnapshot = ( function( $ ) {
 			data = {
 				title: _customizeWidgetsPlusCustomizeSnapshot.i18n.formTitle,
 				is_preview: is_preview,
-				message : _customizeWidgetsPlusCustomizeSnapshot.i18n.updateMsg,
+				message: _customizeWidgetsPlusCustomizeSnapshot.i18n.updateMsg,
 				scope: _customizeWidgetsPlusCustomizeSnapshot.scope,
 				dirtyLabel: _customizeWidgetsPlusCustomizeSnapshot.i18n.dirtyLabel,
 				fullLabel: _customizeWidgetsPlusCustomizeSnapshot.i18n.fullLabel
