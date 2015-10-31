@@ -250,10 +250,7 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	public function test_set_post_values() {
 		wp_set_current_user( $this->user_id );
 		$foo = $this->manager->snapshot()->manager()->get_setting( 'foo' );
-		$this->manager->snapshot()->set( $foo, array(
-			'value' => 'foo_custom',
-			'dirty' => true,
-		) );
+		$this->manager->snapshot()->set( $foo, 'foo_custom', true );
 		$this->manager->snapshot()->save();
 		$this->manager->snapshot()->is_preview = true;
 		$this->manager->set_post_values();
@@ -266,10 +263,7 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	public function test_preview() {
 		wp_set_current_user( $this->user_id );
 		$foo = $this->manager->snapshot()->manager()->get_setting( 'foo' );
-		$this->manager->snapshot()->set( $foo, array(
-			'value' => 'foo_custom',
-			'dirty' => true,
-		) );
+		$this->manager->snapshot()->set( $foo, 'foo_custom', true );
 		$this->assertFalse( $foo->dirty );
 		$this->manager->snapshot()->save();
 		$this->manager->snapshot()->is_preview = true;

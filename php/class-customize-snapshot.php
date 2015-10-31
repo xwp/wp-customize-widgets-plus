@@ -328,13 +328,16 @@ class Customize_Snapshot {
 	 *
 	 * @param WP_Customize_Setting $setting
 	 * @param mixed $value Must be JSON-serializable
+	 * @param bool $dirty Whether the setting is dirty or not.
 	 */
-	public function set( \WP_Customize_Setting $setting, $value ) {
-		$sanitizedValue = wp_slash( $value['value'] ); // WP_Customize_Setting::sanitize() erroneously does wp_unslash again
-		$sanitizedValue = $setting->sanitize( $sanitizedValue );
+	public function set( \WP_Customize_Setting $setting, $value, $dirty ) {
+		if ( $dirty ) {
+			$value = apply_filters( "customize_sanitize_js_{$setting->id}", $value, $setting );
+		}
+
 		$this->data[ $setting->id ] = array(
-			'value' => $sanitizedValue,
-			'dirty' => $value['dirty'],
+			'value' => $value,
+			'dirty' => $dirty,
 		);
 	}
 

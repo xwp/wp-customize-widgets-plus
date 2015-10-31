@@ -192,12 +192,12 @@ class Customize_Snapshot_Manager {
 	 */
 	public function save( \WP_Customize_Manager $manager, $status = 'draft' ) {
 		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
-		$manager->add_dynamic_settings( wp_array_slice_assoc( $this->post_data, $new_setting_ids ) );
+		$manager->add_dynamic_settings( $new_setting_ids );
 
 		foreach ( $manager->settings() as $setting ) {
 			if ( $setting->check_capabilities() && array_key_exists( $setting->id, $this->post_data ) ) {
-				$value = $this->post_data[ $setting->id ];
-				$this->snapshot->set( $setting, $value );
+				$post_data = $this->post_data[ $setting->id ];
+				$this->snapshot->set( $setting, $post_data['value'], $post_data['dirty'] );
 			}
 		}
 
@@ -416,11 +416,11 @@ class Customize_Snapshot_Manager {
 	public function set_post_values() {
 		if ( true === $this->snapshot->is_preview() ) {
 			$values = $this->snapshot->values();
-			$manger = $this->snapshot->manager();
+			$manager = $this->snapshot->manager();
 
 			foreach ( $this->snapshot->settings() as $setting ) {
 				if ( $this->can_preview( $setting, $values ) ) {
-					$manger->set_post_value( $setting->id, $values[ $setting->id ] );
+					$manager->set_post_value( $setting->id, $values[ $setting->id ] );
 				}
 			}
 		}
