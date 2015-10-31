@@ -79,8 +79,8 @@ var customizeSnapshot = ( function( $ ) {
 				scope: _customizeWidgetsPlusCustomizeSnapshot.scope,
 				dirtyLabel: _customizeWidgetsPlusCustomizeSnapshot.i18n.dirtyLabel,
 				fullLabel: _customizeWidgetsPlusCustomizeSnapshot.i18n.fullLabel
-    	};
-    $( 'body' ).append( snapshotDialogForm( data ) );
+			};
+		$( 'body' ).append( snapshotDialogForm( data ) );
 	};
 
 	/**
@@ -175,10 +175,10 @@ var customizeSnapshot = ( function( $ ) {
 			}
 
 			// Insert the snapshot dialog share link template.
-    	$( 'body' ).append( snapshotDialogShareLink( {
+			$( 'body' ).append( snapshotDialogShareLink( {
 				title: _customizeWidgetsPlusCustomizeSnapshot.i18n.formTitle,
 				url: url
-    	} ) );
+			} ) );
 
 			spinner.removeClass( 'is-active' );
 
@@ -194,10 +194,10 @@ var customizeSnapshot = ( function( $ ) {
 			var snapshotDialogShareError = wp.template( 'snapshot-dialog-share-error' )
 
 			// Insert the snapshot dialog share error template.
-    	$( 'body' ).append( snapshotDialogShareError( {
+			$( 'body' ).append( snapshotDialogShareError( {
 				title: _customizeWidgetsPlusCustomizeSnapshot.i18n.formTitle,
 				message: _customizeWidgetsPlusCustomizeSnapshot.i18n.errorMsg
-    	} ) );
+			} ) );
 
 			spinner.removeClass( 'is-active' );
 
