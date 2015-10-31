@@ -172,6 +172,20 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::render_templates()
+	 */
+	public function test_render_templates() {
+		ob_start();
+		$this->manager->render_templates();
+		$templates = ob_get_contents();
+		ob_end_clean();
+		$this->assertContains( 'tmpl-snapshot-button', $templates );
+		$this->assertContains( 'tmpl-snapshot-dialog-share-link', $templates );
+		$this->assertContains( 'tmpl-snapshot-dialog-share-error', $templates );
+		$this->assertContains( 'tmpl-snapshot-dialog-form', $templates );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::can_preview()
 	 */
 	public function test_can_preview() {

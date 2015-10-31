@@ -88,6 +88,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
+		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 
 		// Preview a Snapshot
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
@@ -337,6 +338,56 @@ class Customize_Snapshot_Manager {
 			)
 		);
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+	}
+
+	/**
+	 * Underscore (JS) templates for dialog windows.
+	 *
+	 * @return string
+	 */
+	public function render_templates() {
+		?>
+		<script type="text/html" id="tmpl-snapshot-button">
+			<button id="snapshot-button" class="dashicons dashicons-share">
+				<span class="screen-reader-text">{{ data.buttonText }}</span>
+			</button>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-dialog-share-link">
+			<div id="snapshot-dialog-share-link" title="{{ data.title }}">
+				<a href="{{ data.url }}" target="_blank">{{ data.url }}</a>
+			</div>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-dialog-share-error">
+			<div id="snapshot-dialog-share-error" title="{{ data.title }}">
+				<p>{{ data.message }}</p>
+			</div>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-dialog-form">
+			<div id="snapshot-dialog-form" title="{{ data.title }}">
+				<form>
+					<fieldset>
+						<# if ( data.is_preview ) { #>
+							<p>{{ data.message }}</p>
+							<input type="hidden" value="{{ data.scope }}" name="scope">
+						<# } else { #>
+							<label for="type-0">
+								<input id="type-0" type="radio" checked="checked" value="dirty" name="scope">{{ data.dirtyLabel }}
+							</label>
+							<br>
+							<label for="type-1">
+								<input id="type-1" type="radio" value="full" name="scope">{{ data.fullLabel }}
+							</label>
+							<br>
+						<# } #>
+						<input type="submit" tabindex="-1" style="position:absolute; top:-5000px" />
+					</fieldset>
+				</form>
+			</div>
+		</script>
+		<?php
 	}
 
 	/**

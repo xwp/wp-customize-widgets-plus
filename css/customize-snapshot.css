@@ -1,4 +1,4 @@
-#customize-snapshot {
+#snapshot-button {
 	background: none;
 	border: none;
 	border-right: 1px solid #ddd;
@@ -16,8 +16,8 @@
 	z-index: 10;
 }
 
-#customize-snapshot:focus,
-#customize-snapshot:hover {
+#snapshot-button:focus,
+#snapshot-button:hover {
 	background: #ddd;
 	border-color: #ccc;
 	box-shadow: none;
@@ -25,24 +25,24 @@
 	outline: none;
 }
 
+#snapshot-dialog-form label {
+	padding-bottom: 1em;
+}
+
+#snapshot-dialog-share-link {
+	word-wrap: break-word;
+}
+
+#snapshot-dialog-share-link p {
+	margin-top: 0;
+}
+
 @media screen and (max-width: 640px) {
-	.customize-snapshots .customize-controls-preview-toggle {
+	.has-snapshot-button .customize-controls-preview-toggle {
 		left: 96px;
 	}
 }
 
 .wp-customizer.js .ui-dialog {
 	z-index: 999999;
-}
-
-#snapshot-dialog-form label {
-	padding-bottom: 1em;
-}
-
-#snapshot-dialog-share {
-	word-wrap: break-word;
-}
-
-#snapshot-dialog-share p {
-	margin-top: 0;
 }
