@@ -401,7 +401,7 @@ class Customize_Snapshot_Manager {
 		if ( ! ( $setting instanceof \WP_Customize_Setting ) && ! is_subclass_of( $setting, 'WP_Customize_Setting' ) ) {
 			return false;
 		}
-		if ( ! $setting->check_capabilities() ) {
+		if ( ! $setting->check_capabilities() ) { // @todo This could make a front-end preview impossible.
 			return false;
 		}
 		if ( ! array_key_exists( $setting->id, $values ) ) {
