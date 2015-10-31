@@ -56,7 +56,7 @@ var customizeSnapshot = ( function( $ ) {
 	 */
 	self.addButton = function() {
 		var header = $( '#customize-header-actions' ),
-			button, data;
+			snapshotButton, data;
  
 		if ( header.length ) {
 			snapshotButton = wp.template( 'snapshot-button' );
@@ -191,7 +191,7 @@ var customizeSnapshot = ( function( $ ) {
 		} );
 
 		request.fail( function() {
-			var snapshotDialogShareError = wp.template( 'snapshot-dialog-share-error' )
+			var snapshotDialogShareError = wp.template( 'snapshot-dialog-share-error' );
 
 			// Insert the snapshot dialog share error template.
 			$( 'body' ).append( snapshotDialogShareError( {
