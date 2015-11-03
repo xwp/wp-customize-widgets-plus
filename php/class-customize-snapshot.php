@@ -324,7 +324,7 @@ class Customize_Snapshot {
 	}
 
 	/**
-	 * Store a setting's sanitized value in the snapshot's data.
+	 * Store a setting's value in the snapshot's data.
 	 *
 	 * @param WP_Customize_Setting $setting
 	 * @param mixed $value Must be JSON-serializable
@@ -334,6 +334,7 @@ class Customize_Snapshot {
 		$this->data[ $setting->id ] = array(
 			'value' => $value,
 			'dirty' => $dirty,
+			'sanitized' => false,
 		);
 	}
 
