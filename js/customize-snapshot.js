@@ -156,7 +156,8 @@ var customizeSnapshot = ( function( $ ) {
 			var url = wp.customize.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
-				snapshotDialogShareLink = wp.template( 'snapshot-dialog-share-link' );
+				id = 'snapshot-dialog-share-link',
+				snapshotDialogShareLink = wp.template( id );
 
 			if ( url.match( regex ) ) {
 				url = url.replace( regex, '$1' + 'customize_snapshot_uuid=' + response.customize_snapshot_uuid + '$2' );
@@ -174,22 +175,25 @@ var customizeSnapshot = ( function( $ ) {
 				uuid = response.customize_snapshot_next_uuid;
 			}
 
-			// Insert the snapshot dialog share link template.
-			if ( 0 === $( '#snapshot-dialog-share-link' ).length ) {
-				$( 'body' ).append( snapshotDialogShareLink( {
-					title: _customizeWidgetsPlusCustomizeSnapshot.i18n.formTitle,
-					url: url
-				} ) );
+			// We need to remove old dialogs before building a new one.
+			if ( $( '#' + id ).length ) {
+				$( '#' + id ).remove();
 			}
+
+			// Insert the snapshot dialog share link template.
+			$( 'body' ).append( snapshotDialogShareLink( {
+				title: _customizeWidgetsPlusCustomizeSnapshot.i18n.formTitle,
+				url: url
+			} ) );
 
 			spinner.removeClass( 'is-active' );
 
 			// Open the dialog.
-			$( '#snapshot-dialog-share-link' ).dialog( {
+			$( '#' + id ).dialog( {
 				autoOpen: true,
 				modal: true
 			} );
-			$( '#snapshot-dialog-share-link' ).find( 'a' ).blur();
+			$( '#' + id ).find( 'a' ).blur();
 		} );
 
 		request.fail( function() {
