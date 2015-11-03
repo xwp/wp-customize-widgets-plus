@@ -175,7 +175,7 @@ var customizeSnapshot = ( function( $ ) {
 				uuid = response.customize_snapshot_next_uuid;
 			}
 
-			// We need to remove old dialogs before building a new one.
+			// We need to remove old dialog before building a new one.
 			if ( $( '#' + id ).length ) {
 				$( '#' + id ).remove();
 			}
@@ -197,10 +197,11 @@ var customizeSnapshot = ( function( $ ) {
 		} );
 
 		request.fail( function() {
-			var snapshotDialogShareError = wp.template( 'snapshot-dialog-share-error' );
+			var id = 'snapshot-dialog-share-error',
+				snapshotDialogShareError = wp.template( id );
 
 			// Insert the snapshot dialog share error template.
-			if ( 0 === $( '#snapshot-dialog-share-error' ).length ) {
+			if ( 0 === $( '#' + id ).length ) {
 				$( 'body' ).append( snapshotDialogShareError( {
 					title: _customizeWidgetsPlusCustomizeSnapshot.i18n.formTitle,
 					message: _customizeWidgetsPlusCustomizeSnapshot.i18n.errorMsg
@@ -210,7 +211,7 @@ var customizeSnapshot = ( function( $ ) {
 			spinner.removeClass( 'is-active' );
 
 			// Open the dialog.
-			$( '#snapshot-dialog-share-error' ).dialog( {
+			$( '#' + id ).dialog( {
 				autoOpen: true,
 				modal: true
 			} );
