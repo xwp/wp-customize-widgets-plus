@@ -452,6 +452,8 @@ class Customize_Snapshot_Manager {
 					$manager->set_post_value( $setting->id, $values[ $setting->id ] );
 				}
 			}
+
+			// @todo Take contextual based queries for the current URL and apply those settings.
 		}
 	}
 

@@ -348,6 +348,17 @@ class Customize_Snapshot {
 	}
 
 	/**
+	 * Check if the setting is contextual.
+	 *
+	 * @param string $setting_id
+	 *
+	 * @return bool
+	 */
+	static function is_contextual_setting( $setting_id ) {
+		return 0 !== preg_match( '/^contextual\[query:([^]]+)\]\[(.*?)\]\[(.*?)\]$/', $setting_id );
+	}
+
+	/**
 	 * Return whether the snapshot was saved (created/inserted) yet.
 	 *
 	 * @return bool
@@ -376,7 +387,29 @@ class Customize_Snapshot {
 			$options |= JSON_PRETTY_PRINT;
 		}
 
-		$post_content = wp_json_encode( $this->data, $options );
+		// The snapshot data.
+		$data = $this->data;
+
+		/**
+		 * Store a contextual setting's value in the snapshot's data.
+		 *
+		 * @todo Replace settings in `$data` that match a `contextual[query:global]` counterpart to fix scope creep.
+		 * @todo Remove the `contextual[query:global]` array completely.
+		 */
+		if ( isset( $_POST['snapshot_customized'] ) ) {
+			$post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
+			foreach ( $post_data as $setting_id => $value ) {
+				if ( $this->is_contextual_setting( $setting_id ) ) {
+					$data[ $setting_id ] = array(
+						'value' => $value['value'],
+						'dirty' => $value['dirty'],
+						'sanitized' => false,
+					);
+				}
+			}
+		}
+
+		$post_content = wp_json_encode( $data, $options );
 
 		if ( ! $this->post ) {
 			$postarr = array(
