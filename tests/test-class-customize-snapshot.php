@@ -148,6 +148,10 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::is_preview()
 	 */
 	function test_is_preview() {
+		// Trick to get `$this->wp_customize->is_theme_active()` to return true.
+		$_POST['customized'] = 'on';
+		$this->wp_customize->setup_theme();
+
 		$_GET['customize_snapshot_uuid'] = self::UUID;
 		$snapshot = new Customize_Snapshot( $this->wp_customize, self::UUID );
 		$this->assertTrue( $snapshot->is_preview() );
@@ -176,6 +180,10 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	 * @see Customize_Snapshot::values()
 	 */
 	function test_values() {
+		// Trick to get `$this->wp_customize->is_theme_active()` to return true.
+		$_POST['customized'] = 'on';
+		$this->wp_customize->setup_theme();
+
 		// Has no values when '$apply_dirty' is set to 'true'
 		$snapshot = new Customize_Snapshot( $this->wp_customize, null, true );
 		$snapshot->set( $this->foo, 'foo_default', false );

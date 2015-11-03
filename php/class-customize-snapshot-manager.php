@@ -83,6 +83,7 @@ class Customize_Snapshot_Manager {
 
 		$this->snapshot = new Customize_Snapshot( $GLOBALS['wp_customize'], $uuid, $apply_dirty );
 
+		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
@@ -93,6 +94,27 @@ class Customize_Snapshot_Manager {
 		// Preview a Snapshot
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'preview' ), 999 );
+	}
+
+	/**
+	 * Get the current URL.
+	 *
+	 * @return string
+	 */
+	public function current_url() {
+		return ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+	}
+
+	/**
+	 * Redirect when preview is not allowed for the current theme.
+	 */
+	public function maybe_force_redirect() {
+		if ( false === $this->snapshot->is_preview() && isset( $_GET['customize_snapshot_uuid'] ) ) {
+			$args = array( 'customize_snapshot_uuid', 'scope' );
+			$current_url = esc_url( remove_query_arg( $args, $this->current_url() ) );
+			wp_safe_redirect( $current_url );
+			exit;
+		}
 	}
 
 	/**
@@ -143,12 +165,19 @@ class Customize_Snapshot_Manager {
 		// Enqueue scripts.
 		wp_enqueue_script( $this->plugin->script_handles[ $handle ] );
 
+		// Set the sanpshot theme.
+		$snapshot_theme = null;
+		if ( isset( $this->snapshot->post()->ID ) ) {
+			$snapshot_theme = get_post_meta( $this->snapshot->post()->ID, '_snapshot_theme', true );
+		}
+
 		// Script data array.
 		$exports = array(
 			'nonce' => wp_create_nonce( self::AJAX_ACTION ),
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot->uuid(),
 			'is_preview' => $this->snapshot->is_preview(),
+			'snapshot_theme' => $snapshot_theme,
 			'scope' => ( isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-widgets-plus' ),
@@ -312,7 +341,7 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		$current_url = ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+		$current_url = $this->current_url();
 		parse_str( parse_url( $current_url, PHP_URL_QUERY ), $query_vars );
 
 		$args = array();

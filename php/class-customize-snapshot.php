@@ -71,6 +71,7 @@ class Customize_Snapshot {
 	public function __construct( \WP_Customize_Manager $manager, $uuid, $apply_dirty = true ) {
 		$this->manager = $manager;
 		$this->apply_dirty = $apply_dirty;
+		$this->data = array();
 
 		if ( $uuid ) {
 			if ( self::is_valid_uuid( $uuid ) ) {
@@ -84,9 +85,14 @@ class Customize_Snapshot {
 		}
 
 		$post = $this->post();
-		if ( ! $post ) {
-			$this->data = array();
-		} else {
+
+		// Don't preview other themes
+		if ( ( ! $this->manager->is_theme_active() && is_admin() ) || ( $this->is_preview && $post && get_post_meta( $post->ID, '_snapshot_theme', true ) !== $this->manager->get_stylesheet() ) ) {
+			$this->is_preview = false;
+			return;
+		}
+
+		if ( $post ) {
 			// For reason why base64 encoding is used, see Customize_Snapshot::save().
 			$this->data = json_decode( $post->post_content_filtered, true );
 
@@ -382,6 +388,7 @@ class Customize_Snapshot {
 				return $r;
 			}
 			$this->post = get_post( $r );
+			update_post_meta( $this->post->ID, '_snapshot_theme', $this->manager->get_stylesheet() );
 		} else {
 			$postarr = array(
 				'ID' => $this->post->ID,

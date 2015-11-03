@@ -6,6 +6,7 @@ var customizeSnapshot = ( function( $ ) {
 		api = wp.customize,
 		uuid = _customizeWidgetsPlusCustomizeSnapshot.uuid,
 		is_preview = _customizeWidgetsPlusCustomizeSnapshot.is_preview,
+		theme = _customizeWidgetsPlusCustomizeSnapshot.snapshot_theme,
 		dialog, form;
 
 	/**
@@ -13,6 +14,9 @@ var customizeSnapshot = ( function( $ ) {
 	 */
 	self.init = function() {
 		api.bind( 'ready', function() {
+			if ( ! api.settings.theme.active || ( theme && theme !== api.settings.theme.stylesheet ) ) {
+				return;
+			}
 			self.previewerQuery();
 			self.addButton();
 			self.addDialogForm();
