@@ -93,27 +93,7 @@ class Customize_Snapshot_Manager {
 
 		// Preview a Snapshot
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
-		add_action( 'customize_controls_print_footer_scripts', array( $this, 'preview' ), 999 );
-		add_action( 'wp_loaded', array( $this, 'bootstrap' ) );
-	}
-
-	/**
-	 * Handles loading the Customizer values into the front-end.
-	 */
-	public function bootstrap() {
-		if ( $this->snapshot->is_preview() && ! is_admin() ) {
-
-			// Block the robots.
-			add_action( 'wp_head', 'wp_no_robots' );
-
-			$values = $this->snapshot->values();
-
-			foreach ( $this->snapshot->settings() as $setting ) {
-				if ( $this->can_preview( $setting, $values ) ) {
-					$setting->preview();
-				}
-			}
-		}
+		add_action( 'wp_loaded', array( $this, 'preview' ) );
 	}
 
 	/**
@@ -480,6 +460,10 @@ class Customize_Snapshot_Manager {
 	 */
 	public function preview() {
 		if ( true === $this->snapshot->is_preview() ) {
+
+			// Block the robots.
+			add_action( 'wp_head', 'wp_no_robots' );
+
 			/*
 			 * Note that we need to preview the settings outside the Customizer preview
 			 * and in the Customizer pane itself so we can load a previous snapshot
