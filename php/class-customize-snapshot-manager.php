@@ -29,14 +29,22 @@ class Customize_Snapshot_Manager {
 	public $plugin;
 
 	/**
-	 * JSON-decoded value $_POST['customized'] if present in request.
-	 *
-	 * Used by Customize_Snapshot_Manager::update_snapshot().
+	 * JSON-decoded value of $_POST['customized'] if present in request.
 	 *
 	 * @access protected
 	 * @var array|null
 	 */
 	protected $post_data;
+
+	/**
+	 * Contextual values.
+	 *
+	 * @link https://github.com/xwp/wp-customize-contextual-settings
+	 *
+	 * @access protected
+	 * @var array|null
+	 */
+	protected $contextual_post_data;
 
 	/**
 	 * Customize_Snapshot instance.
@@ -121,11 +129,31 @@ class Customize_Snapshot_Manager {
 	 * Decode and store any $_POST['snapshot_customized'] data.
 	 *
 	 * The value is used by Customize_Snapshot_Manager::update_snapshot().
+	 * The contextual values are used by Customize_Snapshot::save().
 	 */
 	public function store_post_data() {
 		if ( isset( $_POST['snapshot_customized'] ) ) {
 			$this->post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
+
+			// Contextual settings.
+			foreach ( $this->post_data as $setting_id => $value ) {
+				if ( self::is_contextual_setting( $setting_id ) ) {
+					$this->contextual_post_data[ $setting_id ] = $value;
+					unset( $this->post_data[ $setting_id ] );
+				}
+			}
 		}
+	}
+
+	/**
+	 * Check if the setting is contextual.
+	 *
+	 * @param string $setting_id
+	 *
+	 * @return bool
+	 */
+	static function is_contextual_setting( $setting_id ) {
+		return 0 !== preg_match( '/^contextual\[query:([^]]+)\]\[(.*?)\]\[(.*?)\]$/', $setting_id );
 	}
 
 	/**
@@ -222,6 +250,12 @@ class Customize_Snapshot_Manager {
 	public function save( \WP_Customize_Manager $manager, $status = 'draft' ) {
 		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
 		$manager->add_dynamic_settings( $new_setting_ids );
+
+		if ( ! empty( $this->contextual_post_data ) ) {
+			foreach ( $this->contextual_post_data as $setting_id => $contextual ) {
+				$this->snapshot->set_contextual( $setting_id, $contextual['value'], $contextual['dirty'] );
+			}
+		}
 
 		foreach ( $manager->settings() as $setting ) {
 			if ( $this->can_preview( $setting, $this->post_data ) ) {

@@ -36,6 +36,14 @@ class Customize_Snapshot {
 	protected $data = array();
 
 	/**
+	 * Store the snapshot contextual data.
+	 *
+	 * @access protected
+	 * @var array
+	 */
+	protected $contextual_data = array();
+
+	/**
 	 * Post object for the current snapshot.
 	 *
 	 * @access protected
@@ -348,14 +356,18 @@ class Customize_Snapshot {
 	}
 
 	/**
-	 * Check if the setting is contextual.
+	 * Store a setting's contextual value in the snapshot's data.
 	 *
-	 * @param string $setting_id
-	 *
-	 * @return bool
+	 * @param string $setting_id A contextual setting ID.
+	 * @param mixed $value Must be JSON-serializable
+	 * @param bool $dirty Whether the setting is dirty or not.
 	 */
-	static function is_contextual_setting( $setting_id ) {
-		return 0 !== preg_match( '/^contextual\[query:([^]]+)\]\[(.*?)\]\[(.*?)\]$/', $setting_id );
+	public function set_contextual( $setting_id, $value, $dirty ) {
+		$this->contextual_data[ $setting_id ] = array(
+			'value' => $value,
+			'dirty' => $dirty,
+			'sanitized' => false,
+		);
 	}
 
 	/**
@@ -393,22 +405,16 @@ class Customize_Snapshot {
 		/**
 		 * Store a contextual setting's value in the snapshot's data.
 		 *
+		 * @link https://github.com/xwp/wp-customize-contextual-settings
+		 *
 		 * @todo Replace settings in `$data` that match a `contextual[query:global]` counterpart to fix scope creep.
-		 * @todo Remove the `contextual[query:global]` array completely.
+		 * @todo Remove the `contextual[query:global]` array completely so it's not saved.
 		 */
-		if ( isset( $_POST['snapshot_customized'] ) ) {
-			$post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
-			foreach ( $post_data as $setting_id => $value ) {
-				if ( $this->is_contextual_setting( $setting_id ) ) {
-					$data[ $setting_id ] = array(
-						'value' => $value['value'],
-						'dirty' => $value['dirty'],
-						'sanitized' => false,
-					);
-				}
-			}
+		foreach ( $this->contextual_data as $setting_id => $value ) {
+			$data[ $setting_id ] = $value;
 		}
 
+		// JSON encoded snapshot data, with contextual settings.
 		$post_content = wp_json_encode( $data, $options );
 
 		if ( ! $this->post ) {
