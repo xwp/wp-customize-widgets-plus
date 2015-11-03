@@ -109,6 +109,7 @@ var customizeSnapshot = ( function( $ ) {
 
 		form = dialog.find( 'form' ).on( 'submit', function( event ) {
 			event.preventDefault();
+			dialog.next( '.ui-dialog-buttonpane' ).find( 'button:first-child' ).disabled( true );
 			self.doAjax();
 		} );
 
