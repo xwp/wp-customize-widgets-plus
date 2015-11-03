@@ -331,10 +331,6 @@ class Customize_Snapshot {
 	 * @param bool $dirty Whether the setting is dirty or not.
 	 */
 	public function set( \WP_Customize_Setting $setting, $value, $dirty ) {
-		if ( $dirty ) {
-			$value = apply_filters( "customize_sanitize_js_{$setting->id}", $value, $setting );
-		}
-
 		$this->data[ $setting->id ] = array(
 			'value' => $value,
 			'dirty' => $dirty,
