@@ -272,7 +272,10 @@ class Customize_Snapshot {
 		 */
 
 		if ( ! isset( $this->data[ $setting_id ] ) ) {
-			// @todo Should this instead return $setting_obj->default? Or only if is_null( $default )?
+			if ( is_null( $default ) && isset( $setting->default ) ) {
+				return $setting->default;
+			}
+
 			return $default;
 		}
 
@@ -361,8 +364,9 @@ class Customize_Snapshot {
 	 * @return null|WP_Error
 	 */
 	public function save( $status = 'draft' ) {
-
-		// @todo Add a check for user permissions.
+		if ( ! current_user_can( 'customize' ) ) {
+			return null;
+		}
 
 		$options = 0;
 		if ( defined( 'JSON_UNESCAPED_SLASHES' ) ) {

@@ -222,11 +222,12 @@ class Test_Customize_Snapshot extends Base_Test_Case {
 	function test_set_and_get() {
 		$snapshot = new Customize_Snapshot( $this->wp_customize, null );
 
-		$this->assertEmpty( $snapshot->get( $this->foo ) );
+		$this->wp_customize->add_setting( 'biz' );
+		$this->assertEmpty( $snapshot->get( $this->wp_customize->get_setting( 'biz' ) ) );
 		$snapshot->set( $this->foo, 'foo_default', false );
 		$this->assertNotEmpty( $snapshot->get( $this->foo ) );
 		$this->assertNotEmpty( $snapshot->get( 'foo' ) );
-		$this->assertEmpty( $snapshot->get( 'bar' ) );
+		$this->assertEquals( 'bar_default', $snapshot->get( 'bar' ) );
 		$this->assertEquals( 'default', $snapshot->get( 'bar', 'default' ) );
 		$this->assertNull(  $snapshot->get( 'baz' ) );
 	}
