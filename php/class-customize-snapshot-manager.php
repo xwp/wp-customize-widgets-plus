@@ -94,6 +94,26 @@ class Customize_Snapshot_Manager {
 		// Preview a Snapshot
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'preview' ), 999 );
+		add_action( 'wp_loaded', array( $this, 'bootstrap' ) );
+	}
+
+	/**
+	 * Handles loading the Customizer values into the front-end.
+	 */
+	public function bootstrap() {
+		if ( $this->snapshot->is_preview() && ! is_admin() ) {
+
+			// Block the robots.
+			add_action( 'wp_head', 'wp_no_robots' );
+
+			$values = $this->snapshot->values();
+
+			foreach ( $this->snapshot->settings() as $setting ) {
+				if ( $this->can_preview( $setting, $values ) ) {
+					$setting->preview();
+				}
+			}
+		}
 	}
 
 	/**
@@ -224,7 +244,7 @@ class Customize_Snapshot_Manager {
 		$manager->add_dynamic_settings( $new_setting_ids );
 
 		foreach ( $manager->settings() as $setting ) {
-			if ( $setting->check_capabilities() && array_key_exists( $setting->id, $this->post_data ) ) {
+			if ( $this->can_preview( $setting, $this->post_data ) ) {
 				$post_data = $this->post_data[ $setting->id ];
 				$this->snapshot->set( $setting, $post_data['value'], $post_data['dirty'] );
 			}
@@ -430,7 +450,7 @@ class Customize_Snapshot_Manager {
 		if ( ! ( $setting instanceof \WP_Customize_Setting ) && ! is_subclass_of( $setting, 'WP_Customize_Setting' ) ) {
 			return false;
 		}
-		if ( ! $setting->check_capabilities() ) { // @todo This could make a front-end preview impossible.
+		if ( ! $setting->check_capabilities() && is_admin() ) {
 			return false;
 		}
 		if ( ! array_key_exists( $setting->id, $values ) ) {
