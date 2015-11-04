@@ -72,10 +72,10 @@ class Customize_Snapshot {
 	 *
 	 * @access public
 	 *
-	 * @throws Exception
-	 * @param \WP_Customize_Manager $manager Customize manager bootstrap instance.
-	 * @param string|null $uuid Snapshot unique identifier.
-	 * @param bool $apply_dirty Apply only dirty settings from snapshot to Customizer post data. Default is `true`.
+	 * @throws Exception If the UUID is invalid.
+	 * @param \WP_Customize_Manager $manager     Customize manager bootstrap instance.
+	 * @param string|null           $uuid        Snapshot unique identifier.
+	 * @param bool                  $apply_dirty Apply only dirty settings from snapshot to Customizer post data. Default is `true`.
 	 */
 	public function __construct( \WP_Customize_Manager $manager, $uuid, $apply_dirty = true ) {
 		$this->manager = $manager;
@@ -96,7 +96,7 @@ class Customize_Snapshot {
 
 		$post = $this->post();
 
-		// Don't preview other themes
+		// Don't preview other themes.
 		if ( ( ! $this->manager->is_theme_active() && is_admin() ) || ( $this->is_preview && $post && get_post_meta( $post->ID, '_snapshot_theme', true ) !== $this->manager->get_stylesheet() ) ) {
 			$this->is_preview = false;
 			return;
@@ -169,7 +169,7 @@ class Customize_Snapshot {
 	/**
 	 * Determine whether the supplied UUID is in the right format.
 	 *
-	 * @param string $uuid
+	 * @param string $uuid Snapshot UUID.
 	 *
 	 * @return bool
 	 */
@@ -189,7 +189,7 @@ class Customize_Snapshot {
 	/**
 	 * Set the snapshot uuid and regenerate the post object.
 	 *
-	 * @param string $uuid
+	 * @param string $uuid Snapshot UUID.
 	 */
 	public function set_uuid( $uuid ) {
 		if ( self::is_valid_uuid( $uuid ) ) {
@@ -267,7 +267,7 @@ class Customize_Snapshot {
 	/**
 	 * This is needed to ensure that draft posts can be queried by name.
 	 *
-	 * @param \WP_Query $query
+	 * @param \WP_Query $query WP Query.
 	 */
 	public function _override_wp_query_is_single( $query ) {
 		$query->is_single = false;
@@ -276,8 +276,8 @@ class Customize_Snapshot {
 	/**
 	 * Get the value for a setting in the snapshot.
 	 *
-	 * @param \WP_Customize_Setting|string $setting
-	 * @param mixed $default Return value if the snapshot lacks a value for the given setting.
+	 * @param \WP_Customize_Setting|string $setting Setting.
+	 * @param mixed                        $default Return value if the snapshot lacks a value for the given setting.
 	 * @return mixed
 	 */
 	public function get( $setting, $default = null ) {
@@ -363,9 +363,9 @@ class Customize_Snapshot {
 	/**
 	 * Store a setting's value in the snapshot's data.
 	 *
-	 * @param \WP_Customize_Setting $setting
-	 * @param mixed $value Must be JSON-serializable
-	 * @param bool $dirty Whether the setting is dirty or not.
+	 * @param \WP_Customize_Setting $setting Setting.
+	 * @param mixed                 $value   Must be JSON-serializable.
+	 * @param bool                  $dirty   Whether the setting is dirty or not.
 	 */
 	public function set( \WP_Customize_Setting $setting, $value, $dirty ) {
 		$this->data[ $setting->id ] = array(
@@ -379,8 +379,8 @@ class Customize_Snapshot {
 	 * Store a setting's contextual value in the snapshot's data.
 	 *
 	 * @param string $setting_id A contextual setting ID.
-	 * @param mixed $value Must be JSON-serializable
-	 * @param bool $dirty Whether the setting is dirty or not.
+	 * @param mixed  $value      Must be JSON-serializable.
+	 * @param bool   $dirty      Whether the setting is dirty or not.
 	 */
 	public function set_contextual( $setting_id, $value, $dirty ) {
 		$this->contextual_data[ $setting_id ] = array(
@@ -402,7 +402,7 @@ class Customize_Snapshot {
 	/**
 	 * Persist the data in the snapshot post content.
 	 *
-	 * @param string $status
+	 * @param string $status Post status.
 	 *
 	 * @return null|\WP_Error
 	 */

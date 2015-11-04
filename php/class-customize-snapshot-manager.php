@@ -24,6 +24,8 @@ class Customize_Snapshot_Manager {
 	const AJAX_ACTION = 'customize_update_snapshot';
 
 	/**
+	 * Plugin instance.
+	 *
 	 * @var Plugin
 	 */
 	public $plugin;
@@ -59,7 +61,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @access public
 	 *
-	 * @param Plugin $plugin
+	 * @param Plugin $plugin Plugin instance.
 	 */
 	public function __construct( Plugin $plugin ) {
 		// Bail if our conditions are not met.
@@ -99,7 +101,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 
-		// Preview a Snapshot
+		// Preview a Snapshot.
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
 		add_action( 'wp_loaded', array( $this, 'preview' ) );
 	}
@@ -244,8 +246,8 @@ class Customize_Snapshot_Manager {
 	 * Save a snapshot.
 	 *
 	 * @param \WP_Customize_Manager $manager WP_Customize_Manager instance.
-	 * @param string $status The post status.
-	 * @return null|\WP_Error
+	 * @param string                $status  The post status.
+	 * @return null|\WP_Error Null if success, WP_Error on failure.
 	 */
 	public function save( \WP_Customize_Manager $manager, $status = 'draft' ) {
 		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
@@ -405,8 +407,6 @@ class Customize_Snapshot_Manager {
 
 	/**
 	 * Underscore (JS) templates for dialog windows.
-	 *
-	 * @return string
 	 */
 	public function render_templates() {
 		?>
@@ -456,7 +456,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Check if the setting can be previewed.
 	 *
-	 * @param \WP_Customize_Setting $setting A WP_Customize_Setting derived object
+	 * @param \WP_Customize_Setting $setting A WP_Customize_Setting derived object.
 	 * @param array                 $values  All settings' values in the snapshot.
 	 * @return bool
 	 */
@@ -542,7 +542,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * Example: array( 'context' => 'global', 'base' => 'sidebars_widgets', 'key' => '[sidebar-1]' )
 	 *
-	 * @param string $setting_id
+	 * @param string $setting_id Setting ID.
 	 *
 	 * @return array|null
 	 */
