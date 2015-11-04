@@ -39,22 +39,19 @@ class Customize_Snapshot_Manager {
 	protected $post_data;
 
 	/**
-	 * Contextual values.
-	 *
-	 * @link https://github.com/xwp/wp-customize-contextual-settings
-	 *
-	 * @access protected
-	 * @var array|null
-	 */
-	protected $contextual_post_data;
-
-	/**
 	 * Customize_Snapshot instance.
 	 *
 	 * @access protected
 	 * @var Customize_Snapshot
 	 */
 	protected $snapshot;
+
+	/**
+	 * Customize manager.
+	 *
+	 * @var \WP_Customize_Manager
+	 */
+	public $customize_manager;
 
 	/**
 	 * Constructor.
@@ -90,8 +87,9 @@ class Customize_Snapshot_Manager {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
 		}
+		$this->customize_manager = $GLOBALS['wp_customize'];
 
-		$this->snapshot = new Customize_Snapshot( $GLOBALS['wp_customize'], $uuid, $apply_dirty );
+		$this->snapshot = new Customize_Snapshot( $this, $uuid, $apply_dirty );
 
 		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
@@ -135,26 +133,6 @@ class Customize_Snapshot_Manager {
 	public function store_post_data() {
 		if ( current_user_can( 'customize' ) && isset( $_POST['snapshot_customized'] ) ) {
 			$this->post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
-
-			// Contextual settings.
-			foreach ( $this->post_data as $setting_id => $value ) {
-				$matches = self::parse_contextual_setting_id( $setting_id );
-				if ( isset( $matches['context'] ) ) {
-					// Remove contextuals from the post_data array.
-					unset( $this->post_data[ $setting_id ] );
-
-					// Global contextuals write over settings to fix scope creep caused by the plugin.
-					if ( 'global' === $matches['context'] ) {
-						$_setting_id = $matches['base'];
-						if ( isset( $matches['key'] ) ) {
-							$_setting_id .= $matches['key'];
-						}
-						$this->post_data[ $_setting_id ] = $value;
-					} else if ( ! empty( $matches['context'] ) ) {
-						$this->contextual_post_data[ $setting_id ] = $value;
-					}
-				}
-			}
 		}
 	}
 
@@ -245,21 +223,21 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Save a snapshot.
 	 *
-	 * @param \WP_Customize_Manager $manager WP_Customize_Manager instance.
-	 * @param string                $status  The post status.
+	 * @param string $status  The post status.
 	 * @return null|\WP_Error Null if success, WP_Error on failure.
 	 */
-	public function save( \WP_Customize_Manager $manager, $status = 'draft' ) {
-		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
-		$manager->add_dynamic_settings( $new_setting_ids );
-
-		if ( ! empty( $this->contextual_post_data ) ) {
-			foreach ( $this->contextual_post_data as $setting_id => $contextual ) {
-				$this->snapshot->set_contextual( $setting_id, $contextual['value'], $contextual['dirty'] );
-			}
+	public function save( $status = 'draft' ) {
+		foreach ( $this->post_data as $setting_id => $setting_info ) {
+			$this->customize_manager->set_post_value( $setting_id, $setting_info['value'] );
 		}
 
-		foreach ( $manager->settings() as $setting ) {
+		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $this->customize_manager->settings() ) );
+		$added_settings = $this->customize_manager->add_dynamic_settings( $new_setting_ids );
+		if ( ! empty( $new_setting_ids ) && 0 === count( $added_settings ) ) {
+			trigger_error( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ), E_USER_WARNING );
+		}
+
+		foreach ( $this->customize_manager->settings() as $setting ) {
 			if ( $this->can_preview( $setting, $this->post_data ) ) {
 				$post_data = $this->post_data[ $setting->id ];
 				$this->snapshot->set( $setting, $post_data['value'], $post_data['dirty'] );
@@ -349,8 +327,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		$this->snapshot->apply_dirty = ( 'dirty' === $_POST['scope'] );
-		$manager = $this->snapshot->manager();
-		$this->save( $manager, 'draft' );
+		$this->save( 'draft' );
 
 		// Set a new UUID every time Share is clicked, when the user is not previewing a snapshot.
 		if ( 'on' !== $_POST['preview'] ) {
@@ -479,24 +456,12 @@ class Customize_Snapshot_Manager {
 	public function set_post_values() {
 		if ( true === $this->snapshot->is_preview() ) {
 			$values = $this->snapshot->values();
-			$manager = $this->snapshot->manager();
 
 			foreach ( $this->snapshot->settings() as $setting ) {
 				if ( $this->can_preview( $setting, $values ) ) {
-					$manager->set_post_value( $setting->id, $values[ $setting->id ] );
+					$this->customize_manager->set_post_value( $setting->id, $values[ $setting->id ] );
 				}
 			}
-
-			/*
-			 * @todo We can now loop over '$this->snapshot->contextual_data()' and set the post values
-			 * for contextual based queries matching the current preview URL and apply those settings.
-			 * This means we need to parse the contextual setting_id and verify the current preview url
-			 * matches the query and the setting_id is valid and can be previewed. As well, we should
-			 * build a private settings array to be used in 'preview' below so we don't duplicate the
-			 * loop that checks for contextual settings. If the contextual settings object is empty then
-			 * there is nothing to preview. The reason is that '$this->snapshot->values()' is not guaranteed
-			 * to contain the setting and '$this->can_preview()' could fail with the values being given.
-			 */
 		}
 	}
 
@@ -517,7 +482,7 @@ class Customize_Snapshot_Manager {
 			 * may short-circuit because it will detect that there are no changes to
 			 * make.
 			 */
-			if ( ! $this->snapshot->manager()->doing_ajax( 'customize_save' ) ) {
+			if ( ! $this->customize_manager->doing_ajax( 'customize_save' ) ) {
 				$values = $this->snapshot->values();
 
 				foreach ( $this->snapshot->settings() as $setting ) {
@@ -526,34 +491,7 @@ class Customize_Snapshot_Manager {
 						$setting->dirty = true;
 					}
 				}
-
-				/*
-				 * @todo Preview contextual settings. This will replace the global scope and preview the
-				 * settings created in 'set_post_values' above. The data should be an array of setting
-				 * objects that we can just loop on and do '$setting->preview()' like above, but without
-				 * the 'can_preview' check as an equivalent to it would have been done in 'set_post_values'.
-				 */
 			}
 		}
-	}
-
-	/**
-	 * Convert 'contextual[global][sidebars_widgets][sidebar-1]' into an array of matched values.
-	 *
-	 * Example: array( 'context' => 'global', 'base' => 'sidebars_widgets', 'key' => '[sidebar-1]' )
-	 *
-	 * @param string $setting_id Setting ID.
-	 *
-	 * @return array|null
-	 */
-	static function parse_contextual_setting_id( $setting_id ) {
-		$context_pattern = 'contextual\[query:(?P<context>[^\]]*?)\]';
-		$base_pattern = '\[(?P<base>[^\]]+?)\]';
-		$key_pattern = '(?P<key>\[.*)?';
-		$pattern = $context_pattern . $base_pattern . $key_pattern;
-		if ( preg_match( '/^' . $pattern . '$/', $setting_id, $matches ) ) {
-			return $matches;
-		}
-		return null;
 	}
 }
