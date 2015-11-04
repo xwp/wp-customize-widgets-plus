@@ -36,14 +36,6 @@ class Customize_Snapshot {
 	protected $data = array();
 
 	/**
-	 * Store the snapshot contextual data.
-	 *
-	 * @access protected
-	 * @var array
-	 */
-	protected $contextual_data = array();
-
-	/**
 	 * Post object for the current snapshot.
 	 *
 	 * @access protected
@@ -82,7 +74,6 @@ class Customize_Snapshot {
 		$this->snapshot_manager = $snapshot_manager;
 		$this->apply_dirty = $apply_dirty;
 		$this->data = array();
-		$this->contextual_data = array();
 
 		if ( $uuid ) {
 			if ( self::is_valid_uuid( $uuid ) ) {
@@ -208,15 +199,6 @@ class Customize_Snapshot {
 	 */
 	public function is_preview() {
 		return $this->is_preview;
-	}
-
-	/**
-	 * Get the contextual data contained in the snapshot.
-	 *
-	 * @return array
-	 */
-	public function contextual_data() {
-		return $this->contextual_data;
 	}
 
 	/**
@@ -389,13 +371,14 @@ class Customize_Snapshot {
 		}
 
 		/**
-		 * Store a contextual setting's value in the snapshot's data.
+		 * Filter the snapshot's data before it's saved to 'post_content_filtered'.
 		 *
-		 * @link https://github.com/xwp/wp-customize-contextual-settings
+		 * @param array $data Customizer settings and values.
+		 * @return array
 		 */
-		$data = array_merge( $this->data, $this->contextual_data );
+		$data = apply_filters( 'customize_snapshot_before_save', $this->data, $this );
 
-		// JSON encoded snapshot data, with contextual settings.
+		// JSON encoded snapshot data.
 		$post_content = wp_json_encode( $data, $options );
 
 		if ( ! $this->post ) {
