@@ -13,7 +13,7 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	/**
 	 * @var \WP_Customize_Manager
 	 */
-	protected $customize;
+	protected $wp_customize;
 
 	/**
 	 * @var Customize_Snapshot_Manager
@@ -151,7 +151,7 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->set_snapshot_uuid();
 		$this->assertEmpty( $manager->snapshot()->post() );
-		$manager->save_snapshot( $this->wp_customize );
+		$manager->save_snapshot();
 		$this->assertNotEmpty( $manager->snapshot()->post() );
 	}
 
@@ -191,19 +191,21 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	 */
 	public function test_can_preview() {
 		wp_set_current_user( $this->user_id );
-		$this->do_customize_boot_actions( true );
-		$_POST = array(
+		$_POST = wp_slash( array(
 			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
 			'snapshot_uuid' => self::UUID,
 			'snapshot_customized' => '{"foo":{"value":"foo_custom","dirty":true},"bar":{"value":"bar_default","dirty":false}}',
-		);
-		$manager = new Customize_Snapshot_Manager( $this->plugin );
-		$manager->set_snapshot_uuid();
-		$manager->save_snapshot( $this->wp_customize );
-		
+		) );
+		$this->do_customize_boot_actions( true );
 		$foo = $this->wp_customize->get_setting( 'foo' );
 		$this->assertEquals( 'foo_default', $foo->value() );
-		
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
+		$manager->save_snapshot();
+
+		$foo = $this->wp_customize->get_setting( 'foo' );
+		$this->assertEquals( 'foo_custom', $foo->value() );
 		$this->assertTrue( $manager->can_preview( $foo, $manager->snapshot()->values() ) );
 	}
 
@@ -222,7 +224,7 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 
 		$foo = $this->wp_customize->get_setting( 'foo' );
 		$this->assertEquals( 'foo_default', $foo->value() );
-		
+
 		$this->assertFalse( $this->manager->can_preview( $foo, $this->manager->snapshot()->values() ) );
 	}
 
@@ -238,11 +240,11 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 			'snapshot_customized' => '{"bar":{"value":"bar_default","dirty":false}}',
 		);
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
-		$manager->save_snapshot( $this->wp_customize );
-		
+		$manager->save_snapshot();
+
 		$foo = $this->wp_customize->get_setting( 'foo' );
 		$this->assertEquals( 'foo_default', $foo->value() );
-		
+
 		$this->assertFalse( $manager->can_preview( $foo, $manager->snapshot()->values() ) );
 	}
 
@@ -251,12 +253,12 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	 */
 	public function test_set_post_values() {
 		wp_set_current_user( $this->user_id );
-		$foo = $this->manager->snapshot()->manager()->get_setting( 'foo' );
+		$foo = $this->manager->customize_manager->get_setting( 'foo' );
 		$this->manager->snapshot()->set( $foo, 'foo_custom', true );
 		$this->manager->snapshot()->save();
 		$this->manager->snapshot()->is_preview = true;
 		$this->manager->set_post_values();
-		$this->assertEquals( array( 'foo' => 'foo_custom' ), $this->manager->snapshot()->manager()->unsanitized_post_values() );
+		$this->assertEquals( array( 'foo' => 'foo_custom' ), $this->manager->customize_manager->unsanitized_post_values() );
 	}
 
 	/**
@@ -264,7 +266,7 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 	 */
 	public function test_preview() {
 		wp_set_current_user( $this->user_id );
-		$foo = $this->manager->snapshot()->manager()->get_setting( 'foo' );
+		$foo = $this->manager->customize_manager->get_setting( 'foo' );
 		$this->manager->snapshot()->set( $foo, 'foo_custom', true );
 		$this->assertFalse( $foo->dirty );
 		$this->manager->snapshot()->save();
@@ -272,5 +274,4 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 		$this->manager->preview();
 		$this->assertTrue( $foo->dirty );
 	}
-
 }

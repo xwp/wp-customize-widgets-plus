@@ -12,12 +12,12 @@ namespace CustomizeWidgetsPlus;
 class Customize_Snapshot {
 
 	/**
-	 * WP_Customize_Manager instance.
+	 * Customize_Snapshot_Manager instance.
 	 *
 	 * @access protected
-	 * @var \WP_Customize_Manager
+	 * @var Customize_Snapshot_Manager
 	 */
-	protected $manager;
+	protected $snapshot_manager;
 
 	/**
 	 * Unique identifier.
@@ -73,12 +73,13 @@ class Customize_Snapshot {
 	 * @access public
 	 *
 	 * @throws Exception If the UUID is invalid.
-	 * @param \WP_Customize_Manager $manager     Customize manager bootstrap instance.
-	 * @param string|null           $uuid        Snapshot unique identifier.
-	 * @param bool                  $apply_dirty Apply only dirty settings from snapshot to Customizer post data. Default is `true`.
+	 *
+	 * @param Customize_Snapshot_Manager $snapshot_manager     Customize snapshot bootstrap instance.
+	 * @param string|null                $uuid                 Snapshot unique identifier.
+	 * @param bool                       $apply_dirty          Apply only dirty settings from snapshot to Customizer post data. Default is `true`.
 	 */
-	public function __construct( \WP_Customize_Manager $manager, $uuid, $apply_dirty = true ) {
-		$this->manager = $manager;
+	public function __construct( Customize_Snapshot_Manager $snapshot_manager, $uuid, $apply_dirty = true ) {
+		$this->snapshot_manager = $snapshot_manager;
 		$this->apply_dirty = $apply_dirty;
 		$this->data = array();
 		$this->contextual_data = array();
@@ -97,7 +98,7 @@ class Customize_Snapshot {
 		$post = $this->post();
 
 		// Don't preview other themes.
-		if ( ( ! $this->manager->is_theme_active() && is_admin() ) || ( $this->is_preview && $post && get_post_meta( $post->ID, '_snapshot_theme', true ) !== $this->manager->get_stylesheet() ) ) {
+		if ( ( ! $this->snapshot_manager->customize_manager->is_theme_active() && is_admin() ) || ( $this->is_preview && $post && get_post_meta( $post->ID, '_snapshot_theme', true ) !== $this->snapshot_manager->customize_manager->get_stylesheet() ) ) {
 			$this->is_preview = false;
 			return;
 		}
@@ -107,14 +108,6 @@ class Customize_Snapshot {
 			$this->data = json_decode( $post->post_content_filtered, true );
 
 			if ( ! empty( $this->data ) ) {
-
-				// Set the contextual data.
-				foreach ( $this->data as $setting_id => $value ) {
-					if ( false !== strpos( $setting_id, 'contextual[query:' ) ) {
-						unset( $this->data[ $setting_id ] );
-						$this->contextual_data[ $setting_id ] = $value;
-					}
-				}
 
 				// For back-compat.
 				if ( ! did_action( 'setup_theme' ) ) {
@@ -209,15 +202,6 @@ class Customize_Snapshot {
 	}
 
 	/**
-	 * Get the Customize manager bootstrap instance.
-	 *
-	 * @return \WP_Customize_Manager
-	 */
-	public function manager() {
-		return $this->manager;
-	}
-
-	/**
 	 * Check for Snapshot preview.
 	 *
 	 * @return bool
@@ -282,7 +266,7 @@ class Customize_Snapshot {
 	 */
 	public function get( $setting, $default = null ) {
 		if ( is_string( $setting ) ) {
-			$setting_obj = $this->manager->get_setting( $setting );
+			$setting_obj = $this->snapshot_manager->customize_manager->get_setting( $setting );
 			if ( $setting_obj ) {
 				$setting_id = $setting_obj->id;
 				$setting = $setting_obj;
@@ -343,7 +327,7 @@ class Customize_Snapshot {
 	public function settings() {
 		$settings = array();
 		foreach ( array_keys( $this->data ) as $setting_id ) {
-			$setting = $this->manager->get_setting( $setting_id );
+			$setting = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
 			if ( $setting ) {
 				$settings[] = $setting;
 			}
@@ -369,21 +353,6 @@ class Customize_Snapshot {
 	 */
 	public function set( \WP_Customize_Setting $setting, $value, $dirty ) {
 		$this->data[ $setting->id ] = array(
-			'value' => $value,
-			'dirty' => $dirty,
-			'sanitized' => false,
-		);
-	}
-
-	/**
-	 * Store a setting's contextual value in the snapshot's data.
-	 *
-	 * @param string $setting_id A contextual setting ID.
-	 * @param mixed  $value      Must be JSON-serializable.
-	 * @param bool   $dirty      Whether the setting is dirty or not.
-	 */
-	public function set_contextual( $setting_id, $value, $dirty ) {
-		$this->contextual_data[ $setting_id ] = array(
 			'value' => $value,
 			'dirty' => $dirty,
 			'sanitized' => false,
@@ -443,7 +412,7 @@ class Customize_Snapshot {
 				return $r;
 			}
 			$this->post = get_post( $r );
-			update_post_meta( $this->post->ID, '_snapshot_theme', $this->manager->get_stylesheet() );
+			update_post_meta( $this->post->ID, '_snapshot_theme', $this->snapshot_manager->customize_manager->get_stylesheet() );
 		} else {
 			$postarr = array(
 				'ID' => $this->post->ID,

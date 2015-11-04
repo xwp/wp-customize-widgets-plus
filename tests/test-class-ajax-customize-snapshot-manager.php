@@ -323,7 +323,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 			ob_start();
 			$manager = new Customize_Snapshot_Manager( $this->plugin );
 			$manager->set_snapshot_uuid();
-			$manager->save_snapshot( $this->wp_customize );
+			$manager->save_snapshot();
 			$buffer = ob_get_clean();
 			if ( ! empty( $buffer ) ) {
 				$this->_last_response = $buffer;
