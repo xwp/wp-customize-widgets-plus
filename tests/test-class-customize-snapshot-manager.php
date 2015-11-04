@@ -196,12 +196,15 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 			'snapshot_customized' => '{"foo":{"value":"foo_custom","dirty":true},"bar":{"value":"bar_default","dirty":false}}',
 		) );
 		$this->do_customize_boot_actions( true );
-		$manager = new Customize_Snapshot_Manager( $this->plugin );
-		$manager->save_snapshot();
 
 		$foo = $this->wp_customize->get_setting( 'foo' );
 		$this->assertEquals( 'foo_default', $foo->value() );
 
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->save_snapshot();
+
+		$foo = $this->wp_customize->get_setting( 'foo' );
+		$this->assertEquals( 'foo_custom', $foo->value() );
 		$this->assertTrue( $manager->can_preview( $foo, $manager->snapshot()->values() ) );
 	}
 
@@ -236,7 +239,7 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 			'snapshot_customized' => '{"bar":{"value":"bar_default","dirty":false}}',
 		);
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
-		$manager->save_snapshot( $this->wp_customize );
+		$manager->save_snapshot();
 
 		$foo = $this->wp_customize->get_setting( 'foo' );
 		$this->assertEquals( 'foo_default', $foo->value() );
