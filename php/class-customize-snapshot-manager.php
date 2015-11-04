@@ -490,6 +490,12 @@ class Customize_Snapshot_Manager {
 			/*
 			 * @todo We can now loop over '$this->snapshot->contextual_data()' and set the post values
 			 * for contextual based queries matching the current preview URL and apply those settings.
+			 * This means we need to parse the contextual setting_id and verify the current preview url
+			 * matches the query and the setting_id is valid and can be previewed. As well, we should
+			 * build a private settings array to be used in 'preview' below so we don't duplicate the
+			 * loop that checks for contextual settings. If the contextual settings object is empty then
+			 * there is nothing to preview. The reason is that '$this->snapshot->values()' is not guaranteed
+			 * to contain the setting and '$this->can_preview()' could fail with the values being given.
 			 */
 		}
 	}
@@ -520,6 +526,13 @@ class Customize_Snapshot_Manager {
 						$setting->dirty = true;
 					}
 				}
+
+				/*
+				 * @todo Preview contextual settings. This will replace the global scope and preview the
+				 * settings created in 'set_post_values' above. The data should be an array of setting
+				 * objects that we can just loop on and do '$setting->preview()' like above, but without
+				 * the 'can_preview' check as an equivalent to it would have been done in 'set_post_values'.
+				 */
 			}
 		}
 	}
