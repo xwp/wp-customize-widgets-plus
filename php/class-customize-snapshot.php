@@ -226,6 +226,15 @@ class Customize_Snapshot {
 	}
 
 	/**
+	 * Get the contextual data contained in the snapshot.
+	 *
+	 * @return array
+	 */
+	public function contextual_data() {
+		return $this->contextual_data;
+	}
+
+	/**
 	 * Get the snapshot post associated with the provided UUID, or null if it does not exist.
 	 *
 	 * @param bool $refresh Whether or not to refresh the post object.
@@ -339,15 +348,6 @@ class Customize_Snapshot {
 			}
 		}
 		return $settings;
-	}
-
-	/**
-	 * Return the contextual settings corresponding to the data contained in the snapshot.
-	 *
-	 * @return array
-	 */
-	public function contextual_settings() {
-		return $this->contextual_data;
 	}
 
 	/**
