@@ -399,20 +399,12 @@ class Customize_Snapshot {
 			$options |= JSON_PRETTY_PRINT;
 		}
 
-		// The snapshot data.
-		$data = $this->data;
-
 		/**
 		 * Store a contextual setting's value in the snapshot's data.
 		 *
 		 * @link https://github.com/xwp/wp-customize-contextual-settings
-		 *
-		 * @todo Replace settings in `$data` that match a `contextual[query:global]` counterpart to fix scope creep.
-		 * @todo Remove the `contextual[query:global]` array completely so it's not saved.
 		 */
-		foreach ( $this->contextual_data as $setting_id => $value ) {
-			$data[ $setting_id ] = $value;
-		}
+		$data = array_merge( $this->data, $this->contextual_data );
 
 		// JSON encoded snapshot data, with contextual settings.
 		$post_content = wp_json_encode( $data, $options );

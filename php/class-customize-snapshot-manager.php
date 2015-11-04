@@ -128,8 +128,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Decode and store any $_POST['snapshot_customized'] data.
 	 *
-	 * The value is used by Customize_Snapshot_Manager::update_snapshot().
-	 * The contextual values are used by Customize_Snapshot::save().
+	 * The value is used by Customize_Snapshot_Manager::save().
 	 */
 	public function store_post_data() {
 		if ( isset( $_POST['snapshot_customized'] ) ) {
@@ -137,23 +136,24 @@ class Customize_Snapshot_Manager {
 
 			// Contextual settings.
 			foreach ( $this->post_data as $setting_id => $value ) {
-				if ( self::is_contextual_setting( $setting_id ) ) {
-					$this->contextual_post_data[ $setting_id ] = $value;
+				$matches = self::parse_contextual_setting_id( $setting_id );
+				if ( isset( $matches['context'] ) ) {
+					// Remove contextuals from the post_data array.
 					unset( $this->post_data[ $setting_id ] );
+
+					// Global contextuals write over settings to fix scope creep caused by the plugin.
+					if ( 'global' === $matches['context'] ) {
+						$_setting_id = $matches['base'];
+						if ( isset( $matches['key'] ) ) {
+							$_setting_id .= $matches['key'];
+						}
+						$this->post_data[ $_setting_id ] = $value;
+					} else if ( ! empty( $matches['context'] ) ) {
+						$this->contextual_post_data[ $setting_id ] = $value;
+					}
 				}
 			}
 		}
-	}
-
-	/**
-	 * Check if the setting is contextual.
-	 *
-	 * @param string $setting_id
-	 *
-	 * @return bool
-	 */
-	static function is_contextual_setting( $setting_id ) {
-		return 0 !== preg_match( '/^contextual\[query:([^]]+)\]\[(.*?)\]\[(.*?)\]$/', $setting_id );
 	}
 
 	/**
@@ -519,5 +519,25 @@ class Customize_Snapshot_Manager {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Convert 'contextual[global][sidebars_widgets][sidebar-1]' into an array of matched values.
+	 *
+	 * Example: array( 'context' => 'global', 'base' => 'sidebars_widgets', 'key' => '[sidebar-1]' )
+	 *
+	 * @param string $setting_id
+	 *
+	 * @return array|null
+	 */
+	static function parse_contextual_setting_id( $setting_id ) {
+		$context_pattern = 'contextual\[query:(?P<context>[^\]]*?)\]';
+		$base_pattern = '\[(?P<base>[^\]]+?)\]';
+		$key_pattern = '(?P<key>\[.*)?';
+		$pattern = $context_pattern . $base_pattern . $key_pattern;
+		if ( preg_match( '/^' . $pattern . '$/', $setting_id, $matches ) ) {
+			return $matches;
+		}
+		return null;
 	}
 }
