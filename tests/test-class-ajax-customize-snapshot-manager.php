@@ -322,6 +322,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 			ini_set( 'implicit_flush', false );
 			ob_start();
 			$manager = new Customize_Snapshot_Manager( $this->plugin );
+			$manager->set_snapshot_uuid();
 			$manager->save_snapshot();
 			$buffer = ob_get_clean();
 			if ( ! empty( $buffer ) ) {
@@ -333,26 +334,6 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 	}
 
 	/**
-	 * Testing capabilities check for the save_snapshot method
-	 */
-	function test_ajax_save_snapshot_cap_check() {
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
-		$this->make_save_snapshot_ajax_call();
-		$response = json_decode( $this->_last_response, true );
-		$this->assertContains( 'customize_not_allowed', $response );
-	}
-
-	/**
-	 * Testing REQUEST_METHOD for the update_snapshot method
-	 */
-	function test_ajax_save_snapshot_post_check() {
-		$_SERVER['REQUEST_METHOD'] = 'GET';
-		$this->make_save_snapshot_ajax_call();
-		$response = json_decode( $this->_last_response, true );
-		$this->assertContains( 'bad_method', $response );
-	}
-
-	/**
 	 * Testing post_data for the save_snapshot method
 	 */
 	function test_ajax_save_snapshot_post_data_check() {
@@ -360,8 +341,8 @@ class Test_Ajax_Customize_Snapshot_Manager extends Ajax_Base_Test_Case {
 			'snapshot_uuid' => self::UUID,
 		);
 		$this->make_save_snapshot_ajax_call();
-		$response = json_decode( $this->_last_response, true );
-		$this->assertContains( 'missing_snapshot_customized', $response );
+		$response = apply_filters( 'customize_save_response', array(), $this->wp_customize );
+		$this->assertEquals( array( 'missing_snapshot_customized' => 'The Snapshots customized data was missing from the request.' ), $response );
 	}
 
 }

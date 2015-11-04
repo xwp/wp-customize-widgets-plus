@@ -149,6 +149,7 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
 		);
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
 		$this->assertEmpty( $manager->snapshot()->post() );
 		$manager->save_snapshot();
 		$this->assertNotEmpty( $manager->snapshot()->post() );
@@ -196,11 +197,11 @@ class Test_Customize_Snapshot_Manager extends Base_Test_Case {
 			'snapshot_customized' => '{"foo":{"value":"foo_custom","dirty":true},"bar":{"value":"bar_default","dirty":false}}',
 		) );
 		$this->do_customize_boot_actions( true );
-
 		$foo = $this->wp_customize->get_setting( 'foo' );
 		$this->assertEquals( 'foo_default', $foo->value() );
 
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
 		$manager->save_snapshot();
 
 		$foo = $this->wp_customize->get_setting( 'foo' );
