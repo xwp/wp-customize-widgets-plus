@@ -487,7 +487,10 @@ class Customize_Snapshot_Manager {
 				}
 			}
 
-			// @todo Take contextual based queries for the current URL and apply those settings.
+			/*
+			 * @todo We can now loop over '$this->snapshot->contextual_settings()' and set the post values
+			 * for contextual based queries matching the current preview URL and apply those settings.
+			 */
 		}
 	}
 

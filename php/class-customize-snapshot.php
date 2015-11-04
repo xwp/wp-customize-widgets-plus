@@ -80,6 +80,7 @@ class Customize_Snapshot {
 		$this->manager = $manager;
 		$this->apply_dirty = $apply_dirty;
 		$this->data = array();
+		$this->contextual_data = array();
 
 		if ( $uuid ) {
 			if ( self::is_valid_uuid( $uuid ) ) {
@@ -105,6 +106,15 @@ class Customize_Snapshot {
 			$this->data = json_decode( $post->post_content_filtered, true );
 
 			if ( ! empty( $this->data ) ) {
+
+				// Set the contextual data.
+				foreach ( $this->data as $setting_id => $value ) {
+					if ( false !== strpos( $setting_id, 'contextual[query:' ) ) {
+						unset( $this->data[ $setting_id ] );
+						$this->contextual_data[ $setting_id ] = $value;
+					}
+				}
+
 				// For back-compat.
 				if ( ! did_action( 'setup_theme' ) ) {
 					/*
@@ -329,6 +339,15 @@ class Customize_Snapshot {
 			}
 		}
 		return $settings;
+	}
+
+	/**
+	 * Return the contextual settings corresponding to the data contained in the snapshot.
+	 *
+	 * @return array
+	 */
+	public function contextual_settings() {
+		return $this->contextual_data;
 	}
 
 	/**
