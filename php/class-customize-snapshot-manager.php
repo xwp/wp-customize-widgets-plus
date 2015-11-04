@@ -243,9 +243,9 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Save a snapshot.
 	 *
-	 * @param WP_Customize_Manager $manager WP_Customize_Manager instance.
+	 * @param \WP_Customize_Manager $manager WP_Customize_Manager instance.
 	 * @param string $status The post status.
-	 * @return null|WP_Error
+	 * @return null|\WP_Error
 	 */
 	public function save( \WP_Customize_Manager $manager, $status = 'draft' ) {
 		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $manager->settings() ) );
@@ -276,7 +276,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * Fires at `customize_save_after` to update and publish the snapshot.
 	 *
-	 * @param WP_Customize_Manager $manager WP_Customize_Manager instance.
+	 * @param \WP_Customize_Manager $manager WP_Customize_Manager instance.
 	 */
 	public function save_snapshot( \WP_Customize_Manager $manager ) {
 		if ( ! current_user_can( 'customize' ) ) {
@@ -367,7 +367,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Replaces the "Customize" link in the Toolbar.
 	 *
-	 * @param WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function customize_menu( $wp_admin_bar ) {
 		// Don't show for users who can't access the customizer or when in the admin.
@@ -456,8 +456,8 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Check if the setting can be previewed.
 	 *
-	 * @param WP_Customize_Setting $setting A WP_Customize_Setting derived object
-	 * @param array All settings' values in the snapshot.
+	 * @param \WP_Customize_Setting $setting A WP_Customize_Setting derived object
+	 * @param array                 $values  All settings' values in the snapshot.
 	 * @return bool
 	 */
 	public function can_preview( $setting, $values ) {

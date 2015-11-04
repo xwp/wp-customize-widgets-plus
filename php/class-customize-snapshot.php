@@ -47,7 +47,7 @@ class Customize_Snapshot {
 	 * Post object for the current snapshot.
 	 *
 	 * @access protected
-	 * @var WP_Post|null
+	 * @var \WP_Post|null
 	 */
 	protected $post = null;
 
@@ -72,6 +72,7 @@ class Customize_Snapshot {
 	 *
 	 * @access public
 	 *
+	 * @throws Exception
 	 * @param \WP_Customize_Manager $manager Customize manager bootstrap instance.
 	 * @param string|null $uuid Snapshot unique identifier.
 	 * @param bool $apply_dirty Apply only dirty settings from snapshot to Customizer post data. Default is `true`.
@@ -151,7 +152,7 @@ class Customize_Snapshot {
 	}
 
 	/**
-	 * Generate a snapshot uuid
+	 * Generate a snapshot uuid.
 	 *
 	 * @return string
 	 */
@@ -238,7 +239,7 @@ class Customize_Snapshot {
 	 * Get the snapshot post associated with the provided UUID, or null if it does not exist.
 	 *
 	 * @param bool $refresh Whether or not to refresh the post object.
-	 * @return WP_Post|null
+	 * @return \WP_Post|null
 	 */
 	public function post( $refresh = false ) {
 		if ( ! $refresh && $this->post ) {
@@ -266,7 +267,7 @@ class Customize_Snapshot {
 	/**
 	 * This is needed to ensure that draft posts can be queried by name.
 	 *
-	 * @param WP_Query $query
+	 * @param \WP_Query $query
 	 */
 	public function _override_wp_query_is_single( $query ) {
 		$query->is_single = false;
@@ -275,7 +276,7 @@ class Customize_Snapshot {
 	/**
 	 * Get the value for a setting in the snapshot.
 	 *
-	 * @param WP_Customize_Setting|string $setting
+	 * @param \WP_Customize_Setting|string $setting
 	 * @param mixed $default Return value if the snapshot lacks a value for the given setting.
 	 * @return mixed
 	 */
@@ -294,7 +295,7 @@ class Customize_Snapshot {
 			$setting_id = $setting->id;
 		}
 		/**
-		 * @var WP_Customize_Setting|null $setting
+		 * @var \WP_Customize_Setting|null $setting
 		 * @var string $setting_id
 		 */
 
@@ -337,7 +338,7 @@ class Customize_Snapshot {
 	/**
 	 * Return the Customizer settings corresponding to the data contained in the snapshot.
 	 *
-	 * @return WP_Customize_Setting[]
+	 * @return \WP_Customize_Setting[]
 	 */
 	public function settings() {
 		$settings = array();
@@ -362,7 +363,7 @@ class Customize_Snapshot {
 	/**
 	 * Store a setting's value in the snapshot's data.
 	 *
-	 * @param WP_Customize_Setting $setting
+	 * @param \WP_Customize_Setting $setting
 	 * @param mixed $value Must be JSON-serializable
 	 * @param bool $dirty Whether the setting is dirty or not.
 	 */
@@ -403,7 +404,7 @@ class Customize_Snapshot {
 	 *
 	 * @param string $status
 	 *
-	 * @return null|WP_Error
+	 * @return null|\WP_Error
 	 */
 	public function save( $status = 'draft' ) {
 		if ( ! current_user_can( 'customize' ) ) {
