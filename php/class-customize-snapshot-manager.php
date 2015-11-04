@@ -255,10 +255,8 @@ class Customize_Snapshot_Manager {
 	 * Save snapshots via AJAX.
 	 *
 	 * Fires at `customize_save_after` to update and publish the snapshot.
-	 *
-	 * @param \WP_Customize_Manager $manager WP_Customize_Manager instance.
 	 */
-	public function save_snapshot( \WP_Customize_Manager $manager ) {
+	public function save_snapshot() {
 		if ( ! current_user_can( 'customize' ) ) {
 			status_header( 403 );
 			wp_send_json_error( 'customize_not_allowed' );
@@ -279,7 +277,7 @@ class Customize_Snapshot_Manager {
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$this->snapshot->set_uuid( $uuid );
-			$this->save( $manager, 'publish' );
+			$this->save( 'publish' );
 		}
 	}
 

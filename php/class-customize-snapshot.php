@@ -266,7 +266,7 @@ class Customize_Snapshot {
 	 */
 	public function get( $setting, $default = null ) {
 		if ( is_string( $setting ) ) {
-			$setting_obj = $this->snapshot_manager->get_setting( $setting );
+			$setting_obj = $this->snapshot_manager->customize_manager->get_setting( $setting );
 			if ( $setting_obj ) {
 				$setting_id = $setting_obj->id;
 				$setting = $setting_obj;
