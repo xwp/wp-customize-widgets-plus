@@ -97,7 +97,7 @@ var customizeSnapshot = ( function( $ ) {
 			buttons: {
 				Save: {
 					text: _customizeWidgetsPlusCustomizeSnapshot.i18n.saveButton,
-					click: self.doAjax
+					click: self.sendUpdateSnapshotRequest
 				},
 				Cancel: {
 					text: _customizeWidgetsPlusCustomizeSnapshot.i18n.cancelButton,
@@ -114,7 +114,7 @@ var customizeSnapshot = ( function( $ ) {
 		form = dialog.find( 'form' ).on( 'submit', function( event ) {
 			event.preventDefault();
 			dialog.next( '.ui-dialog-buttonpane' ).find( 'button:first-child' ).disabled( true );
-			self.doAjax();
+			self.sendUpdateSnapshotRequest();
 		} );
 
 		$( '#snapshot-button' ).on( 'click', function( event ) {
@@ -126,9 +126,9 @@ var customizeSnapshot = ( function( $ ) {
 	};
 
 	/**
-	 * Make the AJAX request.
+	 * Make the AJAX request to update/save a snapshot.
 	 */
-	self.doAjax = function() {
+	self.sendUpdateSnapshotRequest = function() {
 		var spinner = $( '#customize-header-actions .spinner' ),
 			scope = dialog.find( 'form input[name="scope"]:checked' ).val(),
 			request, customized;
