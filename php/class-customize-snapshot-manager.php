@@ -396,15 +396,14 @@ class Customize_Snapshot_Manager {
 		}
 
 		$current_url = $this->current_url();
-		parse_str( parse_url( $current_url, PHP_URL_QUERY ), $query_vars );
 
 		$args = array();
-		$uuid = isset( $query_vars['customize_snapshot_uuid'] ) ? $query_vars['customize_snapshot_uuid'] : null;
-		$scope = isset( $query_vars['scope'] ) ? $query_vars['scope'] : 'dirty';
+		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? $_GET['customize_snapshot_uuid'] : null;
+		$scope = isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty';
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$args['customize_snapshot_uuid'] = $uuid;
-			$args['scope'] = $scope;
+			$args['scope'] = ( 'dirty' !== $scope ? 'full' : 'dirty' );
 		}
 
 		$args['url'] = urlencode( $current_url );
