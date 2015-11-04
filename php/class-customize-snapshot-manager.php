@@ -57,6 +57,14 @@ class Customize_Snapshot_Manager {
 	protected $snapshot;
 
 	/**
+	 * Unique identifier set in 'wp_ajax_customize_save'.
+	 *
+	 * @access protected
+	 * @var string
+	 */
+	protected $snapshot_uuid;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -96,6 +104,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'wp_ajax_customize_save', array( $this, 'set_snapshot_uuid' ) );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
@@ -266,10 +275,18 @@ class Customize_Snapshot_Manager {
 			}
 		}
 
-		$r = $this->snapshot->save( $status );
-		if ( is_wp_error( $r ) ) {
-			status_header( 500 );
-			wp_send_json_error( $r->get_error_message() );
+		return $this->snapshot->save( $status );
+	}
+
+	/**
+	 * Set the snapshots UUID during Ajax request.
+	 *
+	 * Fires at `wp_ajax_customize_save`.
+	 */
+	public function set_snapshot_uuid() {
+		$uuid = ! empty( $_POST['snapshot_uuid'] ) ? $_POST['snapshot_uuid'] : null;
+		if ( current_user_can( 'customize' ) && $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
+			$this->snapshot_uuid = $uuid;
 		}
 	}
 
@@ -281,27 +298,24 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Customize_Manager $manager WP_Customize_Manager instance.
 	 */
 	public function save_snapshot( \WP_Customize_Manager $manager ) {
-		if ( ! current_user_can( 'customize' ) ) {
-			status_header( 403 );
-			wp_send_json_error( 'customize_not_allowed' );
-		} else if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
-			status_header( 405 );
-			wp_send_json_error( 'bad_method' );
-		}
-
-		$uuid = null;
-		if ( ! empty( $_POST['snapshot_uuid'] ) ) {
+		if ( $this->snapshot_uuid ) {
 			if ( empty( $this->post_data ) ) {
-				status_header( 400 );
-				wp_send_json_error( 'missing_snapshot_customized' );
-			} else {
-				$uuid = $_POST['snapshot_uuid'];
+				add_filter( 'customize_save_response', function( $response ) {
+					$response['missing_snapshot_customized'] = __( 'The Snapshots customized data was missing from the request.', 'customize-widgets-plus' );
+					return $response;
+				} );
+				return false;
 			}
-		}
 
-		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
-			$this->snapshot->set_uuid( $uuid );
-			$this->save( $manager, 'publish' );
+			$this->snapshot->set_uuid( $this->snapshot_uuid );
+			$r = $this->save( $manager, 'publish' );
+			if ( is_wp_error( $r ) ) {
+				add_filter( 'customize_save_response', function( $response ) {
+					$response[ $r->get_error_code() ] = $r->get_error_message();
+					return $response;
+				} );
+				return false;
+			}
 		}
 	}
 
@@ -350,7 +364,11 @@ class Customize_Snapshot_Manager {
 
 		$this->snapshot->apply_dirty = ( 'dirty' === $_POST['scope'] );
 		$manager = $this->snapshot->manager();
-		$this->save( $manager, 'draft' );
+		$r = $this->save( $manager, 'draft' );
+		if ( is_wp_error( $r ) ) {
+			status_header( 500 );
+			wp_send_json_error( $r->get_error_message() );
+		}
 
 		// Set a new UUID every time Share is clicked, when the user is not previewing a snapshot.
 		if ( 'on' !== $_POST['preview'] ) {
@@ -461,7 +479,7 @@ class Customize_Snapshot_Manager {
 	 * @return bool
 	 */
 	public function can_preview( $setting, $values ) {
-		if ( ! ( $setting instanceof \WP_Customize_Setting ) && ! is_subclass_of( $setting, 'WP_Customize_Setting' ) ) {
+		if ( ! ( $setting instanceof \WP_Customize_Setting ) ) {
 			return false;
 		}
 		if ( ! $setting->check_capabilities() && is_admin() ) {
