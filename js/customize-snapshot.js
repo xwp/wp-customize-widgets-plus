@@ -187,7 +187,7 @@ var customizeSnapshot = ( function( $ ) {
 
 			// Insert the snapshot dialog share link template.
 			$( 'body' ).append( snapshotDialogShareLink( {
-				title: _customizeWidgetsPlusCustomizeSnapshot.i18n.formTitle,
+				title: _customizeWidgetsPlusCustomizeSnapshot.i18n.previewTitle,
 				url: url
 			} ) );
 

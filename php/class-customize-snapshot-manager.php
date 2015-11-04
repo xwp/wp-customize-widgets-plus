@@ -215,7 +215,7 @@ class Customize_Snapshot_Manager {
 				'shareButton' => __( 'Share URL to preview', 'customize-widgets-plus' ),
 				'updateMsg' => __( 'Clicking "Save" will update the current snapshot.', 'customize-widgets-plus' ),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-widgets-plus' ),
-				'previewTitle' => __( 'Preview URL', 'customize-widgets-plus' ),
+				'previewTitle' => __( 'Snapshot Permalink', 'customize-widgets-plus' ),
 				'formTitle' => ( $this->snapshot->is_preview() ?
 					__( 'Update Snapshot', 'customize-widgets-plus' ) :
 					__( 'Snapshot Scope', 'customize-widgets-plus' )
