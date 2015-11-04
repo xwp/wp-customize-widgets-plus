@@ -133,7 +133,7 @@ class Customize_Snapshot_Manager {
 	 * The value is used by Customize_Snapshot_Manager::save().
 	 */
 	public function store_post_data() {
-		if ( isset( $_POST['snapshot_customized'] ) ) {
+		if ( current_user_can( 'customize' ) && isset( $_POST['snapshot_customized'] ) ) {
 			$this->post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
 
 			// Contextual settings.
