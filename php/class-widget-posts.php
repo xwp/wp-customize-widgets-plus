@@ -723,10 +723,7 @@ class Widget_Posts {
 		/** @var \wpdb $wpdb */
 		global $wpdb;
 
-		$cache_get = function_exists( 'wpcom_vip_cache_get' ) ? 'wpcom_vip_cache_get' : 'wp_cache_get';
-		$cache_set = function_exists( 'wpcom_vip_cache_set' ) ? 'wpcom_vip_cache_set' : 'wp_cache_set';
-
-		$numbers = $cache_get( $id_base, 'widget_instance_numbers' );
+		$numbers = wp_cache_get( $id_base, 'widget_instance_numbers' );
 		if ( false === $numbers ) {
 			$post_type = static::INSTANCE_POST_TYPE;
 			$widget_id_hyphen_strpos = strlen( $id_base ) + 1; // Start at the last hyphen in the widget ID
@@ -764,7 +761,7 @@ class Widget_Posts {
 				$numbers[ intval( $result->widget_number ) ] = intval( $result->post_id );
 			}
 
-			$cache_set( $id_base, $numbers, 'widget_instance_numbers' );
+			wp_cache_set( $id_base, $numbers, 'widget_instance_numbers' );
 		}
 
 		// Widget numbers start at 2, so ensure this is the case.
