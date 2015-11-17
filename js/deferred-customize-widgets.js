@@ -3,6 +3,14 @@
 var deferredCustomizeWidgets = (function( api, $ ) {
 	var originalMethods, overrideMethods;
 
+	/*
+	 * This condition can be removed once WordPress 4.4 is released.
+	 * See https://core.trac.wordpress.org/changeset/34883
+	 */
+	if ( ! api.Widgets.savedWidgetIds ) {
+		api.Widgets.savedWidgetIds = {};
+	}
+
 	originalMethods = {
 		initialize: api.Widgets.WidgetControl.prototype.initialize
 	};
