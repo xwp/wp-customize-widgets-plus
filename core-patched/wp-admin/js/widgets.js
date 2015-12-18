@@ -225,6 +225,8 @@ wpWidgets = {
 							);
 
 							$widget.attr( 'id', id.replace( '__i__', widgetNumber ) );
+							$widget.find( 'input[name=widget_number]:first' ).val( widgetNumber );
+							$widget.find( 'input[name=multi_number]:first' ).val( widgetNumber );
 						} else if ( 'single' === addNew ) {
 							$widget.attr( 'id', 'new-' + id );
 							rem = 'div#' + id;
@@ -550,6 +552,8 @@ wpWidgets = {
 				);
 
 				widget.attr( 'id', widgetId.replace( '__i__', n ) );
+				widget.find( 'input[name=widget_number]:first' ).val( n );
+				widget.find( 'input[name=multi_number]:first' ).val( n );
 			} else if ( 'single' === add ) {
 				widget.attr( 'id', 'new-' + widgetId );
 				$( '#' + widgetId ).hide();
