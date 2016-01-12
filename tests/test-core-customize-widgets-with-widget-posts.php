@@ -39,6 +39,11 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		if ( $this->js_concat_init_priority ) {
 			remove_action( 'init', 'js_concat_init', $this->js_concat_init_priority );
 		}
+		global $wp_registered_widget_updates, $wp_registered_widget_controls, $wp_registered_widgets;
+		$wp_registered_widget_updates = array();
+		$wp_registered_widget_controls = array();
+		$wp_registered_widgets = array();
+		wp_widgets_init();
 
 		parent::setUp();
 
