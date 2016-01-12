@@ -1187,7 +1187,7 @@ class Widget_Posts {
 	 */
 	function add_customize_hooks() {
 		global $wp_customize;
-		if ( empty( $wp_customize ) || $this->customize_hooks_added ) {
+		if ( empty( $wp_customize ) || empty( $wp_customize->widgets ) || $this->customize_hooks_added ) {
 			return false;
 		}
 		$this->customize_hooks_added = true;
