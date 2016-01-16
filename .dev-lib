@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#if [ ! -e /vagrant ]; then
+#	DB_NAME=test_devlib
+#	DB_USER=external
+#	DB_PASS=external
+#	DB_HOST=192.168.50.4
+#	WP_VERSION=latest
+#
+#	WP_CORE_DIR=/tmp/wordpress_dev_lib_test
+#fi
+#YUI_COMPRESSOR_CHECK=1
+DISALLOW_EXECUTE_BIT=1
+CHECK_SCOPE=patches
