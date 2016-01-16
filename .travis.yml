@@ -18,6 +18,7 @@ branches:
         - master
 
 install:
+    - set -x
     - export DEV_LIB_PATH=dev-lib
     - if [ ! -e "$DEV_LIB_PATH" ] && [ -L .travis.yml ]; then export DEV_LIB_PATH=$( dirname $( readlink .travis.yml ) ); fi
     - cd dev-lib; git pull origin feature/pre-commit-improvements; cd -
