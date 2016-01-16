@@ -24,7 +24,5 @@ var wpCustomizeWidgetsPlus = (function() {
 		return parsed;
 	};
 
-	/;
-
 	return self;
 }() );
