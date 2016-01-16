@@ -61,7 +61,7 @@ class Deferred_Customize_Widgets {
 	 *
 	 * @param Plugin $plugin  Instance of plugin.
 	 */
-	function __construct( Plugin $plugin ) {
+	function __construct(Plugin $plugin) {
 		$this->plugin = $plugin;
 		add_action( 'customize_register', array( $this, 'init' ) );
 	}
