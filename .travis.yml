@@ -6,7 +6,7 @@ language:
 
 php:
     - 5.4
-    - 5.5
+    - 7.0
 
 node_js:
     - 0.10
@@ -18,13 +18,13 @@ branches:
     only:
         - master
 
-before_script:
+install:
     - export DEV_LIB_PATH=dev-lib
     - if [ ! -e "$DEV_LIB_PATH" ] && [ -L .travis.yml ]; then export DEV_LIB_PATH=$( dirname $( readlink .travis.yml ) ); fi
-    - source $DEV_LIB_PATH/travis.before_script.sh
+    - source $DEV_LIB_PATH/travis.install.sh
 
 script:
-    - $DEV_LIB_PATH/travis.script.sh
+    - source $DEV_LIB_PATH/travis.script.sh
 
 after_script:
-    - $DEV_LIB_PATH/travis.after_script.sh
+    - source $DEV_LIB_PATH/travis.after_script.sh
