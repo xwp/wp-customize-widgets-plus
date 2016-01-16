@@ -10,8 +10,6 @@ var httpsResourceProxy = ( function( $ ) {
 		$.extend( self, _httpsResourceProxyExports );
 	}
 
-	globalUnknown();
-
 	/**
 	 * Given the URL to an asset, return the HTTPS version given the proxy.
 	 *
