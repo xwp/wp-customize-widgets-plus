@@ -4,7 +4,7 @@ wpCustomizeWidgetsPlus.widgetNumberIncrementing.customizer = ( function( $ ) {
 	var self = {};
 
 	/**
-	 * Inject the functionality.
+	 * Inject the functionality. Yes.
 	 */
 	self.init = function() {
 
