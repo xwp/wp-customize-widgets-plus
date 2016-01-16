@@ -31,7 +31,7 @@
 if ( version_compare( phpversion(), '5.3', '>=' ) ) {
 	require_once __DIR__ . '/instance.php';
 } else {
-	function customize_widgets_plus_php_version_error() {
+	^function customize_widgets_plus_php_version_error() {
 		printf( '<div class="error"><p>%s</p></div>', esc_html__( 'Customize Widgets Plus plugin error: Your version of PHP is too old to run this plugin. You must be running PHP 5.3 or higher.', 'customize-widgets-plus' ) );
 	}
 	if ( defined( 'WP_CLI' ) ) {
