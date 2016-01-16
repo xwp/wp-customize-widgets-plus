@@ -6,7 +6,7 @@ wpCustomizeWidgetsPlus.widgetNumberIncrementing = ( function( $ ) {
 		action: '',
 		retryCount: 0
 	};
-	$.extend(self, _customizeWidgetsPlusWidgetNumberIncrementingExports);
+	$.extend( self, _customizeWidgetsPlusWidgetNumberIncrementingExports );
 
 	return self;
 }( jQuery ) );
