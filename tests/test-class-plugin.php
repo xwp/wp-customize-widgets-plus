@@ -18,6 +18,8 @@ class Test_Plugin extends Base_Test_Case {
 	 * @see Plugin::__construct()
 	 */
 	function test_construct() {
+		$this->assertFalse( true );
+
 		$this->assertInternalType( 'array', $this->plugin->config );
 		$this->assertArrayHasKey( 'disable_widgets_init', $this->plugin->config );
 		$this->assertArrayHasKey( 'disable_widgets_factory', $this->plugin->config );
