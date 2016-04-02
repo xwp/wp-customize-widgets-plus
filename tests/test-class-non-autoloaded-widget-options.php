@@ -2,6 +2,9 @@
 
 namespace CustomizeWidgetsPlus;
 
+/**
+ * @group customize-widgets-plus
+ */
 class Test_Non_Autoloaded_Widget_Options extends Base_Test_Case {
 
 	/**

@@ -2,6 +2,9 @@
 
 namespace CustomizeWidgetsPlus;
 
+/**
+ * @group customize-widgets-plus
+ */
 class Test_Widget_Posts_With_Customizer extends Base_Test_Case {
 
 	/**

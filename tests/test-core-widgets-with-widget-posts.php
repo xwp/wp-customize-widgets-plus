@@ -7,6 +7,9 @@ if ( ! getenv( 'WP_TESTS_DIR' ) ) {
 }
 require_once getenv( 'WP_TESTS_DIR' ) . '/tests/widgets.php';
 
+/**
+ * @group customize-widgets-plus
+ */
 class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 
 	/**

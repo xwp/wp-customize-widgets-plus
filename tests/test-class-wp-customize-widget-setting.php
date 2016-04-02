@@ -2,6 +2,9 @@
 
 namespace CustomizeWidgetsPlus;
 
+/**
+ * @group customize-widgets-plus
+ */
 class Test_WP_Customize_Widget_Setting extends Base_Test_Case {
 
 	/**
