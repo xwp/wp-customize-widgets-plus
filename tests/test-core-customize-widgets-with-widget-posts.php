@@ -91,7 +91,6 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 	}
 
 	function test_register_settings() {
-		wp_widgets_init();
 		parent::test_register_settings();
 		$this->assertInstanceOf( __NAMESPACE__ . '\\WP_Customize_Widget_Setting', $this->manager->get_setting( 'widget_categories[2]' ) );
 		$this->assertEquals( 'widget', $this->manager->get_setting( 'widget_categories[2]' )->type );
