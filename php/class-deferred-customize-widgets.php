@@ -49,7 +49,7 @@ class Deferred_Customize_Widgets {
 	function config( $key = null ) {
 		if ( is_null( $key ) ) {
 			return $this->plugin->config[ static::MODULE_SLUG ];
-		} else if ( isset( $this->plugin->config[ static::MODULE_SLUG ][ $key ] ) ) {
+		} elseif ( isset( $this->plugin->config[ static::MODULE_SLUG ][ $key ] ) ) {
 			return $this->plugin->config[ static::MODULE_SLUG ][ $key ];
 		} else {
 			return null;

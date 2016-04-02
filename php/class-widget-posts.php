@@ -87,7 +87,7 @@ class Widget_Posts {
 	function config( $key = null ) {
 		if ( is_null( $key ) ) {
 			return $this->plugin->config[ static::MODULE_SLUG ];
-		} else if ( isset( $this->plugin->config[ static::MODULE_SLUG ][ $key ] ) ) {
+		} elseif ( isset( $this->plugin->config[ static::MODULE_SLUG ][ $key ] ) ) {
 			return $this->plugin->config[ static::MODULE_SLUG ][ $key ];
 		} else {
 			return null;
@@ -406,7 +406,7 @@ class Widget_Posts {
 		) ) . ')';
 
 		// Widget ID.
-		if ( preg_match_all( '#(\s|^)' . $id_bases_pattern .  '-\d+(\s|$)#', $s, $matches ) ) {
+		if ( preg_match_all( '#(\s|^)' . $id_bases_pattern . '-\d+(\s|$)#', $s, $matches ) ) {
 			$widget_ids = $matches[0];
 			$sql_in = array_fill( 0, count( $widget_ids ), '%s' );
 			$sql_in = implode( ', ', $sql_in );
@@ -975,9 +975,9 @@ class Widget_Posts {
 		if ( false === $pre ) {
 			$instances = $this->get_widget_instance_numbers( $id_base ); // A.K.A. shallow widget instances.
 			$settings = new Widget_Settings( $instances );
-		} else if ( is_array( $pre ) ) {
+		} elseif ( is_array( $pre ) ) {
 			$settings = new Widget_Settings( $pre );
-		} else if ( $pre instanceof Widget_Settings ) {
+		} elseif ( $pre instanceof Widget_Settings ) {
 			$settings = $pre;
 		} else {
 			return $pre;

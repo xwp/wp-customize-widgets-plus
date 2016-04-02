@@ -718,7 +718,7 @@ class Test_Widget_Posts extends Base_Test_Case {
 		add_action( 'widget_posts_content_moved_message', function( $args ) use ( &$success_count, &$warning_count ) {
 			if ( 'success' === $args['type'] ) {
 				$success_count += 1;
-			} else if ( 'warning' === $args['type'] ) {
+			} elseif ( 'warning' === $args['type'] ) {
 				$warning_count += 1;
 			}
 		} );

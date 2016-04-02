@@ -462,9 +462,9 @@ class Plugin extends Plugin_Base {
 		$unit = empty( $matches[2] ) ? 'B' : $matches[2];
 		if ( 'K' === $unit ) {
 			$value *= 1024;
-		} else if ( 'M' === $unit ) {
+		} elseif ( 'M' === $unit ) {
 			$value *= pow( 1024, 2 );
-		} else if ( 'G' === $unit ) {
+		} elseif ( 'G' === $unit ) {
 			$value *= pow( 1024, 3 );
 		}
 		return $value;
