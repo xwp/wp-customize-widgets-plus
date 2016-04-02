@@ -45,7 +45,7 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		if ( $this->js_concat_init_priority ) {
 			remove_action( 'init', 'js_concat_init', $this->js_concat_init_priority );
 		}
-		global $wp_registered_widget_updates, $wp_registered_widget_controls, $wp_registered_widgets;
+
 		$wp_registered_widget_updates = array();
 		$wp_registered_widget_controls = array();
 		$wp_registered_widgets = array();
@@ -75,7 +75,10 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		$this->plugin->widget_posts->prepare_widget_data(); // Has to be called here because of wp_widgets_init() footwork done above.
 		$this->plugin->widget_posts->register_instance_post_type(); // Normally called at init action.
 		$this->plugin->widget_posts->capture_widget_settings_for_customizer(); // Normally called in widgets_init
+	}
 
+	function test_register_widget() {
+		global $wp_registered_widget_updates, $wp_registered_widget_controls, $wp_registered_widgets;
 		$wp_registered_widgets = array();
 		$wp_registered_widget_updates = array();
 		$wp_registered_widget_controls = array();
