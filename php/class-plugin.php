@@ -134,7 +134,6 @@ class Plugin extends Plugin_Base {
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
 
 		if ( $this->is_running_unit_tests() ) {
-			$this->disable_widgets_init();
 			$this->config['active_modules'] = array_fill_keys( array_keys( $this->config['active_modules'] ), false );
 		}
 
@@ -264,9 +263,6 @@ class Plugin extends Plugin_Base {
 	function disable_widgets_factory() {
 		$widgets_init_hook = 'widgets_init';
 		$callable = array( $this->widget_factory, '_register_widgets' );
-		if ( did_action( $widgets_init_hook ) ) {
-			trigger_error( 'widgets_init has already been called', E_USER_WARNING );
-		}
 		$priority = has_action( $widgets_init_hook, $callable );
 		if ( false !== $priority ) {
 			remove_action( $widgets_init_hook, $callable, $priority );
