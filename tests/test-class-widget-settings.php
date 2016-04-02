@@ -108,7 +108,7 @@ class Test_Widget_Settings extends Base_Test_Case {
 		foreach ( $settings as $widget_number => $instance ) {
 			$this->assertInternalType( 'array', $instance );
 			$this->assertContains( 'widget_posts', $instance['title'] );
-			$this->assertEquals( $instance, Widget_Posts::get_post_content_filtered( get_post( $shallow_settings[ $widget_number ] ) ) );
+			$this->assertEquals( $instance, Widget_Posts::get_post_content( get_post( $shallow_settings[ $widget_number ] ) ) );
 		}
 	}
 }

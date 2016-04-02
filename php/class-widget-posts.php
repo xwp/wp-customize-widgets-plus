@@ -112,7 +112,7 @@ class Widget_Posts {
 
 			register_shutdown_function( function() {
 				$last_error = error_get_last();
-				if ( ! empty( $last_error ) && in_array( $last_error['type'], array( \E_ERROR, \E_USER_ERROR, \E_RECOVERABLE_ERROR ) ) ) {
+				if ( ! empty( $last_error ) && in_array( (int) $last_error['type'], array( \E_ERROR, \E_USER_ERROR, \E_RECOVERABLE_ERROR ), true ) ) {
 					\WP_CLI::warning( sprintf( '%s (type: %d, line: %d, file: %s)', $last_error['message'], $last_error['type'], $last_error['line'], $last_error['file'] ) );
 				}
 			} );
@@ -121,36 +121,6 @@ class Widget_Posts {
 		if ( $this->is_enabled() ) {
 			$this->init();
 		}
-	}
-
-	/**
-	 * Check if the widget instance is empty.
-	 *
-	 * @param bool $is_empty Is empty.
-	 * @param array $post_arr Post Array.
-	 *
-	 * @return bool Empty.
-	 */
-	function check_widget_instance_is_empty( $is_empty, $post_arr ) {
-		if ( static::INSTANCE_POST_TYPE !== $post_arr['post_type'] ) {
-			return $is_empty;
-		}
-
-		if ( empty( $post_arr['post_content_filtered'] ) ) {
-			return true;
-		}
-		$decoded = base64_decode( $post_arr['post_content_filtered'], true );
-		if ( false === $decoded ) {
-			return true;
-		}
-		// @codingStandardsIgnoreStart
-		$unserialized = @unserialize( $decoded );
-		// @codingStandardsIgnoreStop
-		if ( ! is_array( $unserialized ) ) {
-			return true;
-		}
-
-		return $is_empty;
 	}
 
 	/**
@@ -192,6 +162,9 @@ class Widget_Posts {
 		add_action( sprintf( 'manage_%s_posts_custom_column', static::INSTANCE_POST_TYPE ), array( $this, 'custom_column_row' ), 10, 2 );
 		add_filter( sprintf( 'manage_edit-%s_sortable_columns', static::INSTANCE_POST_TYPE ), array( $this, 'custom_sortable_column' ), 10, 2 );
 		add_action( 'admin_menu', array( $this, 'remove_add_new_submenu' ) );
+		add_action( 'admin_print_styles', array( $this, 'hide_edit_buttons' ) );
+		add_filter( 'posts_search', array( $this, 'filter_posts_search' ), 10, 2 );
+		add_filter( 'the_content_export', array( $this, 'handle_legacy_content_export' ) );
 
 		$this->add_customize_hooks();
 	}
@@ -208,10 +181,6 @@ class Widget_Posts {
 		// Add required filters and actions for this post type.
 		$hooks = array(
 			array(
-				'tag' => 'wp_insert_post_data',
-				'callback' => array( $this, 'preserve_content_filtered' ),
-			),
-			array(
 				'tag' => 'delete_post',
 				'callback' => array( $this, 'flush_widget_instance_numbers_cache' ),
 			),
@@ -220,30 +189,27 @@ class Widget_Posts {
 				'callback' => array( $this, 'flush_widget_instance_numbers_cache' ),
 			),
 			array(
-				'tag' => 'export_wp',
-				'callback' => array( $this, 'setup_export' ),
+				'tag' => '_wp_post_revision_field_post_content',
+				'callback' => array( $this, 'filter_post_revision_field_post_content' ),
 			),
 			array(
 				'tag' => 'wp_import_post_data_processed',
 				'callback' => array( $this, 'filter_wp_import_post_data_processed' ),
 			),
 			array(
-				'tag' => 'pre_post_update',
-				'callback' => array( $this, 'delete_post_id_lookup_cache_on_pre_post_update' ),
+				'tag' => 'wp_insert_post_data',
+				'callback' => array( $this, 'filter_wp_insert_post_data' ),
+				'priority' => 5,
 			),
 			array(
-				'tag' => 'delete_post',
-				'callback' => array( $this, 'clear_post_id_lookup_cache_on_delete_post' ),
-			),
-			array(
-				'tag' => 'save_post',
-				'callback' => array( $this, 'update_post_id_lookup_cache_on_save_post' ),
+				'tag' => 'load-revision.php',
+				'callback' => array( $this, 'suspend_kses_for_widget_instance_revision_restore' ),
 			),
 		);
 		foreach ( $hooks as $hook ) {
 			// Note that add_action() and has_action() is an aliases for add_filter() and has_filter()
 			if ( ! has_filter( $hook['tag'], $hook['callback'] ) ) {
-				add_filter( $hook['tag'], $hook['callback'], 10, PHP_INT_MAX );
+				add_filter( $hook['tag'], $hook['callback'], isset( $hook['priority'] ) ? $hook['priority'] : 10, PHP_INT_MAX );
 			}
 		}
 
@@ -304,11 +270,30 @@ class Widget_Posts {
 	}
 
 	/**
-	 * Remove the 'Add New' submenu
+	 * Remove the 'Add New' submenu.
 	 */
 	function remove_add_new_submenu() {
 		global $submenu;
 		unset( $submenu[ 'edit.php?post_type=' . static::INSTANCE_POST_TYPE ][10] );
+	}
+
+	/**
+	 * Hide the 'Add New' button on post listing and post edit pages.
+	 *
+	 * @action admin_print_styles
+	 */
+	function hide_edit_buttons() {
+		$current_screen = get_current_screen();
+		$should_hide = (
+			! empty( $current_screen )
+			&&
+			static::INSTANCE_POST_TYPE === $current_screen->post_type
+			&&
+			( 'widget_instance' === $current_screen->id || 'edit-widget_instance' === $current_screen->id )
+		);
+		if ( $should_hide ) {
+			echo '<style type="text/css"> h1 > a.page-title-action { display:none; } </style>';
+		}
 	}
 
 	/**
@@ -376,6 +361,8 @@ class Widget_Posts {
 	}
 
 	/**
+	 * Remove bulk action.
+	 *
 	 * @param array $actions
 	 * @return array
 	 */
@@ -383,6 +370,92 @@ class Widget_Posts {
 		unset( $actions['edit'] );
 		unset( $actions['trash'] );
 		return $actions;
+	}
+
+	/**
+	 * Add searching by ID base and Widget ID.
+	 *
+	 * @filter posts_search
+	 *
+	 * @param string   $search Search SQL for WHERE clause
+	 * @param \WP_Query $query  The current WP_Query object
+	 *
+	 * @return string
+	 */
+	public function filter_posts_search( $search, $query ) {
+		global $wpdb;
+
+		$is_unit_testing = function_exists( 'tests_add_filter' );
+		if ( ! is_admin() && ! $is_unit_testing ) {
+			return $search;
+		}
+
+		$s = $query->get( 's' );
+		if ( empty( $s ) || $query->get( 'post_type' ) !== static::INSTANCE_POST_TYPE ) {
+			return $search;
+		}
+
+		$where = array();
+
+		$id_bases = array_keys( $this->widget_objs );
+		$id_bases_pattern = '(' . join( '|', array_map(
+			function ( $id_base ) {
+				return preg_quote( $id_base, '#' );
+			},
+			$id_bases
+		) ) . ')';
+
+		// Widget ID.
+		if ( preg_match_all( '#(\s|^)' . $id_bases_pattern .  '-\d+(\s|$)#', $s, $matches ) ) {
+			$widget_ids = $matches[0];
+			$sql_in = array_fill( 0, count( $widget_ids ), '%s' );
+			$sql_in = implode( ', ', $sql_in );
+			$where[] = $wpdb->prepare( "( $wpdb->posts.post_name IN ( $sql_in ) )", $widget_ids ); // WPCS: Unprepared SQL ok.
+		}
+
+		// Widget ID base.
+		if ( preg_match_all( '#(\s|^)(?P<id_base>' . $id_bases_pattern . ')(\s|$)#', $s, $matches ) ) {
+			foreach ( $matches['id_base'] as $queried_id_base ) {
+				$where[] = $wpdb->prepare( "( $wpdb->posts.post_name LIKE %s )", $wpdb->esc_like( $queried_id_base ) . '-%' );
+			}
+		}
+
+		/*
+		 * Inject additional WHERE conditions.
+		 * Given an initial $search that look like the following:
+		 *  AND (((wptests_posts.post_title LIKE '%search%') OR (wptests_posts.post_content LIKE '%search%')))
+		 * Put the additional OR conditions after the first parenthesis.
+		 */
+		if ( ! empty( $where ) ) {
+			$search = preg_replace(
+				'/^(\s*AND\s*\()/',
+				'$1' . join( ' OR ', $where ) . ' OR ',
+				$search,
+				1 // Only replace first.
+			);
+		}
+
+		return $search;
+	}
+
+	/**
+	 * Format the widget instance array for diff.
+	 *
+	 * @param string   $field_value     The current revision field to compare to or from.
+	 * @param string   $field           The current revision field.
+	 * @param \WP_Post $revision_post   The revision post object to compare to or from.
+	 * @param string   $context         The context of whether the current revision is the old
+	 *                                    or the new one. Values are 'to' or 'from'.
+	 * @return mixed
+	 */
+	function filter_post_revision_field_post_content( $field_value, $field, $revision_post, $context ) {
+		unset( $field, $context );
+		$parent_post = get_post( $revision_post->post_parent );
+		if ( static::INSTANCE_POST_TYPE === $parent_post->post_type ) {
+			$instance = static::get_post_content( $revision_post );
+			$field_value = static::encode_json( $instance );
+		}
+		return $field_value;
 	}
 
 	/**
@@ -402,17 +475,20 @@ class Widget_Posts {
 
 	/**
 	 * Render the metabox.
+	 *
 	 * @param \WP_Post $post
 	 */
 	function render_data_metabox( $post ) {
 		$widget_instance = $this->get_widget_instance_data( $post );
+
+		echo '<h2><code>' . esc_html( $post->post_name ) . '</code></h2>';
 
 		$allowed_tags = array(
 			'details' => array( 'class' => true ),
 			'pre' => array(),
 			'summary' => array(),
 		);
-		$rendered_instance = sprintf( '<pre>%s</pre>', static::encode_json( $widget_instance ) );
+		$rendered_instance = sprintf( '<pre>%s</pre>', esc_html( static::encode_json( $widget_instance ) ) );
 		echo wp_kses(
 			apply_filters( 'rendered_widget_instance_data', $rendered_instance, $widget_instance, $post ),
 			$allowed_tags
@@ -420,6 +496,8 @@ class Widget_Posts {
 	}
 
 	/**
+	 * Encode JSON with pretty formatting.
+	 *
 	 * @param $value
 	 * @return string
 	 */
@@ -432,39 +510,6 @@ class Widget_Posts {
 			$flags |= \JSON_UNESCAPED_SLASHES;
 		}
 		return wp_json_encode( $value, $flags );
-	}
-
-	/**
-	 * When exporting widget instance posts from WordPress, export the post_content_filtered as the post_content.
-	 *
-	 * @see Widget_Posts::filter_wp_import_post_data_processed()
-	 *
-	 * @action export_wp
-	 */
-	function setup_export() {
-		add_action( 'the_post', function ( $post ) {
-			if ( static::INSTANCE_POST_TYPE === $post->post_type  ) {
-				$post->post_content = $post->post_content_filtered;
-			}
-		} );
-	}
-
-	/**
-	 * Restore post_content into post_content_filtered when importing via WordPress Importer plugin.
-	 *
-	 * @see Widget_Posts::setup_export()
-	 * @filter wp_import_post_data_processed
-	 *
-	 * @param array $postdata
-	 * @return array
-	 */
-	function filter_wp_import_post_data_processed( $postdata ) {
-		if ( static::INSTANCE_POST_TYPE === $postdata['post_type'] ) {
-			$postdata['post_content_filtered'] = $postdata['post_content'];
-			$instance = static::parse_post_content_filtered( $postdata['post_content'] );
-			$postdata['post_content'] = $postdata['post_content'] = wp_json_encode( $instance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
-		}
-		return $postdata;
 	}
 
 	/**
@@ -551,6 +596,326 @@ class Widget_Posts {
 	}
 
 	/**
+	 * Make sure that JSON post_content gets represented base64-encoded PHP-serialized string gets converted to JSON.
+	 *
+	 * @filter wp_import_post_data_processed
+	 * @param array $postdata
+	 * @return array
+	 */
+	function filter_wp_import_post_data_processed( $postdata ) {
+		if ( static::INSTANCE_POST_TYPE !== $postdata['post_type'] ) {
+			return $postdata;
+		}
+
+		if ( empty( $postdata['post_content'] ) ) {
+			return $postdata;
+		}
+
+		$instance = $this->parse_instance_from_post_content( $postdata['post_content'] );
+		if ( is_array( $instance ) && $this->is_json_serializable( $instance ) ) {
+			$postdata['post_content'] = base64_encode( static::encode_json( $instance ) );
+		}
+		return $postdata;
+	}
+
+	/**
+	 * Parse instance array out of JSON stored in post_content which may or may not be slashed.
+	 *
+	 * @param string $post_content JSON or base64-encoded PHP-serialized string or JSON.
+	 *
+	 * @return array|null
+	 */
+	protected function parse_instance_from_post_content( $post_content ) {
+		if ( empty( $post_content ) ) {
+			return null;
+		}
+
+		/*
+		 * Allow widget instance to be base64-encoded to workaround sanitize_post()
+		 * called in wp_insert_post() which applies content_save_pre filters,
+		 * which include disastrous kses filters which can corrupt the data.
+		 * Allow PHP-serialized content to be base64-encoded in addition to JSON
+		 * being base64-encoded.
+		 */
+		$decoded = base64_decode( trim( $post_content ), true );
+		if ( false !== $decoded ) {
+			if ( is_serialized( $decoded, true ) ) {
+				$instance = unserialize( $decoded );
+				if ( ! is_array( $instance ) ) {
+					return null;
+				} else {
+					return $instance;
+				}
+			} else {
+				$post_content = $decoded;
+			}
+		}
+
+		$instance = json_decode( $post_content, true );
+		if ( ! is_array( $instance ) ) {
+			$instance = json_decode( wp_unslash( $post_content ), true );
+		}
+		if ( ! is_array( $instance ) ) {
+			return null;
+		}
+		return $instance;
+	}
+
+	/**
+	 * Check if the widget instance is empty; make sure that JSON is not malformed.
+	 *
+	 * The JSON in the post_content can be either slashed or unslashed. Decoding will be attempted for both.
+	 *
+	 * @param bool $is_empty Is empty.
+	 * @param array $post_arr Slashed post array.
+	 *
+	 * @return bool Empty.
+	 */
+	function check_widget_instance_is_empty( $is_empty, $post_arr ) {
+		if ( static::INSTANCE_POST_TYPE !== $post_arr['post_type'] ) {
+			return $is_empty;
+		}
+
+		if ( empty( $post_arr['post_content'] ) ) {
+			return true;
+		}
+
+		// If unable to parse an array from the post content, then the widget_instance should be blocked from being saved.
+		$instance = $this->parse_instance_from_post_content( $post_arr['post_content'] );
+		if ( ! is_array( $instance ) ) {
+			return true;
+		}
+
+		// Make sure that the widget instance can be serialized to JSON.
+		if ( ! $this->is_json_serializable( $instance ) ) {
+			return true;
+		}
+
+		$is_new_post = empty( $post_arr['ID'] );
+
+		/*
+		 * Failsafe to prevent saving widgets erroneously emptied
+		 * Originally introduced to prevent this problem to be happening by a combination
+		 * of Customize Contextual Settings and Optimized Widget Registration.
+		 */
+		if ( empty( $instance ) && ! $is_new_post ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Ensure that post_content is 'properly'-slashed JSON to deal with the unfortunate wp_unslash() in wp_insert_post().
+	 *
+	 * @filter wp_insert_post_data
+	 * @param array $data An array of slashed post data.
+	 * @return array      An array of slash-ensured post data.
+	 */
+	function filter_wp_insert_post_data( $data ) {
+		// Only apply filter to the widget_instance post type.
+		if ( static::INSTANCE_POST_TYPE !== $data['post_type'] ) {
+			return $data;
+		}
+
+		$instance = $this->parse_instance_from_post_content( $data['post_content'] );
+		if ( ! is_array( $instance ) ) {
+			/*
+			 * This condition should never be true because
+			 * \CustomizeWidgetsPlus\Widget_Posts::check_widget_instance_is_empty()
+			 * will have already short-circuited wp_insert_post().
+			 */
+			return $data;
+		}
+
+		/*
+		 * Note that we have to slash the post_content and post_title because wp_insert_post()
+		 * does wp_unslash() on the post array data right after the wp_insert_post_data
+		 * filter is applied:
+		 * https://github.com/xwp/wordpress-develop/blob/4832d8d9330f8fde2599c95f664af37ee6c0d42e/src/wp-includes/post-functions.php#L3177
+		 */
+		$data['post_content'] = wp_slash( static::encode_json( $instance ) );
+		if ( isset( $instance['title'] ) ) {
+			$data['post_title'] = wp_slash( $instance['title'] );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Update database to store widget instance data as JSON in post_content instead
+	 * of base64-encoded PHP-serialized data in post_content_filtered.
+	 *
+	 * This this method will be removed once all sites have migrated their data.
+	 *
+	 * @param array $args
+	 */
+	function move_encoded_data_to_post_content( $args ) {
+		/** @var \wpdb $wpdb  */
+		global $wpdb;
+
+		$posts_per_page = 100;
+		$page = 1;
+
+		$args = wp_parse_args( $args, array(
+			'dry-run' => false,
+			'sleep-interval' => 50,
+			'sleep-duration' => 5,
+		) );
+
+		$post_stati = array_values( get_post_stati() );
+		$post_stati[] = 'any';
+
+		$post_count = array_sum( get_object_vars( wp_count_posts( static::INSTANCE_POST_TYPE ) ) );
+		$already_processed_count = 0;
+		$warning_count = 0;
+		$newly_processed_count = 0;
+		$current_post_number = 0;
+
+		$post = null;
+
+		$do_message = function ( $type, $text ) use (
+			$post_count,
+			$post,
+			$already_processed_count,
+			$warning_count,
+			$newly_processed_count,
+			$current_post_number
+		) {
+			do_action( 'widget_posts_content_moved_message', compact(
+				'type',
+				'text',
+				'post',
+				'post_count',
+				'already_processed_count',
+				'warning_count',
+				'newly_processed_count',
+				'current_post_number'
+			) );
+		};
+
+		do {
+			$posts = get_posts( array(
+				'posts_per_page' => $posts_per_page,
+				'paged' => $page,
+				'post_type' => static::INSTANCE_POST_TYPE,
+				'post_status' => $post_stati,
+				'orderby' => 'ID',
+				'order' => 'asc',
+				'offset' => null, // Temporarily needed until https://core.trac.wordpress.org/changeset/35417 pulled.
+			) );
+
+			foreach ( $posts as $post ) {
+				$current_post_number += 1;
+
+				// Skip if already migrated.
+				if ( empty( $post->post_content_filtered ) && is_array( json_decode( $post->post_content, true ) ) ) {
+					$already_processed_count += 1;
+					$do_message( 'info', "$post->post_name (post_id:$post->ID) already updated" );
+					continue;
+				}
+
+				$parsed = $this->plugin->parse_widget_id( $post->post_name );
+				if ( empty( $this->widget_objs[ $parsed['id_base'] ] ) ) {
+					$warning_count += 1;
+					$do_message( 'warning', "$post->post_name (post_id:$post->ID) has an unrecognized id_base: " . $parsed['id_base'] );
+					continue;
+				}
+
+				$decoded = base64_decode( $post->post_content_filtered, true );
+				if ( false === $decoded ) {
+					$warning_count += 1;
+					$do_message( 'warning', "$post->post_name (post_id:$post->ID) post_content_filtered not base64-encoded" );
+					continue;
+				}
+
+				$instance = unserialize( $decoded );
+				if ( ! is_array( $instance ) ) {
+					$warning_count += 1;
+					$do_message( 'warning', "$post->post_name (post_id:$post->ID) base64-decoded post_content_filtered not serialized array" );
+					continue;
+				}
+
+				if ( ! $this->is_json_serializable( $instance ) ) {
+					$warning_count += 1;
+					$do_message( 'warning', "$post->post_name (post_id:$post->ID) unable to encode as JSON." );
+				}
+
+				$json = static::encode_json( $instance );
+
+				if ( ! empty( $args['dry-run'] ) ) {
+					$newly_processed_count += 1;
+					$do_message( 'success', "[DRY-RUN] $post->post_name (post_id:$post->ID) would update storage" );
+				} else {
+					// Backup the post data in postmeta just in case something goes wrong.
+					$r = add_post_meta(
+						$post->ID,
+						'_widget_post_previous_data',
+						base64_encode( serialize( $post ) ), // Encoding is to prevent wp_unslash() from corrupting serialized data.
+						false /* Unique. */
+					);
+					if ( false === $r ) {
+						$warning_count += 1;
+						$do_message( 'warning', "$post->post_name (post_id:$post->ID) Failed to backup post object, so skipping." );
+						continue;
+					}
+
+					$r = $wpdb->update(
+						$wpdb->posts,
+						array(
+							// Note that we do *not* wp_slash() this here because we're not going through wp_insert_post().
+							'post_content' => $json,
+							// Remove any existing base64-encoded PHP-serialized data.
+							'post_content_filtered' => '',
+						),
+						array(
+							'ID' => $post->ID,
+						)
+					); // WPCS: db call ok. Cache ok.
+					if ( false === $r ) {
+						$do_message( 'warning', "$post->post_name (post_id:$post->ID): " . $wpdb->last_error );
+					} else {
+						$newly_processed_count += 1;
+						$do_message( 'success', "$post->post_name (post_id:$post->ID) updated storage ($current_post_number of $post_count)" );
+						clean_post_cache( $post );
+
+						// @todo Do other update actions?
+					}
+				}
+
+				$should_sleep = (
+					empty( $args['dry-run'] )
+					&&
+					$newly_processed_count > 0
+					&&
+					$args['sleep-interval'] > 0
+					&&
+					0 === $newly_processed_count % $args['sleep-interval']
+					&&
+					$args['sleep-duration'] > 0
+				);
+				if ( $should_sleep ) {
+					$do_message( 'info', sprintf( 'Sleeping a %d second(s) to let the DB catch up.', $args['sleep-duration'] ) );
+					sleep( $args['sleep-duration'] );
+				}
+			}
+			$page += 1;
+
+			// Free up memory
+			$this->stop_the_insanity();
+		} while ( count( $posts ) );
+
+		$do_message( 'info', "Already processed: $already_processed_count" );
+		$do_message( 'info', "Skipped due to warnings: $warning_count" );
+		if ( ! empty( $args['dry-run'] ) ) {
+			$do_message( 'info', "Would be processed (but not due to dry-run): $newly_processed_count" );
+		} else {
+			$do_message( 'info', "Encoded-content moved to post_content: $newly_processed_count" );
+		}
+	}
+
+	/**
+	 * Capture the WP_Widget instances for later reference.
 	 *
 	 * @action widgets_init, 90
 	 */
@@ -771,8 +1136,6 @@ class Widget_Posts {
 		return $numbers;
 	}
 
-	const POST_NAME_TO_POST_ID_CACHE_GROUP = 'widget-post-id-lookup';
-
 	/**
 	 * Get the widget instance post associated with a given widget ID.
 	 *
@@ -780,130 +1143,38 @@ class Widget_Posts {
 	 * @return \WP_Post|null
 	 */
 	function get_widget_post( $widget_id ) {
-		$cache_get = function_exists( 'wpcom_vip_cache_get' ) ? 'wpcom_vip_cache_get' : 'wp_cache_get';
-		$cache_set = function_exists( 'wpcom_vip_cache_set' ) ? 'wpcom_vip_cache_set' : 'wp_cache_set';
+		/*
+		 * We have to explicitly query all post stati due to how WP_Query::get_posts()
+		 * is written. See https://github.com/xwp/wordpress-develop/blob/4.3.1/src/wp-includes/query.php#L3542-L3549
+		 */
+		$post_stati = array_values( get_post_stati() );
+		$post_stati[] = 'any';
 
-		$parsed_widget_id = $this->plugin->parse_widget_id( $widget_id );
-		if ( ! $parsed_widget_id ) {
+		// Filter to ensure that special characters in post_name get sanitize_title()'ed-away (unlikely for widget posts).
+		$filter_sanitize_title = function ( $title, $raw_title ) {
+			unset( $title );
+			$title = esc_sql( $raw_title );
+			return $title;
+		};
+
+		$args = array(
+			'name'             => $widget_id,
+			'post_type'        => static::INSTANCE_POST_TYPE,
+			'post_status'      => $post_stati,
+			'posts_per_page'   => 1,
+			'suppress_filters' => false,
+		);
+
+		add_filter( 'sanitize_title', $filter_sanitize_title, 10, 2 );
+		$posts = get_posts( $args );
+		remove_filter( 'sanitize_title', $filter_sanitize_title, 10 );
+
+		if ( empty( $posts ) ) {
 			return null;
 		}
-		if ( ! $parsed_widget_id['widget_number'] || $parsed_widget_id['widget_number'] < 2 ) {
-			return null;
-		}
 
-		$post_id = $cache_get( $widget_id, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
-		if ( false === $post_id ) {
-
-			/** @var \wpdb $wpdb */
-			global $wpdb;
-
-			/*
-			 * Note tha we are using a direct DB query because there is no elegant
-			 * way to get a single post of arbitrary status by post_name. The get_posts()
-			 * function will not return draft posts if not is_singular.
-			 */
-			$post_id = $wpdb->get_var( $wpdb->prepare(
-				"
-				SELECT p.ID
-				FROM $wpdb->posts p
-				WHERE p.post_type = %s AND p.post_name = %s
-				LIMIT 1
-				",
-				static::INSTANCE_POST_TYPE,
-				$widget_id
-			) ); // WPCS: db call ok.
-
-			if ( ! $post_id ) {
-				// This will prevent DB query when non-existent post is requested.
-				$post_id = 0;
-			}
-
-			$cache_set( $widget_id, $post_id, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
-		}
-
-		if ( empty( $post_id ) ) {
-			return null;
-		}
-		$post = get_post( $post_id );
-		if ( empty( $post ) ) {
-			return null;
-		}
+		$post = array_shift( $posts );
 		return $post;
-	}
-
-	/**
-	 * Store the post_name=>ID lookup cache for a saved post.
-	 *
-	 * @param int $post_id
-	 * @param \WP_Post $post
-	 * @action save_post
-	 */
-	public function update_post_id_lookup_cache_on_save_post( $post_id, $post ) {
-		$cache_set = function_exists( 'wpcom_vip_cache_set' ) ? 'wpcom_vip_cache_set' : 'wp_cache_set';
-
-		unset( $post_id );
-		$is_valid_post = (
-			$post->post_type === static::INSTANCE_POST_TYPE
-		);
-		if ( ! $is_valid_post ) {
-			return;
-		}
-		$cache_set( $post->post_name, $post->ID, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
-	}
-
-	/**
-	 * Clear the post_name=>ID lookup cache for a deleted post.
-	 *
-	 * @param int $post_id
-	 * @action delete_post
-	 */
-	public function clear_post_id_lookup_cache_on_delete_post( $post_id ) {
-		$post = get_post( $post_id );
-		$is_valid_post = (
-			! empty( $post )
-			&&
-			$post->post_type === static::INSTANCE_POST_TYPE
-		);
-		if ( ! $is_valid_post ) {
-			return;
-		}
-		$post_name = $post->post_name;
-		add_action( 'deleted_post', function( $deleted_post_id ) use ( $post_id, $post_name ) {
-			if ( $post_id === $deleted_post_id ) {
-				$cache_set = function_exists( 'wpcom_vip_cache_set' ) ? 'wpcom_vip_cache_set' : 'wp_cache_set';
-				$cache_set( $post_name, 0, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
-			}
-		} );
-	}
-
-	/**
-	 * Clear the post_name=>ID lookup cache for a post_name that is to be changed.
-	 *
-	 * @param int $post_id
-	 * @param array $data
-	 * @action pre_post_update
-	 */
-	public function delete_post_id_lookup_cache_on_pre_post_update( $post_id, $data ) {
-		$post = get_post( $post_id );
-		$ok = (
-			! empty( $post )
-			&&
-			$post->post_type === static::INSTANCE_POST_TYPE
-			&&
-			! empty( $data['post_name'] )
-			&&
-			$post->post_name !== $data['post_name']
-		);
-		if ( ! $ok ) {
-			return;
-		}
-		$old_post_name = $post->post_name;
-		add_action( 'save_post', function( $saved_post_id ) use ( $post_id, $old_post_name ) {
-			if ( $saved_post_id !== $post_id ) {
-				return;
-			}
-			wp_cache_delete( $old_post_name, static::POST_NAME_TO_POST_ID_CACHE_GROUP );
-		} );
 	}
 
 	/**
@@ -922,60 +1193,73 @@ class Widget_Posts {
 		if ( empty( $post ) ) {
 			$instance = array();
 		} else {
-			$instance = static::get_post_content_filtered( $post );
+			$instance = static::get_post_content( $post );
 		}
 		return $instance;
 	}
 
 	/**
-	 * Encode a widget instance array for storage in post_content_filtered.
+	 * Get the instance array out of the post_content, which is Base64-encoded PHP-serialized string, or from legacy location.
 	 *
-	 * We use base64-encoding to prevent WordPress slashing to corrupt the
-	 * serialized string.
+	 * A post revision for a widget_instance may also be supplied.
 	 *
-	 * @param array $instance
-	 * @return string base64-encoded PHP-serialized string
-	 */
-	static function encode_post_content_filtered( array $instance ) {
-		return base64_encode( serialize( $instance ) );
-	}
-
-	/**
-	 * Parse the post_content_filtered, which is a base64-encoded PHP-serialized string.
-	 *
-	 * @param \WP_Post $post
+	 * @param \WP_Post $post  A widget_instance post or a revision post.
 	 * @return array
 	 */
-	static function get_post_content_filtered( \WP_Post $post ) {
+	static function get_post_content( \WP_Post $post ) {
 		if ( static::INSTANCE_POST_TYPE !== $post->post_type ) {
-			return array();
+			$parent_post = null;
+			if ( 'revision' === $post->post_type ) {
+				$parent_post = get_post( $post->post_parent );
+			}
+			if ( ! $parent_post || static::INSTANCE_POST_TYPE !== $parent_post->post_type ) {
+				return array();
+			}
 		}
-		if ( empty( $post->post_content_filtered ) ) {
-			return array();
+
+		// Handle legacy storage location of widget instance data.
+		$decoded = base64_decode( trim( $post->post_content_filtered ), true );
+		if ( false !== $decoded && is_serialized( $decoded, true ) ) {
+			$instance = unserialize( $decoded );
+			return $instance;
 		}
-		return static::parse_post_content_filtered( $post->post_content_filtered );
+
+		// Try to parse (legacy) post_content_filtered as JSON.
+		$content = json_decode( $post->post_content_filtered, true );
+		if ( is_array( $content ) ) {
+			return $content;
+		}
+
+		// Widget instance is stored as JSON in post_content.
+		$instance = json_decode( $post->post_content, true );
+		if ( is_array( $instance ) ) {
+			return $instance;
+		}
+
+		return array();
 	}
 
 	/**
-	 * Parse the post_content_filtered from its base64-encoded PHP-serialized string.
+	 * If a widget_instance post's content hasn't yet had its data migrated from
+	 * the legacy post_content_filtered location and into post_content, ensure
+	 * that the exported content will be the post_content_filtered instead of
+	 * the post_content. If post_content_filtered is present, then this means
+	 * that the post_content has had KSES apply and there are HTML entities in the
+	 * JSON code.
 	 *
-	 * @param string $post_content_filtered
-	 *
-	 * @return array
+	 * @see \CustomizeWidgetsPlus\Widget_Posts::move_encoded_data_to_post_content()
+	 * @param string $post_content
+	 * @return string Post Content
 	 */
-	static function parse_post_content_filtered( $post_content_filtered ) {
-		$decoded_instance = base64_decode( $post_content_filtered, true );
-		if ( false !== $decoded_instance ) {
-			$instance = unserialize( $decoded_instance );
-		} else if ( is_serialized( $post_content_filtered, true ) ) {
-			$instance = unserialize( $post_content_filtered );
-		} else {
-			$instance = array();
+	function handle_legacy_content_export( $post_content ) {
+		$post = get_post();
+		if ( static::INSTANCE_POST_TYPE === $post->post_type ) {
+			$instance = $this->get_post_content( $post );
+			if ( is_array( $instance ) ) {
+				$post_content = static::encode_json( $instance );
+			}
 		}
-		if ( ! is_array( $instance ) ) {
-			$instance = array();
-		}
-		return $instance;
+		return $post_content;
 	}
 
 	/**
@@ -1008,7 +1292,98 @@ class Widget_Posts {
 	}
 
 	/**
+	 * Validate that a widget instance can be serialized to JSON.
+	 *
+	 * @param array $instance Widget instance.
+	 * @return bool Whether $instance can be serialized to JSON.
+	 */
+	protected function is_json_serializable( $instance ) {
+		// @codingStandardsIgnoreStart
+		$encoded = @json_encode( $instance );
+		// @codingStandardsIgnoreEnd
+		if ( json_last_error() ) {
+			return false;
+		}
+		if ( json_decode( $encoded, true ) !== $instance ) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Whether kses filters on content_save_pre are added.
+	 *
+	 * @var bool
+	 */
+	protected $kses_suspended = false;
+
+	/**
+	 * Suspend kses which runs on content_save_pre and can corrupt JSON in post_content.
+	 *
+	 * @see \sanitize_post()
+	 */
+	function suspend_kses() {
+		if ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) ) {
+			$this->kses_suspended = true;
+			kses_remove_filters();
+		}
+	}
+
+	/**
+	 * Restore kses which runs on content_save_pre and can corrupt JSON in post_content.
+	 *
+	 * @see \sanitize_post()
+	 */
+	function restore_kses() {
+		if ( $this->kses_suspended ) {
+			kses_init_filters();
+			$this->kses_suspended = false;
+		}
+	}
+
+	/**
+	 * Make sure that restoring widget_instance revisions doesn't involve kses corrupting the post_content.
+	 *
+	 * Ideally there would be an action like pre_wp_restore_post_revision instead
+	 * of having to hack into the load-revision.php action. But even more ideally
+	 * we should be able to disable such content_save_pre filters from even applying
+	 * for certain post types, such as those which store JSON in post_content.
+	 *
+	 * @action load-revision.php
+	 */
+	function suspend_kses_for_widget_instance_revision_restore() {
+		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok.
+			return;
+		}
+		if ( ! isset( $_GET['action'] ) || 'restore' !== $_GET['action'] ) { // WPCS: input var ok, sanitization ok.
+			return;
+		}
+		$revision_post_id = intval( $_GET['revision'] ); // WPCS: input var ok.
+		if ( $revision_post_id <= 0 ) {
+			return;
+		}
+		$revision_post = wp_get_post_revision( $revision_post_id );
+		if ( empty( $revision_post ) ) {
+			return;
+		}
+		$post = get_post( $revision_post->post_parent );
+		if ( empty( $post ) || static::INSTANCE_POST_TYPE !== $post->post_type ) {
+			return;
+		}
+
+		$this->suspend_kses();
+		$that = $this;
+		add_action( 'wp_restore_post_revision', function() use ( $that ) {
+			$that->restore_kses();
+		} );
+	}
+
+	/**
 	 * Create a new widget instance.
+	 *
+	 * The widget instance is stored in post_content as JSON.
+	 *
+	 * @throws Exception
 	 *
 	 * @param string $id_base
 	 * @param array $instance
@@ -1016,50 +1391,28 @@ class Widget_Posts {
 	 *     @type bool $needs_sanitization
 	 * }
 	 * @return \WP_Post
-	 *
-	 * @throws Exception
 	 */
 	function insert_widget( $id_base, $instance = array(), $options = array() ) {
-		if ( ! array_key_exists( $id_base, $this->widget_objs ) ) {
-			throw new Exception( "Unrecognized widget id_base: $id_base" );
-		}
-		$options = wp_parse_args( $options, array(
-			'needs_sanitization' => true,
-		) );
-
-		if ( $options['needs_sanitization'] ) {
-			$instance = $this->sanitize_instance( $id_base, $instance );
-		}
-
-		$widget_number = $this->plugin->widget_number_incrementing->incr_widget_number( $id_base );
-		$post_arr = array(
-			'post_name' => "$id_base-$widget_number",
-			'post_content' => wp_json_encode( $instance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), // For search indexing and post revision UI.
-			'post_content_filtered' => static::encode_post_content_filtered( $instance ),
-			'post_status' => 'publish',
-			'post_type' => static::INSTANCE_POST_TYPE,
-		);
-		$r = wp_insert_post( $post_arr, true );
-		if ( is_wp_error( $r ) ) {
-			throw new Exception( sprintf(
-				'Failed to insert/update widget instance "%s": %s',
-				$post_arr['post_name'],
-				$r->get_error_code()
-			) );
-		}
-		$post = get_post( $r );
-		return $post;
+		return $this->update_widget( $id_base, $instance, $options );
 	}
 
 	/**
-	 * Update an existing widget.
+	 * Update an existing widget (or insert a new one).
 	 *
-	 * @param string $widget_id
+	 * The widget instance is stored in post_content as JSON. Note that this does
+	 * not use wp_insert_post() because it has major issues with indiscriminately
+	 * applying content_save_pre filters that included kses processing that
+	 * corrupts JSON data, in addition to functions that slash/unslash that can
+	 * also corrupt the data.
+	 *
+	 * @global $wpdb
+	 * @throws Exception
+	 *
+	 * @param string $widget_id Widget ID or ID base (for insertion).
 	 * @param array $instance
 	 * @param array [$options] {
 	 *     @type bool $needs_sanitization
 	 * }
-	 * @throws Exception
 	 * @return \WP_Post
 	 */
 	function update_widget( $widget_id, $instance = array(), $options = array() ) {
@@ -1067,77 +1420,101 @@ class Widget_Posts {
 			'needs_sanitization' => true,
 		) );
 
-		$parsed_widget_id = $this->plugin->parse_widget_id( $widget_id );
-		if ( empty( $parsed_widget_id ) ) {
-			throw new Exception( "Invalid widget_id: $widget_id" );
+		if ( ! is_array( $instance ) ) {
+			throw new Exception( 'Instance must be an array.' );
 		}
-		if ( ! $parsed_widget_id['widget_number'] || $parsed_widget_id['widget_number'] < 2 ) {
-			throw new Exception( "Widgets must start numbering at 2: $widget_id" );
+		if ( array_key_exists( $widget_id, $this->widget_objs ) ) {
+			$id_base = $widget_id;
+			$widget_number = null;
+			$widget_id = null;
+		} else {
+			$parsed_widget_id = $this->plugin->parse_widget_id( $widget_id );
+			if ( empty( $parsed_widget_id ) ) {
+				throw new Exception( "Invalid widget_id: $widget_id" );
+			}
+			$id_base = $parsed_widget_id['id_base'];
+			if ( $parsed_widget_id['widget_number'] < 2 ) {
+				throw new Exception( "Widgets must start numbering at 2: $widget_id" );
+			}
+			$widget_number = $parsed_widget_id['widget_number'];
+		}
+		if ( ! array_key_exists( $id_base, $this->widget_objs ) ) {
+			throw new Exception( "Unrecognized widget id_base: $id_base" );
 		}
 
-		$post_id = null;
-		$post = $this->get_widget_post( $widget_id );
-		if ( $post ) {
-			$post_id = $post->ID;
+		if ( empty( $widget_number ) ) {
+			$widget_number = $this->plugin->widget_number_incrementing->incr_widget_number( $id_base );
 		}
+
+		$widget_id = "$id_base-$widget_number";
+		$widget_post = $this->get_widget_post( $widget_id );
+		$is_insert = empty( $widget_post );
+
+		// Sanitize the widget instance array.
 		if ( $options['needs_sanitization'] ) {
-			if ( $post ) {
-				$old_instance = $this->get_widget_instance_data( $post );
+			if ( $widget_post ) {
+				$old_instance = $this->get_widget_instance_data( $widget_post );
 			} else {
 				$old_instance = array();
 			}
-			$instance = $this->sanitize_instance( $parsed_widget_id['id_base'], $instance, $old_instance );
+			$instance = $this->sanitize_instance( $id_base, $instance, $old_instance );
+		}
+
+		/*
+		 * Fail-safe to prevent saving widgets erroneously emptied
+		 * Originally introduced to prevent this problem to be happening by a combination
+		 * of Customize Contextual Settings and Optimized Widget Registration.
+		 */
+		if ( ! $is_insert && empty( $instance ) ) {
+			throw new Exception( 'Unexpected updating widget to empty instance array.' );
+		}
+
+		if ( ! $this->is_json_serializable( $instance ) ) {
+			throw new Exception( 'Instance cannot be serialized to JSON losslessly.' );
 		}
 
 		// Make sure that we have the max stored.
-		$this->plugin->widget_number_incrementing->set_widget_number( $parsed_widget_id['id_base'], $parsed_widget_id['widget_number'] );
+		$this->plugin->widget_number_incrementing->set_widget_number( $id_base, $widget_number );
 
-		$post_arr = array(
-			'post_title' => ! empty( $instance['title'] ) ? $instance['title'] : '',
-			'post_name' => $widget_id,
-			'post_content' => wp_json_encode( $instance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), // For search indexing and post revision UI.
-			'post_content_filtered' => static::encode_post_content_filtered( $instance ),
-			'post_status' => 'publish',
-			'post_type' => static::INSTANCE_POST_TYPE,
-		);
-		if ( $post_id ) {
-			$post_arr['ID'] = $post_id;
+		$post_content = static::encode_json( $instance );
+
+		if ( $widget_post ) {
+			$post_array = $widget_post->to_array();
+		} else {
+			$post_array = array(
+				'post_type' => static::INSTANCE_POST_TYPE,
+				'post_name' => $widget_id,
+				'post_author' => get_current_user_id(),
+				'post_status' => 'publish',
+			);
 		}
 
-		$r = wp_insert_post( $post_arr, true );
+		$post_array = array_merge( $post_array, array(
+			'post_content' => $post_content,
+			'post_content_filtered' => '', // Make sure any legacy base64-encoded PHP-serialized data is removed.
+		) );
+
+		$post_array = wp_slash( $post_array ); // Weep ;-(
+
+		/*
+		 * Note that we have to call suspend_kses() because sanitize_post() gets
+		 * called in wp_insert_post() before any actions are fired, so we do not
+		 * have a chance to automatically suspend the JSON-destructive kses filters.
+		 */
+		$this->suspend_kses();
+		$r = wp_insert_post( $post_array, true );
+		if ( ! is_wp_error( $r ) && $is_insert ) {
+			// Make sure post revision gets added for insert.
+			wp_save_post_revision( $r );
+		}
+		$this->restore_kses();
 		if ( is_wp_error( $r ) ) {
-			throw new Exception( sprintf(
-				'Failed to insert/update widget instance "%s": %s',
-				$post_arr['post_name'],
-				$r->get_error_code()
-			) );
+			throw new Exception( $r->get_error_code() );
 		}
-		$post = get_post( (int) $r );
-		return $post;
-	}
 
-	/**
-	 * Make sure that wp_update_post() doesn't clear out our content.
-	 *
-	 * @param array $data    An array of slashed post data.
-	 * @param array $postarr An array of sanitized, but otherwise unmodified post data.
-	 * @return array
-	 *
-	 * @filter wp_insert_post_data
-	 */
-	function preserve_content_filtered( $data, $postarr ) {
-		$should_preserve = (
-			! empty( $postarr['ID'] )
-			&&
-			static::INSTANCE_POST_TYPE === $postarr['post_type']
-			&&
-			empty( $data['post_content_filtered'] )
-		);
-		if ( $should_preserve ) {
-			$previous_content_filtered = get_post( $postarr['ID'] )->post_content_filtered;
-			$data['post_content_filtered'] = $previous_content_filtered;
-		}
-		return $data;
+		$widget_post = get_post( $r );
+
+		return $widget_post;
 	}
 
 	/**
@@ -1379,5 +1756,33 @@ class Widget_Posts {
 	 */
 	function enable_filtering_pre_option_widget_settings() {
 		$this->disabled_filtering_pre_option_widget_settings = false;
+	}
+
+	/**
+	 * Clear all of the caches for memory management.
+	 *
+	 * Copied from vip-wp-cli.php@199311
+	 *
+	 * @see WPCOM_VIP_CLI_Command::stop_the_insanity()
+	 */
+	protected function stop_the_insanity() {
+		/**
+		 * @var \WP_Object_Cache $wp_object_cache
+		 * @var \wpdb $wpdb
+		 */
+		global $wpdb, $wp_object_cache;
+
+		$wpdb->queries = array();
+
+		if ( is_object( $wp_object_cache ) ) {
+			$wp_object_cache->group_ops = array();
+			$wp_object_cache->stats = array();
+			$wp_object_cache->memcache_debug = array();
+			$wp_object_cache->cache = array();
+
+			if ( method_exists( $wp_object_cache, '__remoteset' ) ) {
+				$wp_object_cache->__remoteset(); // important
+			}
+		}
 	}
 }

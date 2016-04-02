@@ -210,7 +210,7 @@ class Optimized_Widget_Registration {
 			foreach ( $sidebar_widget_ids as $i => $widget_id ) {
 				$setting_id = $this->manager->widgets->get_setting_id( $widget_id );
 				$should_register = (
-					in_array( $widget_id, $register_widget_ids )
+					in_array( $widget_id, $register_widget_ids, true )
 					&&
 					isset( $wp_registered_widgets[ $widget_id ] )
 					&&

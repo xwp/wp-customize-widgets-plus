@@ -4,6 +4,11 @@ namespace CustomizeWidgetsPlus;
 
 class Test_Widget_Number_Incrementing extends Base_Test_Case {
 
+	function setUp() {
+		parent::setUp();
+		require_once __DIR__ . '/data/class-acme-widget.php';
+	}
+
 	/**
 	 * @see Widget_Number_Incrementing::__construct()
 	 */

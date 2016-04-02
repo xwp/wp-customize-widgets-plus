@@ -101,13 +101,29 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 		$this->failed_count = 0;
 
 		add_action( 'widget_posts_import_skip_existing', function( $context ) use ( $options ) {
-			// $context is compact( 'widget_id', 'instance', 'widget_number', 'id_base' )
+			/**
+			 * @var array $context {
+			 *     @type string $widget_id
+			 *     @type array  $instance
+			 *     @type int    $widget_number
+			 *     @type string $id_base
+			 * }
+			 */
 			\WP_CLI::line( "Skipping already-imported widget $context[widget_id] (to update, call with --update)." );
 			$this->skipped_count += 1;
 		} );
 
 		add_action( 'widget_posts_import_success', function( $context ) use ( $options ) {
-			// $context is compact( 'widget_id', 'post', 'instance', 'widget_number', 'id_base', 'update' )
+			/**
+			 * @var array $context {
+			 *     @type string   $widget_id
+			 *     @type \WP_Post $post
+			 *     @type array    $instance
+			 *     @type int      $widget_number
+			 *     @type string   $id_base
+			 *     @type bool     $update
+			 * }
+			 */
 			if ( $context['update'] ) {
 				$message = "Updated widget $context[widget_id].";
 				$this->updated_count += 1;
@@ -122,8 +138,16 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 		} );
 
 		add_action( 'widget_posts_import_failure', function( $context ) {
-			// $context is compact( 'widget_id', 'exception', 'instance', 'widget_number', 'id_base', 'update' )
-			/** @var Exception $exception */
+			/**
+			 * @var array $context {
+			 *     @type string     $widget_id
+			 *     @type Exception  $exception
+			 *     @type array      $instance
+			 *     @type int        $widget_number
+			 *     @type string     $id_base
+			 *     @type bool       $update
+			 * }
+			 */
 			$exception = $context['exception'];
 			\WP_CLI::warning( "Failed to import $context[widget_id]: " . $exception->getMessage() );
 			$this->failed_count += 1;
@@ -389,4 +413,43 @@ class Widget_Posts_CLI_Command extends \WP_CLI_Command {
 		}
 	}
 
+	/**
+	 * Update database to store base64-encoded data in post_content instead of post_content_filtered.
+	 *
+	 * ## DESCRIPTION
+	 *
+	 * Storing the raw data in post_content is required for doing proper import/export via WXR.
+	 *
+	 * ## OPTIONS
+	 *
+	 * --dry-run
+	 * : Show what would be migrated.
+	 *
+	 * --sleep-interval=<post_count>
+	 * : Number of posts processed before sleep()'ing. Default 50.
+	 *
+	 * --sleep-duration=<seconds>
+	 * : Number of seconds to sleep for. Default 5.
+	 *
+	 * @param array $args
+	 * @param array $assoc_args
+	 * @subcommand move-encoded-data-to-post-content
+	 * @synopsis [--dry-run] [--sleep-interval=<post_count>] [--sleep-duration=<seconds>]
+	 */
+	public function move_encoded_data_to_post_content( $args, $assoc_args ) {
+		$widget_posts = $this->get_widget_posts();
+		unset( $args );
+
+		add_action( 'widget_posts_content_moved_message', function( $args ) {
+			if ( 'success' === $args['type'] ) {
+				\WP_CLI::success( $args['text'] );
+			} else if ( 'warning' === $args['type'] ) {
+				\WP_CLI::warning( $args['text'] );
+			} else {
+				\WP_CLI::line( $args['text'] );
+			}
+		} );
+
+		$widget_posts->move_encoded_data_to_post_content( $assoc_args );
+	}
 }

@@ -24,11 +24,14 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 	 */
 	protected $js_concat_init_priority;
 
+	protected $backup_registered_widget_controls;
+	protected $backup_registered_widget_updates;
+
 	/**
 	 * Set up.
 	 */
 	function setUp() {
-		global $wp_widget_factory;
+		global $wp_widget_factory, $wp_registered_widget_updates, $wp_registered_widget_controls, $wp_registered_widgets;
 
 		// For why these hooks have to be removed, see https://github.com/Automattic/nginx-http-concat/issues/5
 		$this->css_concat_init_priority = has_action( 'init', 'css_concat_init' );
@@ -69,6 +72,16 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		$this->plugin->widget_posts->prepare_widget_data(); // Has to be called here because of wp_widgets_init() footwork done above.
 		$this->plugin->widget_posts->register_instance_post_type(); // Normally called at init action.
 		$this->plugin->widget_posts->capture_widget_settings_for_customizer(); // Normally called in widgets_init
+
+		$wp_registered_widgets = array();
+		$wp_registered_widget_updates = array();
+		$wp_registered_widget_controls = array();
+
+		register_widget( 'WP_Widget_Search' );
+		wp_widgets_init();
+		$this->assertArrayHasKey( 'search-2', $wp_registered_widgets );
+		$this->assertArrayHasKey( 'search', $wp_registered_widget_updates );
+		$this->assertArrayHasKey( 'search-2', $wp_registered_widget_controls );
 	}
 
 	function test_register_settings() {

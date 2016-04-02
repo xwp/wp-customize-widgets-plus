@@ -107,7 +107,7 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 		$deleted_widget_id = null;
 		add_action( 'delete_post', function( $post_id ) use ( &$deleted_widget_id ) {
 			$post = get_post( $post_id );
-			$this->assertEquals( Widget_Posts::INSTANCE_POST_TYPE, $post->post_type );
+			$this->assertContains( $post->post_type, array( Widget_Posts::INSTANCE_POST_TYPE, 'revision' ) );
 			$deleted_widget_id = $post->post_name;
 		}, 10, 2 );
 

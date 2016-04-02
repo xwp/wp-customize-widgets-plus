@@ -220,7 +220,7 @@ class Deferred_Customize_Widgets {
 		echo "})( _wpCustomizeSettings.controls );\n";
 
 		// Re-handle widget/area control autofocus since they were removed when checked before.
-		if ( isset( $_GET['autofocus']['control'] ) ) {
+		if ( isset( $_GET['autofocus']['control'] ) ) { // input var okay; sanitization ok
 			$autofocus_control_id = wp_unslash( $_GET['autofocus']['control'] ); // input var okay; sanitization ok
 			if ( isset( $this->customize_controls[ $autofocus_control_id ] ) ) {
 				printf( "_wpCustomizeSettings.autofocus.control = %s;\n", wp_json_encode( $autofocus_control_id ) );
