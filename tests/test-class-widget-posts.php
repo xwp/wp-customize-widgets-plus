@@ -581,13 +581,13 @@ class Test_Widget_Posts extends Base_Test_Case {
 			$this->assertNotEmpty( $sanitized_inserted_instance );
 			$this->assertArrayHasKey( 'filter', $sanitized_inserted_instance );
 			$this->assertNotEquals( $inserted_instance, $sanitized_inserted_instance );
-			$this->assertEquals( wp_kses_post( stripslashes( $inserted_instance['text'] ) ), $sanitized_inserted_instance['text'] );
+			$this->assertEquals( wp_kses_post( $inserted_instance['text'] ), $sanitized_inserted_instance['text'] );
 
 			// Now update the same post.
 			$post_objects[] = $this->module->update_widget( $sanitized_post->post_name, $update_instance, array( 'needs_sanitization' => true ) );
 			$sanitized_updated_instance = $this->module->get_widget_instance_data( $sanitized_post->ID );
 			$this->assertNotEquals( $updated_instance, $sanitized_updated_instance );
-			$this->assertEquals( wp_kses_post( stripslashes( $update_instance['text'] ) ), $sanitized_updated_instance['text'] );
+			$this->assertEquals( wp_kses_post( $update_instance['text'] ), $sanitized_updated_instance['text'] );
 
 			// Ensure revisions are inserted as expected.
 			$post_revisions = array_values( wp_get_post_revisions( $sanitized_post, array( 'order' => 'ASC' ) ) );
