@@ -2,6 +2,9 @@
 
 namespace CustomizeWidgetsPlus;
 
+/**
+ * @group customize-widgets-plus
+ */
 class Test_Non_Autoloaded_Widget_Options extends Base_Test_Case {
 
 	/**
@@ -34,6 +37,7 @@ class Test_Non_Autoloaded_Widget_Options extends Base_Test_Case {
 
 		$registered_option_names = wp_list_pluck( $this->plugin->get_registered_widget_objects(), 'option_name' );
 		$sql_option_names_in = join( ',', array_fill( 0, count( $registered_option_names ), '%s' ) );
+		// @codingStandardsIgnoreStart
 		$unautoloaded_widget_option_count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->options WHERE autoload = 'no' AND option_name IN ( $sql_option_names_in )", $registered_option_names ) ); // db call okay; cache okay
 		$this->assertEquals( 0, $unautoloaded_widget_option_count );
 
@@ -45,6 +49,7 @@ class Test_Non_Autoloaded_Widget_Options extends Base_Test_Case {
 
 		$unautoloaded_widget_option_count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->options WHERE autoload = 'no' AND option_name IN ( $sql_option_names_in )", $registered_option_names ) ); // db call okay; cache okay
 		$this->assertGreaterThan( 0, $unautoloaded_widget_option_count );
+		// @codingStandardsIgnoreStop
 	}
 
 	/**

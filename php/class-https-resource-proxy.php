@@ -76,7 +76,7 @@ class HTTPS_Resource_Proxy {
 	function config( $key = null ) {
 		if ( is_null( $key ) ) {
 			return $this->plugin->config[ self::MODULE_SLUG ];
-		} else if ( isset( $this->plugin->config[ self::MODULE_SLUG ][ $key ] ) ) {
+		} elseif ( isset( $this->plugin->config[ self::MODULE_SLUG ][ $key ] ) ) {
 			return $this->plugin->config[ self::MODULE_SLUG ][ $key ];
 		} else {
 			return null;
@@ -448,7 +448,7 @@ class HTTPS_Resource_Proxy {
 
 			if ( ! empty( $r['headers']['expires'] ) ) {
 				$cache_ttl = strtotime( $r['headers']['expires'] ) - time();
-			} else if ( ! empty( $r['headers']['cache-control'] ) && preg_match( '/max-age=(\d+)/', $r['headers']['cache-control'], $matches ) ) {
+			} elseif ( ! empty( $r['headers']['cache-control'] ) && preg_match( '/max-age=(\d+)/', $r['headers']['cache-control'], $matches ) ) {
 				$cache_ttl = intval( $matches[1] );
 			} else {
 				$cache_ttl = -1;

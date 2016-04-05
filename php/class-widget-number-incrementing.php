@@ -76,10 +76,14 @@ class Widget_Number_Incrementing {
 	 *
 	 * @param $id_base
 	 * @see \next_widget_id_number()
+	 * @throws Exception
 	 *
 	 * @return int
 	 */
 	function get_max_existing_widget_number( $id_base ) {
+		if ( empty( $this->widget_objs[ $id_base ] ) ) {
+			throw new Exception( "No WP_Widget instance captured for $id_base" );
+		}
 		$widget_obj = $this->widget_objs[ $id_base ];
 		// @todo There should be a pre_existing_widget_numbers, pre_max_existing_widget_number filter, or pre_existing_widget_ids to short circuit the expensive WP_Widget::get_settings()
 

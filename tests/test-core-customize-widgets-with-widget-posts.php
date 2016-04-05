@@ -7,6 +7,9 @@ if ( ! getenv( 'WP_TESTS_DIR' ) ) {
 }
 require_once getenv( 'WP_TESTS_DIR' ) . '/tests/customize/widgets.php';
 
+/**
+ * @group customize-widgets-plus
+ */
 class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_Widgets {
 
 	/**
@@ -24,11 +27,14 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 	 */
 	protected $js_concat_init_priority;
 
+	protected $backup_registered_widget_controls;
+	protected $backup_registered_widget_updates;
+
 	/**
 	 * Set up.
 	 */
 	function setUp() {
-		global $wp_widget_factory;
+		global $wp_widget_factory, $wp_registered_widget_updates, $wp_registered_widget_controls, $wp_registered_widgets;
 
 		// For why these hooks have to be removed, see https://github.com/Automattic/nginx-http-concat/issues/5
 		$this->css_concat_init_priority = has_action( 'init', 'css_concat_init' );
@@ -39,7 +45,7 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		if ( $this->js_concat_init_priority ) {
 			remove_action( 'init', 'js_concat_init', $this->js_concat_init_priority );
 		}
-		global $wp_registered_widget_updates, $wp_registered_widget_controls, $wp_registered_widgets;
+
 		$wp_registered_widget_updates = array();
 		$wp_registered_widget_controls = array();
 		$wp_registered_widgets = array();
@@ -71,8 +77,20 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		$this->plugin->widget_posts->capture_widget_settings_for_customizer(); // Normally called in widgets_init
 	}
 
-	function test_register_settings() {
+	function test_register_widget() {
+		global $wp_registered_widget_updates, $wp_registered_widget_controls, $wp_registered_widgets;
+		$wp_registered_widgets = array();
+		$wp_registered_widget_updates = array();
+		$wp_registered_widget_controls = array();
+
+		register_widget( 'WP_Widget_Search' );
 		wp_widgets_init();
+		$this->assertArrayHasKey( 'search-2', $wp_registered_widgets );
+		$this->assertArrayHasKey( 'search', $wp_registered_widget_updates );
+		$this->assertArrayHasKey( 'search-2', $wp_registered_widget_controls );
+	}
+
+	function test_register_settings() {
 		parent::test_register_settings();
 		$this->assertInstanceOf( __NAMESPACE__ . '\\WP_Customize_Widget_Setting', $this->manager->get_setting( 'widget_categories[2]' ) );
 		$this->assertEquals( 'widget', $this->manager->get_setting( 'widget_categories[2]' )->type );

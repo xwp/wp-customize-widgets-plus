@@ -2,6 +2,9 @@
 
 namespace CustomizeWidgetsPlus;
 
+/**
+ * @group customize-widgets-plus
+ */
 class Test_Optimized_Widget_Registration extends Base_Test_Case {
 
 	/**

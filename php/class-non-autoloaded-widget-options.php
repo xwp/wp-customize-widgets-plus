@@ -66,7 +66,7 @@ class Non_Autoloaded_Widget_Options {
 			 * @var \WP_Widget $widget_obj
 			 */
 
-			$is_already_autoloaded = in_array( $widget_obj->option_name, $autoloaded_option_names );
+			$is_already_autoloaded = in_array( $widget_obj->option_name, $autoloaded_option_names, true );
 
 			if ( $is_already_autoloaded ) {
 				// Add to list of options that we need to unautoload
@@ -81,7 +81,9 @@ class Non_Autoloaded_Widget_Options {
 		if ( ! empty( $pending_unautoload_option_names ) ) {
 			$sql_in = join( ',', array_fill( 0, count( $pending_unautoload_option_names ), '%s' ) );
 			$sql = "UPDATE $wpdb->options SET autoload = 'no' WHERE option_name IN ( $sql_in )";
-			$wpdb->query( $wpdb->prepare( $sql, $pending_unautoload_option_names ) ); // db call okay; cache okay
+			// @codingStandardsIgnoreStart
+			$wpdb->query( $wpdb->prepare( $sql, $pending_unautoload_option_names ) );
+			// @codingStandardsIgnoreStop
 			wp_cache_delete( 'alloptions', 'options' );
 		}
 	}
