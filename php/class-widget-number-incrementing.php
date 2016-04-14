@@ -212,6 +212,13 @@ class Widget_Number_Incrementing {
 	 * @action customize_controls_enqueue_scripts
 	 */
 	function customize_controls_enqueue_scripts() {
+		global $wp_customize;
+
+		// Abort if widgets component is disabled.
+		if ( ! isset( $wp_customize->widgets ) ) {
+			return;
+		}
+
 		wp_enqueue_script( $this->plugin->script_handles['widget-number-incrementing-customizer'] );
 		$this->export_script_data();
 	}
