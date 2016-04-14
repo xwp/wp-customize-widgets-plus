@@ -81,6 +81,11 @@ class Deferred_Customize_Widgets {
 			return;
 		}
 
+		// Abort if widgets component is disabled.
+		if ( ! isset( $manager->widgets ) ) {
+			return;
+		}
+
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
 		if ( ! $has_json_encode_peak_memory_fix ) {
