@@ -119,6 +119,15 @@ class Test_Core_With_Widget_Posts extends \Tests_Widgets {
 		$this->assertEquals( 'search-2', $deleted_widget_id );
 	}
 
+	/**
+	 * Test that registering a widget class and registering a widget instance work together.
+	 */
+	function test_register_and_unregister_widget_instance() {
+		global $wp_widget_factory, $wp_registered_widgets;
+		$wp_widget_factory->widgets = $wp_registered_widgets = array(); // WPCS: Global override ok.
+		parent::test_register_and_unregister_widget_instance();
+	}
+
 	function tearDown() {
 		parent::tearDown();
 		if ( $this->css_concat_init_priority ) {
