@@ -98,6 +98,15 @@ class Test_Core_Customize_Widgets_With_Widget_Posts extends \Tests_WP_Customize_
 		$this->assertInstanceOf( __NAMESPACE__ . '\\Widget_Settings', get_option( 'widget_categories' ) );
 	}
 
+	/**
+	 * Test test_customize_register_with_deleted_sidebars.
+	 */
+	function test_customize_register_with_deleted_sidebars() {
+		global $wp_registered_sidebars;
+		$wp_registered_sidebars = array(); // WPCS: Global override OK.
+		parent::test_customize_register_with_deleted_sidebars();
+	}
+
 	function tearDown() {
 		parent::tearDown();
 		if ( $this->css_concat_init_priority ) {
