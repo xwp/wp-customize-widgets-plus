@@ -172,7 +172,7 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 	 * Save the value of the widget setting.
 	 *
 	 * @param array|mixed $value The value to update.
-	 * @return void
+	 * @return bool
 	 */
 	protected function update( $value ) {
 		// @todo Maybe more elegant to do $sanitizing->widget_objs[ $this->widget_id_base ]->get_settings() or $sanitizing->current_widget_type_values[ $this->widget_id_base ]
@@ -180,10 +180,11 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		$option_value = get_option( $option_name, array() );
 		$option_value[ $this->widget_number ] = $value;
 		$option_value['_multiwidget'] = 1; // Ensure this is set so that wp_convert_widget_settings() won't be called in WP_Widget::get_settings().
-		update_option( $option_name, $option_value );
+		$result = update_option( $option_name, $option_value );
 
-		if ( ! $this->is_previewed ) {
+		if ( false !== $result && ! $this->is_previewed ) {
 			$this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
 		}
+		return $result;
 	}
 }

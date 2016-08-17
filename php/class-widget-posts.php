@@ -246,6 +246,7 @@ class Widget_Posts {
 			'show_in_nav_menus' => false,
 			'show_in_menu' => true,
 			'show_in_admin_bar' => false,
+			'show_in_customizer' => false,
 			'map_meta_cap' => true,
 			'hierarchical' => false,
 			'delete_with_user' => false,

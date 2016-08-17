@@ -214,8 +214,8 @@ class Widget_Number_Incrementing {
 	function customize_controls_enqueue_scripts() {
 		global $wp_customize;
 
-		// Abort if widgets component is disabled.
-		if ( ! isset( $wp_customize->widgets ) ) {
+		// Abort if widgets component is disabled or the user can't manage widgets.
+		if ( ! isset( $wp_customize->widgets ) || ! current_user_can( 'edit_theme_options' ) ) {
 			return;
 		}
 
