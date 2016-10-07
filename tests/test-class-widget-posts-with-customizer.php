@@ -52,7 +52,6 @@ class Test_Widget_Posts_With_Customizer extends Base_Test_Case {
 		global $wp_registered_widgets;
 		$wp_registered_widgets = array();
 		wp_widgets_init();
-		do_action( 'wp_loaded' );
 	}
 
 	/**
@@ -88,6 +87,7 @@ class Test_Widget_Posts_With_Customizer extends Base_Test_Case {
 		);
 		$sanitized_widget_instance = $this->customize_manager->widgets->sanitize_widget_js_instance( $override_widget_data );
 		$this->customize_manager->set_post_value( $setting_id, $sanitized_widget_instance );
+		$this->customize_manager->add_dynamic_settings( array( $setting_id ) );
 
 		$widget_post = $this->widget_posts->get_widget_post( $widget_id );
 		$this->assertEquals( $initial_search_widgets[2], $this->widget_posts->get_widget_instance_data( $widget_post ) );
