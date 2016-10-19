@@ -166,6 +166,20 @@ class WP_Customize_Widget_Setting extends \WP_Customize_Setting {
 		if ( ! is_null( $value ) ) {
 			$this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
 		}
+
+		add_action( "customize_post_value_set_{$this->id}", array( $this, '_update_current_widget_type_value' ) );
+	}
+
+	/**
+	 * Make sure that the cached widget preview value is updated when the post value is updated.
+	 *
+	 * @access private
+	 */
+	function _update_current_widget_type_value() {
+		$value = $this->post_value();
+		if ( ! is_null( $value ) ) {
+			$this->widget_posts->current_widget_type_values[ $this->widget_id_base ][ $this->widget_number ] = $value;
+		}
 	}
 
 	/**
