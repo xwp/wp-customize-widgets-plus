@@ -52,6 +52,11 @@ class Plugin extends Plugin_Base {
 	public $deferred_customize_widgets;
 
 	/**
+	 * @var Customize_Snapshot_Manager
+	 */
+	public $customize_snapshot_manager;
+
+	/**
 	 * @var \WP_Widget_Factory
 	 */
 	public $widget_factory;
@@ -86,6 +91,7 @@ class Plugin extends Plugin_Base {
 				'widget_posts' => true,
 				'optimized_widget_registration' => false,
 				'deferred_customize_widgets' => true,
+				'customize_snapshot_manager' => true,
 			),
 			'https_resource_proxy' => HTTPS_Resource_Proxy::default_config(),
 			'widget_posts' => Widget_Posts::default_config(),
@@ -162,6 +168,9 @@ class Plugin extends Plugin_Base {
 		if ( $this->is_module_active( 'deferred_customize_widgets' ) ) {
 			$this->deferred_customize_widgets = new Deferred_Customize_Widgets( $this );
 		}
+		if ( $this->is_module_active( 'customize_snapshot_manager' ) ) {
+			$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
+		}
 	}
 
 	/**
@@ -205,6 +214,13 @@ class Plugin extends Plugin_Base {
 		$deps = array( 'jquery', 'customize-widgets' );
 		$wp_scripts->add( $handle, $src, $deps );
 		$this->script_handles[ $slug ] = $handle;
+
+		$slug = 'customize-snapshot';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'js/customize-snapshot.js';
+		$deps = array( 'jquery', 'jquery-ui-dialog' );
+		$wp_scripts->add( $handle, $src, $deps );
+		$this->script_handles[ $slug ] = $handle;
 	}
 
 	/**
@@ -224,6 +240,13 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'css/post-edit.css';
 		$wp_styles->add( $handle, $src );
 		$this->style_handles['post_edit'] = $handle;
+
+		$slug = 'customize-snapshot';
+		$handle = "{$this->slug}-{$slug}";
+		$src = $this->dir_url . 'css/customize-snapshot.css';
+		$deps = array( 'wp-jquery-ui-dialog' );
+		$wp_styles->add( $handle, $src, $deps );
+		$this->style_handles[ $slug ] = $handle;
 	}
 
 	/**
